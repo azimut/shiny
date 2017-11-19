@@ -1,5 +1,8 @@
 ;;;; somecepl.asd
 
+;; cepl.skitter.sdl - is for mouse support
+;; livesupport      - provides a generic main loop with (play)
+
 (asdf:defsystem #:somecepl
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
