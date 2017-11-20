@@ -15,6 +15,5 @@
                #:cepl.skitter.sdl2
                #:dirt)
   :serial t
-  :components ((:file "package")
-               (:file "somecepl")))
+  :components ((:file "package")))
 
