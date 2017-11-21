@@ -11,6 +11,30 @@
 (defun-g draw-verts-vert-stage ((vert :vec2))
   (v! vert 0 1))
 
+;; float stroke(float x, float s, float w){ 
+;;     float d = step(s,x+w*.5) - 
+;;               step(s,x-w*.5);
+;;     return clamp(d, 0., 1.);
+;; }
+(defun-g gstroke ((x :float) (s :float) (w :float))
+  (let* ((d (- (step s (+ x (* .5 w)))
+               (step s (- x (* .5 w))))))
+    (clamp d 0.0 1.0))
+  )
+
+; Title: Temperance
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+  (let* ((st     (v! (/ (x gl-frag-coord) (x resolution))
+                     (/ (y gl-frag-coord) (y resolution))))
+         (offset (* .15 (cos (* 3.1415 (y st)))))
+         (color  (+  (v3! (gstroke (x st) (+ .28 offset) .1))
+                     (v3! (gstroke (x st) (+ .5  offset) .1))
+                     (v3! (gstroke (x st) (+ .72 offset) .1)))))
+    (v! color 1.0)
+  ))
+
+
+
 (defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
   (let* ((st    (v! (/ (x gl-frag-coord) (x resolution))
                     (/ (y gl-frag-coord) (y resolution))))
@@ -63,22 +87,12 @@
 ;; // Title: The Wall
 ;; // Author: Patricio Gonzalez Vivo
 ;; uniform vec2 u_resolution;
-;; float stroke(float x, float s, float w){ 
-;;     float d = step(s,x+w*.5) - 
-;;               step(s,x-w*.5);
-;;     return clamp(d, 0., 1.);
-;; }
 ;; void main() {
 ;;     vec3 color = vec3(0.);
 ;;     vec2 st = gl_FragCoord.xy/u_resolution;
 ;;     color += stroke(st.x, .5, .15);
 ;;     gl_FragColor = vec4(color,1.);
 ;; }
-(defun-g gstroke ((x :float) (s :float) (w :float))
-  (let* ((d (- (step s (+ x (* .5 w)))
-               (step s (- x (* .5 w))))))
-    (clamp d 0.0 1.0))
-  )
 (defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
   (let* ((st    (v! (/ (x gl-frag-coord) (x resolution))
                     (/ (y gl-frag-coord) (y resolution))))
