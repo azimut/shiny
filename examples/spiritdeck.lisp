@@ -22,6 +22,37 @@
     (clamp d 0.0 1.0))
   )
 
+(defun-g grotate ((st :vec2) (a :float))
+  (let* ((st (* (mat2 (cos a)
+                   (* -1 (sin a))
+                   (sin a)
+                   (cos a))
+                (- st (v2! .5)))))
+    (+ (v2! .5) st)))
+
+(defun-g aastep ((threshold :float) (value :float))
+  (step threshold value))
+
+(defun-g gfill ((x :float) (size :float))
+  (- 1.0 (aastep size x)))
+
+(defun-g rectSDF ((st :vec2) (s :vec2))
+  (let* ((st (- (* st (v2! 2.0)) (v2! 1.0))))
+    (max (abs (/ (x st) (x s)))
+         (abs (/ (y st) (y s))))))
+
+; Title: The stone
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+  (let* ((st     (v! (/ (x gl-frag-coord) (x resolution))
+                     (/ (y gl-frag-coord) (y resolution))))
+         (st     (grotate st (radians 45.)))
+         (color  (gfill (rectSDF st (v2! 1.)) .4))
+         (color  (* color (- 1.0 (gstroke (x st) .5 .02))))
+         (color  (* color (- 1.0 (gstroke (y st) .5 .02)))))
+    (v! color 1.0)
+         )
+  )
+
 ; Title: Temperance
 (defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
   (let* ((st     (v! (/ (x gl-frag-coord) (x resolution))
