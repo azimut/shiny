@@ -30,6 +30,11 @@
                 (- st (v2! .5)))))
     (+ (v2! .5) st)))
 
+
+(defun-g aastep ((threshold :float) (value :float))
+  (let* ((afwidth (* 0.7 (length (v! (dFdx value) (dFdy value))))))
+    (smoothstep (- threshold afwidth) (+ threshold afwidth) value)))
+
 (defun-g aastep ((threshold :float) (value :float))
   (step threshold value))
 
@@ -49,7 +54,7 @@
          (color  (gfill (rectSDF st (v2! 1.)) .4))
          (color  (* color (- 1.0 (gstroke (x st) .5 .02))))
          (color  (* color (- 1.0 (gstroke (y st) .5 .02)))))
-    (v! color 1.0)
+    (v! color color color 1.0)
          )
   )
 
