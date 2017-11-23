@@ -19,15 +19,15 @@
 ;;     return fract(vec3(p.x * p.y, p.z*p.x, p.y*p.z));
 ;; }
 (defun-g hash33 ((p :vec3))
-  (let* ((pp   (fract (* p (v! 443.8975
-                               497.2973
-                               491.1871))))
-         (pp~1 (+ pp (v3! (dot (s~ p :zxy)
+  (let* ((p   (fract (* p (v!  "443.8975"
+                               "497.2973"
+                               "491.1871"))))
+         (p (+ p (v3! (dot (s~ p :zxy)
                                (+ (v3! 19.27)
-                                  (s~ p :yxz) ))))))
-    (fract (v! (* (x pp~1) (y pp~1))
-               (* (z pp~1) (x pp~1))
-               (* (y pp~1) (z pp~1))))))
+                                 (s~ p :yxz) ))))))
+    (fract (v! (* (x p) (y p))
+               (* (z p) (x p))
+               (* (y p) (z p))))))
 
 ;; vec3 bg(in vec3 rd)
 ;; {
@@ -37,11 +37,10 @@
 ;;     return col*.63;
 ;; }
 (defun-g bg ((rd :vec3))
-  (let* ((sd (pow (+ 0.5
-                     (* 0.5
-                        (dot (normalize (v! -.5 -.6 .9))
-                              rd)))
-                   5.0))
+  (let* ((sd (+ .05
+               (* .05
+                  (dot (normalize (v! -.5 -.6 .9)) rd))))
+         (sd (pow sd 5.0))
          (col (mix (v! .05 .1 .2)
                    (v! .1 .05 .2)
                    sd)))
@@ -67,10 +66,11 @@
   (let* ((c (v3! 0.0))
          (res (* 1. (x resolution))))
     (for (i 0.) (< i 4) (++ i)
-         (let* ((q  (- (fract (* p (* .15 res))) (v3! 0.5)))
-               (rn (s~ (hash33 (floor (* p (* .15 res)))) :xy))
-               (c2 (* (step (x rn) (+ .0005 (* i i .001))) 
-                      (- 1.0 (smoothstep 0.0 .6 (length q))))))
+         (let* ((q  (- (fract (* p (* .15 res)))
+                       (v3! 0.5)))
+                (rn (s~ (hash33 (floor (* p (* .15 res)))) :xy))
+                (c2 (* (step (x rn) (+ .0005 (* i i .001))) 
+                       (- 1.0 (smoothstep 0.0 .6 (length q))))))
            (setf c (+ c (* c2 (+ (v3! 0.9)
                                  (* .1 (mix (v! 1.0 .49 .1)
                                             (v! .75 .9 1.)
@@ -94,16 +94,18 @@
 ;; }
 (defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
   (let* ((q (/ (s~ gl-frag-coord :xy)
-               (s~ resolution :xy)))
-         (p (v! (* (- (x q)  0.5)
-                   (/ (x resolution) (y resolution)))
-                (- (y q) 0.5)))
+               (s~ resolution    :xy)))
+         (p (- q (v2! 0.5)))
+         (p (v2! (* (x p) (/ (x resolution) (y resolution)))
+                 (y p)))
          (rd (normalize (v! p 1.3)))
-         (fade (+ 0.9 (* 0.1 (smoothstep 0.0 0.01 (abs (y rd))))))
-         (col  (* 1.0 (bg rd))))
-    (cond ((> (y rd) 0.)
-           (setf col (+ col (stars rd resolution)))))
-    (v! col 1.0)
+         (fade (+ 0.9
+                  (* 0.1
+                     (smoothstep 0.0 0.01 (abs (y rd))))))
+         (col  (* fade (bg rd))))
+    ;(cond ((> (y rd) 0.)
+    ;       (setf col (+ col (stars rd resolution)))))
+    (v! (+ col (stars rd resolution)) 1.0)
   ))
 
 
