@@ -8,11 +8,16 @@
 (defvar *gpu-index-arr* nil)
 (defvar *vert-stream* nil)
 
-(defun-g draw-verts-vert-stage ((vert :vec2))
-  (v! vert 0 1))
+(defparameter *texture* nil)
+(defparameter *sampler* nil)
 
-(defun-g draw-verts-frag-stage (&uniform (resolution :vec2)
-                                         (time :float))
+(defun-g draw-verts-vert-stage ((vert :vec2))
+  (values (v! vert 0 1)
+          (+ (v2! 0.5) (* vert 0.5))))
+
+(defun-g draw-verts-frag-stage ((uv :vec2) &uniform (resolution :vec2)
+                                         (time :float)
+                                         (sam :sampler-2d))
   (let* ((st    (/ (s~ gl-frag-coord :xy)
                    (v! 1024. 768.) ))
 ;         (v     (* 5.0 0.4))
@@ -35,7 +40,7 @@
 
 (defpipeline-g draw-verts-pipeline ()
   :vertex   (draw-verts-vert-stage :vec2)
-  :fragment (draw-verts-frag-stage))
+  :fragment (draw-verts-frag-stage :vec2))
 
 (defun now ()
   (* (get-internal-real-time)
@@ -48,7 +53,8 @@
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
           :resolution (viewport-resolution (current-viewport))
-          :time (now))
+          :time (now)
+          :sam *texture*)
    (swap))
 
 (defun init ()
@@ -59,6 +65,12 @@
     (free *gpu-index-arr*))
   (when *vert-stream*
     (free *vert-stream*))
+
+  (when *texture*
+    (free *texture*))
+
+  (setf *texture*
+        (tex "patitos.jpg"))
   
   (setf *gpu-verts-arr*
         (make-gpu-array
