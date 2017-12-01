@@ -10,6 +10,7 @@
   :depends-on (#:cepl
                #:cepl.sdl2
                #:swank
+               #:incudine
                #:nineveh
                #:livesupport
                #:cepl.skitter.sdl2

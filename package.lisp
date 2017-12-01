@@ -6,5 +6,11 @@
     (:use #:cl #:cepl #:rtg-math
           #:nineveh
           #:vari
+          #:incudine
           #:cepl.skitter
-          #:livesupport))
+          #:livesupport)
+  (:shadowing-import-from #:cepl #:free)
+  (:shadowing-import-from #:incudine #:buffer-data)
+  (:import-from #:incudine.vug #:define-vug #:out #:~ #:sine #:dsp!)
+  (:import-from #:incudine.util #:with-samples #:db->lin #:lin->db #:*twopi-div-sr* #:+sample-zero+)
+)
