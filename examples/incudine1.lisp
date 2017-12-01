@@ -8,25 +8,35 @@
 (defvar *gpu-index-arr* nil)
 (defvar *vert-stream* nil)
 
-;; (incudine.vug:define-vug rms (in hp
-;;   (:defaults 0 30)
-;;   (incudine.util:with-samples ((b    (- 2 (cos (* hp incudine.util:*twopi-div-sr*))))
-;;                                (c2   (- b (sqrt (the non-negative-sample (1- (* b b))))))
-;;                                (c1   (- 1 c2))
-;;                                (in2  (* in in))
-;;                                (q    incudine.util:+sample-zero+))
-;;   (sqrt (the non-negative-same (incudine.vug:~ (+ (* c1 in2) (* c2 it)))))))
-;;
-;; (incudine.vug:dsp! rms-test (gain freq rms)
-;;   "Get the RMS amplitude by using a control parameter with side effect."
-;;   (:defaults -14 440 0)
-;;   (incudine.util:with-samples ((ma (* .5 (incudine.util:db->lin gain)))
-;;                                (in (incudine.vug:sine freq
-;;                                                       (+ ma (incudine.vug:sine 4 ma 0))
-;;                                                       0)))
-;;
-;;     (setf rms (rms in))
-;;     (incudine.vug:out in)))
+
+;; From Music V family.
+(define-vug rms (in hp)
+  (:defaults 0 30)
+  (with-samples ((b   (- 2 (cos (* hp *twopi-div-sr*))))
+                 (c2  (- b (sqrt (the non-negative-sample (1- (* b b))))))
+                 (c1  (- 1 c2))
+                 (in2 (* in in))
+                 (q   +sample-zero+))
+    (sqrt (the non-negative-sample (~ (+ (* c1 in2) (* c2 it)))))))
+
+(dsp! rms-test (gain freq rms)
+  "Get the RMS amplitude by using a control parameter with side effect."
+  (:defaults -14 440 0)
+  (with-samples ((ma (* .5 (db->lin gain)))
+                 (in (sine freq (+ ma (sine 4 ma 0)) 0)))
+    (setf rms (rms in))
+    (out in)))
+
+
+(rt-start)
+
+(rms-test :id 123)
+
+(lin->db (control-value 123 'rms))
+
+(free 123)
+
+
 
 (defun-g draw-verts-vert-stage ((vert :vec2))
   (v! vert 0 1))
@@ -47,7 +57,7 @@
   :vertex   (draw-verts-vert-stage :vec2)
   :fragment (draw-verts-frag-stage))
 
-(defun now ()
+(defun getnow ()
   (float (/ (get-internal-real-time) 1000 )))
 
 (defun draw! ()
@@ -57,7 +67,7 @@
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
           :resolution (viewport-resolution (current-viewport))
-          :time (coerce (control-value 123 'rms) 'short-float))
+          :time (getnow))
    (swap))
 
 (defun init ()
