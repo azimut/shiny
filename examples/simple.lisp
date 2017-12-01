@@ -25,7 +25,7 @@
   :fragment (draw-verts-frag-stage))
 
 (defun now ()
-  (get-internal-real-time))
+  (float (get-internal-real-time)))
 
 (defun draw! ()
    (step-host)

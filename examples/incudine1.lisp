@@ -34,7 +34,7 @@
 
 (lin->db (control-value 123 'rms))
 
-(free 123)
+(incudine:free 123)
 
 
 
@@ -58,7 +58,7 @@
   :fragment (draw-verts-frag-stage))
 
 (defun getnow ()
-  (float (/ (get-internal-real-time) 1000 )))
+  (/ (float (get-internal-real-time)) 1000 ))
 
 (defun draw! ()
    (step-host)
