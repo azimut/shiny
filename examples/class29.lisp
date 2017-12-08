@@ -44,8 +44,9 @@
          (color2 (mix color2 color minVX))
          (color3 (mix color3 color2 minVY))
          )
-    color2
-;    (v! (x color2) (y color3) (x color2) 1.0)
+    ;(v2! )
+    ;color3
+    (v! (z color2) (y color3) (x color2) 1.0)
   ))
 
 (defpipeline-g draw-verts-pipeline ()

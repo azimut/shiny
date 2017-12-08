@@ -30,7 +30,8 @@
 
 (rt-start)
 
-(rms-test :id 123)
+(rms-test -14 400 0 :id 123)
+(set-control 123 'freq 320)
 
 (lin->db (control-value 123 'rms))
 

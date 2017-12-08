@@ -18,8 +18,8 @@
 ;;     p += dot(p.zxy, p.yxz+19.27);
 ;;     return fract(vec3(p.x * p.y, p.z*p.x, p.y*p.z));
 ;; }
-(defun-g hash33 ((p :vec3))
-  (let* ((p   (fract (* p (v!  "443.8975"
+(defun-g hash33 ((p :vec3) (time :int))
+  (let* ((p   (fract (* p (v!  (* 0.00000000001 time)
                                "497.2973"
                                "491.1871"))))
          (p (+ p (v3! (dot (s~ p :zxy)
@@ -62,13 +62,13 @@
 ;;     }
 ;;     return c*c*.8;
 ;; }
-(defun-g stars ((p :vec3) (resolution :vec2))
+(defun-g stars ((p :vec3) (resolution :vec2) (time :int))
   (let* ((c (v3! 0.0))
          (res (* 1. (x resolution))))
     (for (i 0.) (< i 4) (++ i)
          (let* ((q  (- (fract (* p (* .15 res)))
                        (v3! 0.5)))
-                (rn (s~ (hash33 (floor (* p (* .15 res)))) :xy))
+                (rn (s~ (hash33 (floor (* p (* .15 res))) time) :xy))
                 (c2 (* (step (x rn) (+ .0005 (* i i .001))) 
                        (- 1.0 (smoothstep 0.0 .6 (length q))))))
            (setf c (+ c (* c2 (+ (v3! 0.9)
@@ -92,7 +92,7 @@
 ;;     }
 ;; 	fragColor = vec4(col, 1.);
 ;; }
-(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2) (time :int))
   (let* ((q (/ (s~ gl-frag-coord :xy)
                (s~ resolution    :xy)))
          (p (- q (v2! 0.5)))
@@ -105,11 +105,11 @@
          (col  (* fade (bg rd))))
     ;(cond ((> (y rd) 0.)
     ;       (setf col (+ col (stars rd resolution)))))
-    (v! (+ col (stars rd resolution)) 1.0)
+    (v! (+ col (stars rd resolution time)) 1.0)
   ))
 
 
-(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2) (time :int))
   (let* ((st    (v! (/ (x gl-frag-coord) (x resolution))
                     (/ (y gl-frag-coord) (y resolution))))
          (color (v! (step .5 (x st))
@@ -131,7 +131,8 @@
          (surface-resolution (current-surface *cepl-context*)))
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
-          :resolution (viewport-resolution (current-viewport)))
+          :resolution (viewport-resolution (current-viewport))
+          :time (now))
    (swap))
 
 (defun init ()
