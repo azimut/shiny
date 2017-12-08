@@ -13,9 +13,11 @@
                #:incudine
                #:nineveh
                #:livesupport
+               #:cl-ppcre
                #:cepl.skitter.sdl2
                #:dirt)
   :serial t
   :components ((:file "package")
-               (:file "assets")))
+               (:file "assets")
+               (:file "musicutils")))
 
