@@ -14,14 +14,22 @@
           #:livesupport)
   (:import-from #:incudine.vug
                 #:define-vug
+                #:delay1
                 #:cout
                 #:buffer-play
                 #:foreach-channel
+                #:foreach-frame
                 #:pan2
+                #:with
+                #:delay-s
+                #:vdelay
                 #:stereo
+;;                #:mouse-button
                 #:white-noise
                 #:samphold
+                #:pole
                 #:make-local-adsr
+                #:make-local-perc
                 #:phasor
                 #:bpf
                 #:buffer-read
@@ -34,8 +42,11 @@
   (:import-from #:incudine.util
                 #:with-samples
                 #:db->lin
+                #:sample->fixnum
                 #:non-negative-sample
                 #:lin->db
+                #:*SAMPLE-DURATION*
+                #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
                 #:+sample-zero+)
 )
