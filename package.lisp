@@ -22,6 +22,7 @@
                 #:pan2
                 #:with
                 #:delay-s
+                #:envgen
                 #:vdelay
                 #:stereo
 ;;                #:mouse-button
