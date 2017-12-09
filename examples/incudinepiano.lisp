@@ -10,6 +10,8 @@
 ;(bplay (aref *pianosamples* 57) 1 0 nil :id 1)
 ;(loop for i from 1 to 10 do (sleep 1) (a (aref *pianosamples* (nth (random 3) '(54 57 60))) :id 1))
 
+;; ---------------------------
+
 (defun loadpianosamples ()
   (unless *pianosamples*
     (setf *pianosamples*
@@ -24,16 +26,21 @@
 
 (loadpianosamples)
 
+;; ---------------------------
+
 (dsp! bplay ((buf buffer) rate start-pos (loop-p boolean))
   (foreach-channel
     (cout (buffer-play buf rate start-pos loop-p #'stop))))
 
-(dsp! a ((buf buffer))
+(dsp! a ((buf buffer) atk rel amp)
+  (:defaults 0 .01 .4 1.)
   (foreach-channel
-    (cout (* 2.9
-           (envelope env2 1 1 #'stop)
-                 (cos (* pi (- (phasor .9 0) 0.5d0)))
-                 (buffer-play buf 1 0 nil #'stop)))))
+    (cout (* amp
+            (envelope (make-local-perc atk rel) 1 1 #'stop)
+            (cos (* pi (- (phasor .9 0) 0.5d0)))
+            (buffer-play buf 1 0 nil #'stop)))))
+
+;; ---------------------------
 
 (defun seq-test-inf (index)
     (dsp-seq (a (aref *pianosamples* index))
@@ -45,11 +52,11 @@
 (defun seq-test (root)
   (let* ((newroot (random-list (cdr (assoc root '((60 57 54)
                                                   (57 60 54)
-                                                  (54 51 60)
-                                                  (51 60 57)))))))
-  (dsp-seq (a (aref *pianosamples* root))
-           (a (aref *pianosamples* (+ 3 root)))
-           (a (aref *pianosamples* (+ 12 root)))
+                                                  (54 42 60)
+                                                  (42 60 57)))))))
+  (dsp-seq (a (aref *pianosamples* root)        .01 .4 :id 1)
+           (a (aref *pianosamples* (- root 12)) .01 .4 :id 2)
+           (a (aref *pianosamples* (+ 12 root)) .01 .4 1.5 :id 3)
            (seq-test newroot))))
 
 (defun seq-test (rep index)
@@ -85,3 +92,35 @@
   (at (+ time #[2 b]) #'seq-test-inf 45)
   ;(at (+ time #[4 b]) #'seq-test 4 45)
   )
+
+;; ---------------------------
+
+;; trying "markov chains" from extempore demo
+(defun seq-test (root)
+  (let* ((newroot (random-list (cdr (assoc root '((60 57 54)
+                                                  (57 60 54)
+                                                  (54 42 60)
+                                                  (42 60 57)))))))
+  (dsp-seq (a (aref *pianosamples* root)        .01 .4 :id 1)
+           (a (aref *pianosamples* (- root 12)) .01 .4 :id 2)
+           (a (aref *pianosamples* (+ 12 root)) .01 .4 1.5 :id 3)
+           (seq-test newroot))))
+
+;; ---------------------------
+
+;; Feeding a beat
+(defun beatme (root)
+  (a (aref *pianosamples* root) :id 1)
+  (at (+ (now) #[2 b]) #'beatme 60))
+
+;; Feeding a list of beats / fmsynth.xtm
+;; (beatme '(60 63 63 66))
+;; (beatme '(60 63 63 66 72 66 84 78 66 69))
+(defun beatme (rootl)
+  (a (aref *pianosamples* (car rootl)) :id 1)
+  (at (+ (now) #[1/2 b]) #'beatme (rotate rootl 1)))
+
+;; Feeding beats with varying amp
+(defun beatme (rootl)
+  (a (aref *pianosamples* (car rootl)) .01 .4 (cosr 1.5 .2 1) :id 1)
+  (at (+ (now) #[1/2 b]) #'beatme (rotate rootl 1)))
