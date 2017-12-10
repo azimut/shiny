@@ -1,5 +1,11 @@
 (in-package :somecepl)
 
+(setf *random-state* (make-random-state t))
+
+;; https://stackoverflow.com/questions/6158990/generating-randoms-numbers-in-a-certain-range-for-common-lisp
+(defun rrandom (start end)
+  (+ start (random (+ 1 (- end start)))))
+
 ;; rotate list
 ;; https://programmingpraxis.com/2010/10/12/rotate-an-array/
 (defun rotate (lst arg)
@@ -8,7 +14,7 @@
         (t (rotate (nconc (cdr lst) (list (car lst))) (- arg 1)))))
 
 ;; (define TWOPI (* 2.0 PI))
-(defvar TWOPI 6.28)
+(defvar TWOPI 6.283185)
 
 ;; cosr
 ;; https://groups.google.com/forum/#!searchin/extemporelang/cosr|sort:date/extemporelang/9O-yhrLQ-ag/MGbpKigwyDgJ
@@ -24,7 +30,58 @@
 (defun cosr (centre amplitude period)
   (+ centre
      (* amplitude
-        (cos (* TWOPI (now) period)))))
+        (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
+
+
+;; root 60
+
+;; scheme<7099> (pc:scale 0 'aeolian)
+;; => (0 2 3 5 7 8 10)
+
+
+;; ;; A predicate for calculating if pitch is in pc
+;; ;;
+;; ;; arg 1: pitch to check against pc
+;; ;; arg 2: pc to check pitch against
+;; ;; retuns true or false
+;; ;;
+;; (define pc:?
+;;    (lambda (pitch pc)
+;;       (list? (member (modulo pitch 12) pc))))
+(defun ispitch (pitch pc)
+  (typep (member (mod pitch 12) pc) 'list))
+
+;; (qcosr (0 2 3 5 7 8 10)
+;;        60
+;;        5
+;;        3/2)
+
+;; ;; quantize pc
+;; ;; Always slelects a higher value before a lower value where distance is equal.
+;; ;;
+;; ;; arg 1: pitch to quantize to pc
+;; ;; arg 2: pc to quantize pitch against
+;; ;;
+;; ;; returns quantized pitch or #f if non available
+;; ;;
+;; (define pc:quantize
+;;    (lambda (pitch-in pc) 
+;;       (let loop ((inc 0)
+;;                  (pitch (round pitch-in)))
+;;          (cond ((pc:? (+ pitch inc) pc) (+ pitch inc))
+;;                ((pc:? (- pitch inc) pc) (- pitch inc))
+;;                ((< inc 7) (loop (+ inc 1) pitch))
+;;                (else (print-notification "no pc value to quantize to" pitch pc) 
+;;                      #f)))))
+(define quantize )
+
+(define quan)
+
+;; ;; cosr with pc
+;; (define-macro (qcosr pc . args)
+;;   `(pc:quantize (cosr ,@args) ,pc))
+
+
 
 ;; 
 (defun random-list (mylist)

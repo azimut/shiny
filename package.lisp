@@ -16,6 +16,7 @@
                 #:define-vug
                 #:delay1
                 #:cout
+                #:current-frame
                 #:buffer-play
                 #:foreach-channel
                 #:foreach-frame
@@ -32,6 +33,8 @@
                 #:make-local-adsr
                 #:make-local-perc
                 #:phasor
+                #:make-f32-array
+                #:phasor-loop
                 #:bpf
                 #:buffer-read
                 #:butter-lp
@@ -42,6 +45,7 @@
                 #:dsp!)
   (:import-from #:incudine.util
                 #:with-samples
+                #:f32-ref
                 #:db->lin
                 #:sample->fixnum
                 #:non-negative-sample
