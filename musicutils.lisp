@@ -16,6 +16,8 @@
 ;; (define TWOPI (* 2.0 PI))
 (defvar TWOPI 6.283185)
 
+;; -------------------------------
+
 ;; cosr
 ;; https://groups.google.com/forum/#!searchin/extemporelang/cosr|sort:date/extemporelang/9O-yhrLQ-ag/MGbpKigwyDgJ
 ;; - the first argument is the "centre" to oscillate around
@@ -32,12 +34,12 @@
      (* amplitude
         (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
 
+;; -------------------------------
 
 ;; root 60
 
 ;; scheme<7099> (pc:scale 0 'aeolian)
 ;; => (0 2 3 5 7 8 10)
-
 
 ;; ;; A predicate for calculating if pitch is in pc
 ;; ;;
@@ -49,12 +51,7 @@
 ;;    (lambda (pitch pc)
 ;;       (list? (member (modulo pitch 12) pc))))
 (defun ispitch (pitch pc)
-  (typep (member (mod pitch 12) pc) 'list))
-
-;; (qcosr (0 2 3 5 7 8 10)
-;;        60
-;;        5
-;;        3/2)
+  (if (member (mod pitch 12) pc) t))
 
 ;; ;; quantize pc
 ;; ;; Always slelects a higher value before a lower value where distance is equal.
@@ -73,15 +70,30 @@
 ;;                ((< inc 7) (loop (+ inc 1) pitch))
 ;;                (else (print-notification "no pc value to quantize to" pitch pc) 
 ;;                      #f)))))
-(define quantize )
+(defun quant (pitch-in pc)
+    (labels ((f (inc pitch)
+               (cond ((ispitch  (+ pitch inc) pc) (+ pitch inc))
+                     ((ispitch  (- pitch inc) pc) (- pitch inc))
+                     ((< inc 7) (f (+ inc 1) pitch))
+                     (t (print "Derp!") nil))))
+      (f 0 (round pitch-in))
+      ))
 
-(define quan)
+;; -------------------------------
+
+;; (qcosr (0 2 3 5 7 8 10)
+;;        60
+;;        5
+;;        3/2)
 
 ;; ;; cosr with pc
 ;; (define-macro (qcosr pc . args)
 ;;   `(pc:quantize (cosr ,@args) ,pc))
 
+(defun qcosr (pc center amplitude period)
+  (quant (cosr center amplitude period) pc))
 
+;; -------------------------------
 
 ;; 
 (defun random-list (mylist)

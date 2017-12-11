@@ -113,8 +113,7 @@ returned."
 
 (declaim (inline get-lsample))
 (defun get-lsample (keynum map)
-  (aref map (min (round keynum) 127)))
-
+  (aref map (min keynum 127)))
 ;; example: (get-lsample 61 *piano-map*)
 ;; -> #S(LSAMPLE
 ;;       :FILE "/home/orm/work/snd/csound/BOSEN_mf_D#3_mn.wav"
@@ -132,17 +131,19 @@ returned."
 (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
 (dsp! play-lsample (keynum dur amp)
-  (with ((lsample (get-lsample keynum *piano-map*)))
+  (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map*)))
+;  (with ((lsample (get-lsample keynum *piano-map*)))
     (with-samples ((rate (ct->fv (- keynum (lsample-keynum lsample))))
                    (loopstart (lsample-loopstart lsample))
                    (loopend (lsample-loopend lsample)))
       (with ((buffer (lsample-buffer lsample)))
-        (out (* amp 
+        (stereo (* amp 
 		(envelope *env1* 1 dur #'incudine:stop)
 		(buffer-loop-play buffer rate 0 loopstart loopend)))))))
 
 (dsp! play-lsample-f (keynum dur amp)
-  (with ((lsample (get-lsample keynum *piano-map-f*)))
+  (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map-f*)))
+;  (with ((lsample (get-lsample keynum *piano-map-f*)))
     (with-samples ((rate (ct->fv (- keynum (lsample-keynum lsample))))
                    (loopstart (lsample-loopstart lsample))
                    (loopend (lsample-loopend lsample)))
@@ -209,28 +210,60 @@ bouncing to disk:
                                                   (58 60 56)
                                                   (56 55 58)
                                                   (55 60 56)))))))
-     (play-lsample-f (+ root -12) .6 .25)
-     (at (+ (now) #[2 b]) #'play-lsample-f (+ -5  root) .55 .3)
+     (play-lsample-f (+ root -12) .5 .25)
+     (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) .5 .3)
      (at (+ (now) #[4 b]) #'seq-test newroot)))
 
+;; <60> = 60  beats per minute
+;; <60>/60 = 1 = beats por sec 
+;; <125> = 125 beats per minute
+;; <125>/60 = 2.08 beats per second
 (defun left (&optional (root 60))
   (let* ((newroot (random-list (cdr (assoc root '((60 58 55)
                                                   (58 60 56)
                                                   (56 55 58)
                                                   (55 60 56)))))))
-     (play-lsample-f (+ root -12) 1.5 .4)
-     (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) 1.5 .4)
-     (at (+ (now) #[4 b]) #'left newroot)))
+     (play-lsample-f (+ root -12) 1.9 .25)
+     (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) 1.9 .27)
+     (at (+ (now) #[5 b]) #'left newroot)))
+
+(defun right (&optional (oldtime 0) (newtime 0))
+  ;(setf newtime (get-internal-real-time))
+  ;(print (- newtime oldtime))
+  ;(print (cosr 60 7 3/2))
+  ;(print (floor (cosr 60 7 3/2)))
+  ;(print (get-internal-real-time))
+  (print (cosr 60 7 3/2))
+  (play-lsample-f (floor (cosr 60 7 3/4)) 1. .2)
+  (at (+ (now) #[.5 b]) #'right newtime oldtime)
+  )
+
+(defvar *myscale* nil)
+(setf *myscale* '(0 2 3 5 7 8 10) )
+(setf *myscale* '(0 1 3 5 6 8 10) )
 
 (defun right ()
-  (play-lsample (cosr 60 7 3/4) 1 .1)
-  (at (+ (now) #[1 b]) #'right)
+  (play-lsample-f (qcosr *myscale* 60 7 3/4) 1. .2)
+  (at (+ (now) #[.5 b]) #'right)
   )
+
+(defun right ()
+  (play-lsample-f (random-list '(53 55 60 65 67)) 1.1 .2)
+  (at (+ (now) #[.5 b]) #'right)
+  )
+
+(defvar *tun*
+  (make-tuning :notes '(16/15 9/8 6/5 5/4 4/3 7/5 3/2 8/5 5/3 9/5 15/8 2/1)
+               :description "Basic JI with 7-limit tritone. Robert Rich: Geometry"))
+(defun right ()
+  (play-lsample-f (random-list (subseq (buffer->list *tun*) 30 37)) 2. .1)
+  (at (+ (now) #[.5 b]) #'right)
+  )
+
+
 #|
 (left)
 (incudine:free 0)
 (flush-pending)
 (right)
 |#
-
-(defun right ())
