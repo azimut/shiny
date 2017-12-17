@@ -250,30 +250,37 @@
 
 ;; -------------------------------
 
-;; select pitch from pitch class relative to a given pitch
-;;
-;; 1st: bass pitch
-;; 2nd: pc relationship to bass pitch (max is abs 7)
-;; 3rd: pitch class
-;;
-;; example:
-;; (pc:relative 64 -2 '(0 2 4 5 7 9 11)) => 60
-;; (pc:relative 69 3 '(0 2 4 5 7 9 11)) => 74
-;;
-;; (define pc:relative
-;;   (lambda (pitch i pc)
-;;     (set! i (real->integer (round i)))
-;;     (if (= i 0) pitch
-;;     (let ((inc (if (negative? i) - +)))
-;;       (let loop ((p (inc pitch 1)) (cnt 0))
-;;         (if (pc:? p pc) (set! cnt (inc cnt 1)))
-;;         (if (= cnt i) p 
-;;         (loop (inc p 1) cnt)))))))
+#|
+ select pitch from pitch class relative to a given pitch
+
+ 1st: bass pitch
+ 2nd: pc relationship to bass pitch (max is abs 7)
+ 3rd: pitch class
+
+ example:
+ (pc:relative 64 -2 '(0 2 4 5 7 9 11)) => 60
+ (pc:relative 69 3 '(0 2 4 5 7 9 11)) => 74
+
+ (define pc:relative
+   (lambda (pitch i pc)
+     (set! i (real->integer (round i)))
+     (if (= i 0) pitch
+     (let ((inc (if (negative? i) - +)))
+       (let loop ((p (inc pitch 1)) (cnt 0))
+         (if (pc:? p pc) (set! cnt (inc cnt 1)))
+         (if (= cnt i) p 
+         (loop (inc p 1) cnt)))))))
+|#
 (defun relative (pitch i pc)
   (setf i (round i))
-  (if (= i 0) pitch)
-  (let ((inc (if (< i 0) - +)))
-    (labels ((f ())))))
+  (if (= i 0) pitch
+  (let* ((inc (if (< i 0) '- '+)))
+    (labels ((f (p cnt)
+               (progn (if (ispitch p pc)
+                          (setf cnt (funcall inc cnt 1)))
+                      (if (= cnt i) p
+                          (f (funcall inc p 1) cnt)))))
+      (f (funcall inc pitch 1) 0)))))
 
 
 ;; -------------------------------
