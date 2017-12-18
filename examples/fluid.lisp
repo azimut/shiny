@@ -31,6 +31,20 @@
 
 (fluidsynth:noteon *synth* 0 60 50)
 
+#|
+(define play-midi-note
+  (lambda (time device pitch velocity duration channel)
+    (callback time 'midi_send device *midi-note-on* channel pitch velocity)
+    (callback (+ time duration) 'midi_send device *midi-note-off* channel pitch velocity)))
+|#
+
+(defun play-midi-note (pitch velocity dur)
+  (at (now) #'fluidsynth:noteon *synth* 3 pitch velocity)
+  (at (+ (now) #[dur s]) #'fluidsynth:noteoff *synth* 3 pitch)
+  )
+
+(play-midi-note 60 60 10)
+
 ;; ----------------------
 ;; DANCING PHALANGES
 (setf (bpm *tempo*) 60)
@@ -45,10 +59,12 @@
   (if (not ms)
       'done
       (let ((p (car ms)))
-        (fluidsynth:noteon *synth* 3 (quant (+ 48 *root* p) *scale*) (round (cosr 60 40 1/2)))
-                        ;(* (car rs) (cosr .9 .2 1/2)) .9)
-        (fluidsynth:noteon *synth* 4 (quant (+ 55 *root* p) *scale*) (round (cosr 60 40 1/2)))
-                        ;(* (car rs) (cosr .9 .2 1/2)) .9)
+        (play-midi-note (quant (+ 48 *root* p) *scale*)
+                        (round (cosr 60 40 1/2)) 
+                        (* (car rs) (cosr 4. .2 1/2)))
+        (play-midi-note (quant (+ 55 *root* p) *scale*)
+                        (round (cosr 60 40 1/2))
+                        (* (car rs) (cosr 4. .2 1/2)))
         (at (+ (now) #[(car rs) b]) #'melody (cdr ms) (cdr rs))
         )))
 
@@ -67,10 +83,11 @@
 
 (defun left (dur)
   (if (> (random 1.0) .85) (melody '(0 1 0 -1) '(1/3 2/3 2/3 1)))
-  (fluidsynth:noteon *synth* 0 (+ 48 *root*) (round (cosr 40 30 1)))
-                     ;(* dur (cosr .9 .3 1/7)) (cosr .6 .3 1/2))
-  (fluidsynth:noteon *synth* 1 36 (round (cosr 40 30 1)))
-                     ;(* dur (cosr .9 .3 1/7)) (cosr .6 .3 1/2))
+  (play-midi-note (+ 48 *root*)
+                  (round (cosr 80 30 1)) 10)
+                  ;(* dur (cosr 2.2 .3 1/7)))
+  (play-midi-note 36 (round (cosr 80 30 1)) 10)
+                    ; (* dur (cosr 2.2 .3 1/7)))
   (at (+ (now) #[dur b]) #'left (random-list '(1 2/3))))
 
 (left 2/3)
