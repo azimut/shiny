@@ -47,7 +47,6 @@
   (* (white-noise gain) (trigger p (incudine.util:sample (incudine.vug:mouse-button)))))
 
 (define-vug filtered-excitation (gain freq pickangle beta l)
-  (:defaults .7 440 .9 .13 .3)
   (with-samples ((p (/ *sample-rate* freq)))
     (level-filter (pickpos (pickdir (excitation gain p) pickangle) beta p)
                   l freq)))
@@ -57,7 +56,6 @@
     (~ (damping-filter2 (vdelay (+ in it) 0.05 dt :cubic) freq t60 b))))
 
 (dsp! pluck-test (gain freq pickangle beta l t60 b)
-  (:defaults .7 440 .9 .13 .3 4 .5)
   (foreach-frame
     (stereo (stringloop (filtered-excitation gain freq pickangle beta l)
                         freq t60 b))))
