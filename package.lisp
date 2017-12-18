@@ -10,6 +10,7 @@
           #:vari
           #:cl-ppcre
           #:incudine
+          ;#:incudine-fluidsynth
           #:cepl.skitter
           #:livesupport)
   (:import-from #:incudine.vug
@@ -26,6 +27,9 @@
                 #:envgen
                 #:vdelay
                 #:stereo
+                #:midi-note-on-p
+                #:midi-note-off-p
+                #:midi-program-p
 ;;                #:mouse-button
                 #:white-noise
                 #:samphold
@@ -47,6 +51,9 @@
                 #:with-samples
                 #:f32-ref
                 #:db->lin
+                #:rt-eval
+              ;  #:barrier
+                #:return-value-p
                 #:sample->fixnum
                 #:non-negative-sample
                 #:lin->db
