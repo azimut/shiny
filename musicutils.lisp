@@ -638,3 +638,13 @@ scheme<7099> (pc:scale 0 'aeolian)
 ;;         (normalised-durations (mapcat wrap durations))
 ;;         (times (reductions + 0 normalised-durations)))
 ;;     (mapcat utter normalised-pitches times normalised-durations velocities)))q
+
+;; ----------------------
+;; functional-composition
+;; https://github.com/ctford/functional-composition
+;; ----------------------
+
+(defun midihz (midi)
+  (*
+   8.1757989156
+   (expt 2 (/ midi 12))))
