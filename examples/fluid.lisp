@@ -1,5 +1,10 @@
 (in-package :somecepl)
 
+(rt-start)
+
+(+ (now) #[1 b])
+
+(ql:quickload :incudine-fluidsynth)
 
 (defvar *fluid-settings* (fluidsynth:new-settings
                            `(("synth.polyphony" 128)
@@ -8,6 +13,8 @@
 
 
 (defvar *synth* (fluidsynth:new *fluid-settings*))
+
+(defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
 (dsp! fluid-test ((synth fluidsynth:synth))
   (with ((len (block-size))
@@ -18,20 +25,34 @@
       (out (f32-ref left current-frame)
            (f32-ref right current-frame)))))
 
+
 (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
 (fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
 (fluidsynth:sfload *synth* "/home/sendai/Downloads/Nice-Keys-Ultimate-V2.3.sf2" 1)
 
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") 0.5)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .4)
+(setf (fluidsynth:setting *fluid-settings* "synth.midi-channels") 50)
 
+#|
+(fluidsynth:get-active-voice-count *synth*)
+(fluidsynth:stop *synth* 1)
+(incudine:free 0)
+(fluidsynth:delete *synth*)
+|#
+
+(fluidsynth:set-reverb *synth* 0.7d0 0.9d0 0.5d0 0.9d0)
 (set-rt-block-size 64)
-
+(rt-stop)
 (rt-start)
 (fluid-test *synth*)
 
-(fluidsynth:noteon *synth* 0 60 50)
+
+(fluidsynth:noteon *synth* 1 60 50)
 
 #|
+(incudine:free 1)
+(flush-pending)
 (define play-midi-note
   (lambda (time device pitch velocity duration channel)
     (callback time 'midi_send device *midi-note-on* channel pitch velocity)
@@ -82,7 +103,7 @@
 (right 'i)
 
 (defun left (dur)
-  (if (> (random 1.0) .85) (melody '(0 1 0 -1) '(1/3 2/3 2/3 1)))
+;  (if (> (random 1.0) .8) (melody '(0 1 0 -1) '(1/3 2/3 2/3 1)))
   (play-midi-note (+ 48 *root*)
                   (round (cosr 80 30 1)) 10)
                   ;(* dur (cosr 2.2 .3 1/7)))
@@ -92,3 +113,22 @@
 
 (left 2/3)
 (flush-pending)
+(incudine:free 0)
+
+;; ----------
+
+(defvar *piece* nil)
+(setf *piece* '(:E4 :F#4 :B4 :C#5 :D5 :F#4 :E4 :C#5 :B4 :F#4 :D5 :C#5))
+(setf (bpm *tempo*) 35)
+
+(defun player (time speed notes)
+  (let ((n      (first notes))
+        (notes  (cdr notes))
+        (t-next (+ time speed)))
+    (when n
+      (play-midi-note (note-name-to-midi-number (symbol-name n)) 50 10)
+      (at t-next #'player t-next speed notes))))
+
+(progn
+  (player (now) #[.338 b] (repeat 1000 *piece*))
+  (player (now) #[.335 b] (repeat 1000 *piece*)))
