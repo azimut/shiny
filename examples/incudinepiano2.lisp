@@ -147,9 +147,9 @@ returned."
 (dsp! play-lsample-f (keynum dur amp)
   (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map-f*)))
 ;  (with ((lsample (get-lsample keynum *piano-map-f*)))
-    (with-samples ((rate (ct->fv (- keynum (lsample-keynum lsample))))
+    (with-samples ((rate      (ct->fv (- keynum (lsample-keynum lsample))))
                    (loopstart (lsample-loopstart lsample))
-                   (loopend (lsample-loopend lsample)))
+                   (loopend   (lsample-loopend lsample)))
       (with ((buffer (lsample-buffer lsample)))
         (stereo (* amp 
 		(envelope *env1* 1 dur #'incudine:stop)
