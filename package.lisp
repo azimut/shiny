@@ -15,6 +15,9 @@
           #:livesupport)
   (:import-from #:incudine.vug
                 #:define-vug
+                #:define-ugen
+                #:make-frame
+                #:frame-ref
                 #:delay1
                 #:cout
                 #:current-frame
