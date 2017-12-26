@@ -7,9 +7,7 @@
 (defvar *gpu-verts-arr* nil)
 (defvar *gpu-index-arr* nil)
 (defvar *vert-stream* nil)
-
 (defparameter *texture* nil)
-
 (defvar *offset* nil)
 
 (defun-g draw-verts-vert-stage ((vert :vec2))
@@ -53,10 +51,6 @@
   :vertex   (draw-verts-vert-stage :vec2)
   :fragment (draw-verts-frag-stage :vec2))
 
-(defun now ()
-  (* (get-internal-real-time)
-     .001))
-
 (defun draw! ()
    (step-host)
    (setf (resolution (current-viewport))
@@ -64,7 +58,7 @@
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
           :resolution (viewport-resolution (current-viewport))
-          :time (now)
+          :time (mynow)
           :sam *texture*
           :offset *offset*)
    (swap))
@@ -77,7 +71,7 @@
     (free *gpu-index-arr*))
   (when *vert-stream*
     (free *vert-stream*))
-  
+
   (setf *gpu-verts-arr*
         (make-gpu-array
          (list (v! -1.0  1.0)

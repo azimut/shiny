@@ -17,15 +17,12 @@
          (color (v! (step .5 (x st))
                     (step .5 (x st))
                     (step .5 (x st)))))
-    (perlin-noise (* (v2! 10.) st) )
+    (perlin-noise (* (v3! 18.)  (v! st 1.0)) )
   ))
 
 (defpipeline-g draw-verts-pipeline ()
   :vertex   (draw-verts-vert-stage :vec2)
   :fragment (draw-verts-frag-stage))
-
-(defun now ()
-  (get-internal-real-time))
 
 (defun draw! ()
    (step-host)
@@ -57,7 +54,6 @@
         (make-gpu-array
          (list 0 1 2
                0 2 3)))
-
   (setf *vert-stream*
         (make-buffer-stream *gpu-verts-arr*
                             :index-array *gpu-index-arr*)))

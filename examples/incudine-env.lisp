@@ -38,8 +38,8 @@
     (free *gpu-index-arr*))
   (when *vert-stream*
     (free *vert-stream*))
-  (when *env1*
-    (incudine:free *env1*))
+  ;; (when *env1*
+  ;;   (incudine:free *env1*))
 
   ;; (setf *env1*
   ;;       (make-envelope '(0 1 0) '(.2 .8) :curve :exp))
