@@ -59,27 +59,27 @@ returned."
 		(setf (aref lsample-map (incf array-idx)) lsample)))))
     (values lsample-map)))
 
-(defparameter *piano-map*
-  (generate-lsample-map 
-   '(("BOSEN_mf_A0_mn.wav"  36 33 121642 197454)
-     ("BOSEN_mf_D1_mn.wav"  43 38  93488 166611)
-     ("BOSEN_mf_C2_mn.wav"  51 48  95464 151802)
-     ("BOSEN_mf_F2_mn.wav"  58 53  77922 137052)
-     ("BOSEN_mf_D#3_mn.wav" 68 63  82246 132839)
-     ("BOSEN_mf_C#4_mn.wav" 76 73  64379 104238)
-     ("BOSEN_mf_F#4_mn.wav" 81 78  57945  59609)
-     ("BOSEN_mf_B4_mn.wav" 127 83  48970  50748)) :ssdir *ssdir*))
+;; (defparameter *piano-map*
+;;   (generate-lsample-map 
+;;    '(("BOSEN_mf_A0_mn.wav"  36 33 121642 197454)
+;;      ("BOSEN_mf_D1_mn.wav"  43 38  93488 166611)
+;;      ("BOSEN_mf_C2_mn.wav"  51 48  95464 151802)
+;;      ("BOSEN_mf_F2_mn.wav"  58 53  77922 137052)
+;;      ("BOSEN_mf_D#3_mn.wav" 68 63  82246 132839)
+;;      ("BOSEN_mf_C#4_mn.wav" 76 73  64379 104238)
+;;      ("BOSEN_mf_F#4_mn.wav" 81 78  57945  59609)
+;;      ("BOSEN_mf_B4_mn.wav" 127 83  48970  50748)) :ssdir *ssdir*))
 
-(defparameter *piano-map-f*
-  (generate-lsample-map
-   '(("A0v10.wav"  36 33 121642 197454) ;k
-     ("D#1v10.wav"  43 38  93488 166611) ;?
-     ("C2v10.wav"  51 48  95464 151802) ;k
-     ("F#2v10.wav"  58 53  77922 137052) ;?
-     ("D#3v10.wav" 68 63  82246 132839) ;k
-     ("C4v10.wav" 76 73  64379 104238) ;?
-     ("F#4v10.wav" 81 78  57945  59609) ;k
-     ("C5v10.wav" 127 83  48970  50748)) :ssdir *ssdir-f*)) ;?
+;; (defparameter *piano-map-f*
+;;   (generate-lsample-map
+;;    '(("A0v10.wav"  36 33 121642 197454) ;k
+;;      ("D#1v10.wav"  43 38  93488 166611) ;?
+;;      ("C2v10.wav"  51 48  95464 151802) ;k
+;;      ("F#2v10.wav"  58 53  77922 137052) ;?
+;;      ("D#3v10.wav" 68 63  82246 132839) ;k
+;;      ("C4v10.wav" 76 73  64379 104238) ;?
+;;      ("F#4v10.wav" 81 78  57945  59609) ;k
+;;      ("C5v10.wav" 127 83  48970  50748)) :ssdir *ssdir-f*)) ;?
 (defparameter *piano-map-f*
   (generate-lsample-map
    '(("A0v10.wav"  21 21 100000 500000) ;k
@@ -133,16 +133,16 @@ returned."
 
 (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
-(dsp! play-lsample (keynum dur amp)
-  (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map*)))
-;  (with ((lsample (get-lsample keynum *piano-map*)))
-    (with-samples ((rate (ct->fv (- keynum (lsample-keynum lsample))))
-                   (loopstart (lsample-loopstart lsample))
-                   (loopend (lsample-loopend lsample)))
-      (with ((buffer (lsample-buffer lsample)))
-        (stereo (* amp 
-		(envelope *env1* 1 dur #'incudine:stop)
-		(buffer-loop-play buffer rate 0 loopstart loopend)))))))
+;; (dsp! play-lsample (keynum dur amp)
+;;   (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map*)))
+;; ;  (with ((lsample (get-lsample keynum *piano-map*)))
+;;     (with-samples ((rate (ct->fv (- keynum (lsample-keynum lsample))))
+;;                    (loopstart (lsample-loopstart lsample))
+;;                    (loopend (lsample-loopend lsample)))
+;;       (with ((buffer (lsample-buffer lsample)))
+;;         (stereo (* amp 
+;; 		(envelope *env1* 1 dur #'incudine:stop)
+;; 		(buffer-loop-play buffer rate 0 loopstart loopend)))))))
 
 (dsp! play-lsample-f (keynum dur amp)
   (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map-f*)))
@@ -168,23 +168,45 @@ returned."
    for time = (now) then (+ time (* *sample-rate* (random 0.05)))
    for amp = (+ 0.2 (random 0.2)) then (+ 0.2 (random 0.2))
    do (at time #'play-lsample (+ 70 (random 20.0)) 2 amp))
-
-bouncing to disk:
-
- (bounce-to-disk ("/tmp/test.wav" :pad 2)
-  (loop     for x from 1 to 200
-     for time = (now) then (+ time (* *sample-rate* (random 0.05)))
-     for amp = (+ 0.2 (random 0.2)) then (+ 0.2 (random 0.2))
-     do (at time #'play-lsample (+ 70 (random 20.0)) 2 amp)))
 |#
 
 
-(defvar env1 (make-envelope '(0 1 0) '(.2 .8)))
-(defvar env2 (make-perc .01 .9))
-(setf (bpm *tempo*) 120)
 
-;; trying "markov chains" from extempore demo
+#|
+(beatme 60)
+(flush-pending)
+|#
 
+;; --------------------------------------------------------------------
+;; Playfield
+;; --------------------------------------------------------------------
+
+(defun beatme (root)
+  (play-lsample-f root .35 .3)
+  (at (+ (now) #[2 b]) #'beatme 60))
+
+(defvar *myscale* nil)
+(setf *myscale* (scale 0 'lydian))
+(setf *myscale* (scale 0 'aeolian))
+;; Random notes within the scale
+(defun testscale ()
+  (play-lsample-f (qcosr *myscale* 60 7 3) 3.0 .3)
+  (at (+ (now) #[1 b]) #'testscale))
+;; Random chord from the scale
+(defun testchord ()
+  (mapcar (lambda (x) (play-lsample-f x 3.0 .3))
+          (make-chord 50 60 (cosr 2 1 .2) *myscale*))
+  (at (+ (now) #[2 b]) #'testchord))
+
+#|
+(testscale)
+(testchord)
+|#
+
+;; --------------------------------------------------------------------
+;; GOTO 2014 • Programming In Time - Live Coding for Creative Performances
+;; https://www.youtube.com/watch?v=Sg2BjFQnr9s
+;; --------------------------------------------------------------------
 #|
 (defun seq-test (&optional (root 60))
   (let* ((newroot (random-list (cdr (assoc root '((60 58 55)
@@ -199,47 +221,51 @@ bouncing to disk:
            (seq-test newroot))))
 |#
 
-(defun beatme (root)
-  (play-lsample-f root .35 .3)
-  (at (+ (now) #[2 b]) #'beatme 60))
-
-#|
-(beatme 60)
-|#
+(setf (bpm *tempo*) 120)
 
 ;; trying "markov chains" from extempore demo
-(defun seq-test (&optional (root 60))
-  (let* ((newroot (random-list (cdr (assoc root '((60 58 55)
-                                                  (58 60 56)
-                                                  (56 55 58)
-                                                  (55 60 56)))))))
-     (play-lsample-f (+ root -12) .5 .25)
-     (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) .5 .3)
-     (at (+ (now) #[4 b]) #'seq-test newroot)))
-
-;; <60> = 60  beats per minute
-;; <60>/60 = 1 = beats por sec 
-;; <125> = 125 beats per minute
-;; <125>/60 = 2.08 beats per second
+(defun left (&optional (root 60))
+  (let* ((newroot (random-list (cdr (assoc root '((60 58)
+                                                  (58 60)))))))
+     (play-lsample-f (- root 12) 2. .25)
+     (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) 2. .3)
+     (at (+ (now) #[4 b]) #'left newroot)))
 (defun left (&optional (root 60))
   (let* ((newroot (random-list (cdr (assoc root '((60 58 55)
                                                   (58 60 56)
                                                   (56 55 58)
                                                   (55 60 56)))))))
-     (play-lsample-f (+ root -12) 1.9 .25)
+     (play-lsample-f (- root 12) 1.9 .25)
      (at (+ (now) #[3/2 b]) #'play-lsample-f (+ -5  root) 1.9 .27)
      (at (+ (now) #[4 b]) #'left newroot)))
 
-(defun right (&optional (oldtime 0) (newtime 0))
-  ;(setf newtime (get-internal-real-time))
-  ;(print (- newtime oldtime))
-  ;(print (cosr 60 7 3/2))
-  ;(print (floor (cosr 60 7 3/2)))
-  ;(print (get-internal-real-time))
-  (print (cosr 60 7 3/2))
-  (play-lsample-f (floor (cosr 60 7 3/4)) 1. .2)
-  (at (+ (now) #[.5 b]) #'right newtime oldtime)
-  )
+(defvar *root* nil)
+(setf *root* 60)
+(defvar *myscale* nil)
+(setf *myscale* (scale 0 'aeolian))
+(defun left ()
+  (setf *root* (random-list (cdr (assoc *root* '((60 58 55)
+                                                  (58 60 56)
+                                                  (56 55 58)
+                                                  (55 60 56))))))
+     (play-lsample-f (- *root* 12) 1.9 .2)
+     (at (tempo-sync #[3/2 b]) #'play-lsample-f (+ -5  *root*) 1.9 .1)
+     (at (tempo-sync #[4 b])   #'left))
+
+(defun right ()
+  (play-lsample-f (round (cosr *root* 7 3/2)) 1.4 .1)
+  (at (tempo-sync #[.5 b]) #'right)
+)
+(defun right ()
+  (play-lsample-f (round (qcosr *myscale* *root* 7 3/2)) 1.4 .1)
+  (at (tempo-sync #[.5 b]) #'right)
+)
+(left)
+(right)
+(flush-pending)
+;; --------------------------------------------------------------------
+;; 
+;; --------------------------------------------------------------------
 
 (defvar *myscale* nil)
 (setf *myscale* '(0 2 3 5 7 8 10) )
@@ -262,9 +288,14 @@ bouncing to disk:
   (at (+ (now) #[.5 b]) #'right)
   )
 
+;; --------------------------------------------------------------------
+;; Playground 2
+;; --------------------------------------------------------------------
 
-(defvar *root* 0)
-(defvar *degree* 'i)
+(defvar *root* nil)
+(setf *root* 0)
+(defvar *degree* nil)
+(setf *degree* 'i)
 
 (defun pchord ()
   (play-lsample-f 60 1. .8)
@@ -289,9 +320,11 @@ bouncing to disk:
 (dancingl 2/3)
 |#
 
-#|
-src/overtone/examples/compositions/piano_phase.clj
 
+;; --------------------------------------------------------------------
+;; src/overtone/examples/compositions/piano_phase.clj
+;; --------------------------------------------------------------------
+#|
 (defn player
   [t speed notes]
   (let [n      (first notes)
@@ -311,19 +344,19 @@ src/overtone/examples/compositions/piano_phase.clj
         (notes  (cdr notes))
         (t-next (+ time speed)))
     (when n
-      (play-lsample-f (note-name-to-midi-number (symbol-name n)) 5.0 .9)
+      (play-lsample-f (note-name-to-midi-number (symbol-name n)) 5.0 .3)
       (at t-next #'player t-next speed notes))))
 
-(progn
+(let ((time (now)))
   (player (now) #[.338 b] (repeat 1000 *piece*))
   (player (now) #[.335 b] (repeat 1000 *piece*)))
 
-;; --------------
-
+;; --------------------------------------------------------------------
+;; Extempore - An Overview
+;; https://vimeo.com/21956071
+;; at 11:30
+;; --------------------------------------------------------------------
 #|
-Extempore - An Overview
-https://vimeo.com/21956071
-at 11:30
 (define loop
     (lambda (beat dur root)
       (for-each (lambda (p offset)
@@ -343,24 +376,27 @@ at 11:30
 
 (defvar *beat-offset* nil)
 (setf *beat-offset* '(1/3 1 3/2 1 2 3))
+(setf *beat-offset* '(1/3 4 1 1.5))
 (setf (bpm *tempo*) 100)
+(setf (bpm *tempo*) 60)
 
 (defun sometune (dur root)
-  ;(at (+ (now) #[3 b]) #'play-lsample-f 36 5.0 1.0)
-  (mapcar (lambda (x y)
-            (at (+ (now) #[y b]) #'play-lsample-f x 10.0 1.0))
-          (make-chord 40
-                      (cosr 75 10 1/32)
-                      5
-                      (chord root (if (member root '(10 8))
-                                      '^7
-                                      '-7)))
-          *beat-offset*)
-  (at (+ (now) #[dur b]) #'sometune
-      dur
-      (if (member root '(0 8))
-          (random-list '(2 7 10))
-          (random-list '(0 8)))))
+  (let ((time (now)))    
+    (at (+ time #[3 b]) #'play-lsample-f 36 5.0 1.0)
+    (mapcar (lambda (x y)
+              (at (+ time #[y b]) #'play-lsample-f x 9.0 1.0))
+            (make-chord 40
+                        (cosr 75 10 1/32)
+                        5
+                        (chord root (if (member root '(10 8))
+                                        '^7
+                                        '-7)))
+            *beat-offset*)
+    (at (+ time #[dur b]) #'sometune
+        dur
+        (if (member root '(0 8))
+            (random-list '(2 7 10))
+            (random-list '(0 8))))))
 
 (setf *beat-offset* (reverse *beat-offset*))
 
@@ -377,9 +413,11 @@ at 11:30
 (flush-pending)
 |#
 
-#|
+;; --------------------------------------------------------------------
 ;; Ben S.
 ;; A late christmas
+;; --------------------------------------------------------------------
+#|
 (define loop1
     (lambda (beat dur)
       (play piano 60 50 dur)
@@ -394,8 +432,12 @@ at 11:30
 
 (loop1 3 2)
 
+;; --------------------------------------------------------------------
+;; "A study in Keith"
+;; https://www.youtube.com/watch?v=tQIQwQnX3hA
+;; https://gist.github.com/CircuV/0834dbbd2034b82b7706
+;; --------------------------------------------------------------------
 #|
-https://gist.github.com/CircuV/0834dbbd2034b82b7706
 
 (define chords
   (lambda (time degree dur)
@@ -494,10 +536,10 @@ https://gist.github.com/CircuV/0834dbbd2034b82b7706
                                    (ii v vii))))
       (random-list '(1 2 3))))
 
-
-
-;; ----------------------
+;; --------------------------------------------------------------------
 ;; DANCING PHALANGES
+;; --------------------------------------------------------------------
+
 (setf (bpm *tempo*) 110)
 (defvar *root* nil)
 (setf *root* 0)
@@ -536,5 +578,46 @@ https://gist.github.com/CircuV/0834dbbd2034b82b7706
   (play-lsample-f 36 (* dur (cosr .9 .3 1/7)) (cosr .6 .3 1/2))
   (at (+ (now) #[dur b]) #'left (random-list '(1 2/3))))
 
+(progn 
+(right 'i)
 (left 2/3)
+)
 (flush-pending)
+
+
+;; --------------------------------------------------------------------
+;; Another late christmas
+;; --------------------------------------------------------------------
+
+(defun loop1 (beat dur)
+;;  (play-lsample-f 60 dur .3)
+  (play-lsample-f (if (= (mod (get-internal-real-time) 12) 0)
+                      67
+                      (random-list '(60 60 60 58)))
+                  dur .3)
+  (at (tempo-sync #[(* .5 dur) b]) #'loop1 (+ beat .5) dur))
+;;  (at (+ (now) #[(* .5 dur) b]) #'loop1 (+ beat .5) dur))
+
+
+(flush-pending)
+
+(defun s ()
+;;  '(0)
+  '(0 2 3 5 7 10)
+)
+
+(defun loop2 (dlist pitch slist)
+  (if (car slist)
+      (play-lsample-f (relative pitch (car slist) (s))
+                      (car dlist)
+                      .3))
+  (at (tempo-sync #[(car dlist) b]) #'loop2  (rotate dlist -1) pitch (rotate slist -1)))
+;;  (at (+ (now) #[(car dlist) b]) #'loop2  (rotate dlist -1) pitch (rotate slist -1)))
+
+(loop1 0 1)
+(loop2 '(1 1/2 1/2 1/2 1/2) 63 '(2 1 2 0 nil))
+
+;; Ah!...tempo...I mean beat...without it I cannot sync two things...dah!
+
+
+

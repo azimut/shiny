@@ -49,11 +49,14 @@
                  (s1 (- 1 l)))
     (+ s0 (* s1 (~ (+ (* x lgain) (* lpole2 it)))))))
 
+(defvar *env1* nil)
+(setf *env1* (make-perc 0 .25))
+
 ;; (define-vug excitation (gain p)
 ;;    (* (white-noise gain) (trigger p (incudine.util:sample (incudine.vug:mouse-button)))))
-(define-vug excitation (gain p)
-  (* (white-noise gain)
-     (trigger p (incudine.util:sample 1.))))
+;; (define-vug excitation (gain p)
+;;   (* (white-noise gain)
+;;      (trigger p (incudine.util:sample 1.))))
 (define-vug excitation (gain p)
   (* (white-noise gain)
      (cond ((eq (trigger p (incudine.util:sample 1.)) 1.) 1) (t (envelope *env1* 1 1. #'incudine:stop)))))
@@ -66,10 +69,6 @@
 ;; (setf *env1* (make-envelope '(0 1 0) '(.39999 .3999999 )))
 ;; (setf *env1* (make-envelope '(0 1 0) '(.1 .5) :curve :step))
 ;; (setf *env1* (make-envelope '(0 1 0) '(.1 .11) :curve :step))
-(defvar *env1* nil)
-(setf *env1* (make-perc 0 .25))
-
-(pluck-test .5 440 .7 .1 .3 4 .5)
 
 (define-vug filtered-excitation (gain freq pickangle beta l)
   (with-samples ((p (/ *sample-rate* freq)))
@@ -96,14 +95,17 @@
 (defvar *myscale* nil)
 (setf *myscale* '(0 2 3 5 7 8 10) )
 (setf *myscale* '(0 1 3 5 6 8 10) )
+(setf *myscale* (scale 0 'phrygian))
 
 (pluck-test .5 440 .7 .1 .3 4 .5)
 
 (defun right ()
   ;;  (play-lsample-f (qcosr *myscale* 60 7 3/4) 1. .2)
-  
-  (pluck-test .7 440 .7 .1 .3 4 .5)
-  (at (+ (now) #[4 b]) #'right)
+  ;; (pluck-test .7 440 .7 .1 .3 4 .5)
+  (pluck-test .01
+              (midihz (qcosr *myscale* 60 7 3/4))
+              (cosr .7 .2 .3) .1 .3 4 .5)
+  (at (+ (now) #[.6 b]) #'right)
   )
 
 (right)

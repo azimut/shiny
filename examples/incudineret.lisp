@@ -57,18 +57,25 @@
 ;;;
 
 (dsp! rms-master-out-test2 ()
-  (setf (bus 100) (rms (audio-out 0))))
-
+   (setf (bus 100) (rms (audio-out 0))))
+(dsp! rms-master-out-test2 ()
+  (setf (bus 100) (audio-out 0)))
 (defun rms-master ()
   (lin->db (incudine.util:barrier (:memory) (bus 100))))
+(defun rms-master ()
+  (incudine.util:barrier (:memory) (bus 100)))
 
 (rms-test -20 440 :id 1)
 (rms-test -20 555 :id 2)
 (rms-test -20 666 :id 3)
-(rms-master-out-test2 :id 100 :tail 0)
 
+(rms-test -20 100 :id 4)
+
+
+(rms-master-out-test2 :id 100 :tail 0)
 (rms-master)
 
+(incudine:free 100)
 (incudine:free 0)
 
 ;;;
