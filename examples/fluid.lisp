@@ -14,7 +14,7 @@
 
 (defvar *synth* (fluidsynth:new *fluid-settings*))
 
-(defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
+;; (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
 (dsp! fluid-test ((synth fluidsynth:synth))
   (with ((len (block-size))
@@ -26,13 +26,11 @@
            (f32-ref right current-frame)))))
 
 
+(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 (fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
 (fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
 (fluidsynth:sfload *synth* "/home/sendai/Downloads/Nice-Keys-Ultimate-V2.3.sf2" 1)
-
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") .4)
-(setf (fluidsynth:setting *fluid-settings* "synth.midi-channels") 50)
 
 #|
 (fluidsynth:get-active-voice-count *synth*)
@@ -43,12 +41,15 @@
 
 (fluidsynth:set-reverb *synth* 0.7d0 0.9d0 0.5d0 0.9d0)
 (set-rt-block-size 64)
+
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
+(setf (fluidsynth:setting *fluid-settings* "synth.midi-channels") 24)
+
 (rt-stop)
 (rt-start)
 (fluid-test *synth*)
-
-
-(fluidsynth:noteon *synth* 1 60 50)
+(fluidsynth:program-change *synth* 24 24)
+(fluidsynth:noteon *synth* 24 60 100)
 
 #|
 (incudine:free 1)
@@ -59,12 +60,12 @@
     (callback (+ time duration) 'midi_send device *midi-note-off* channel pitch velocity)))
 |#
 
-(defun play-midi-note (pitch velocity dur)
-  (at (now) #'fluidsynth:noteon *synth* 3 pitch velocity)
-  (at (+ (now) #[dur s]) #'fluidsynth:noteoff *synth* 3 pitch)
+(defun play-midi-note (time pitch velocity dur)
+     (at time #'fluidsynth:noteon *synth* 3 pitch velocity)
+     (at (+ time #[dur s]) #'fluidsynth:noteoff *synth* 3 pitch)
   )
 
-(play-midi-note 60 60 10)
+(play-midi-note (now) 60 60 3)
 
 ;; ----------------------
 ;; DANCING PHALANGES
@@ -129,6 +130,10 @@
       (play-midi-note (note-name-to-midi-number (symbol-name n)) 50 10)
       (at t-next #'player t-next speed notes))))
 
-(progn
-  (player (now) #[.338 b] (repeat 1000 *piece*))
-  (player (now) #[.335 b] (repeat 1000 *piece*)))
+#|
+(flush-pending)
+|#
+
+(let ((time (now)))
+  (player time #[.338 b] (repeat 1000 *piece*))
+  (player time #[.335 b] (repeat 1000 *piece*)))
