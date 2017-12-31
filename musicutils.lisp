@@ -648,3 +648,43 @@ scheme<7099> (pc:scale 0 'aeolian)
   (*
    8.1757989156
    (expt 2 (/ midi 12))))
+
+
+
+
+;; ---------------------
+;; Euclidian composition
+;; code from: cl-patterns
+;; ---------------------
+(defun bjorklund (pulses &optional steps (offset 0))
+  "Generate a list representing a Euclidean rhythm using the Bjorklund algorithm. PULSES is the number of \"hits\" in the sequence, STEPS is number of divisions of the sequence, and OFFSET is the number to rotate the sequence by. This function returns a list, where 1 represents a note and 0 represents a rest. If you want to use bjorklund in a pattern, you may be more interested in `pbjorklund' instead, which returns events with the correct duration and type.
+
+Example: (bjorklund 3 7) ;=> (1 0 1 0 1 0 0)
+
+See also: `pbjorklund'"
+  (if (and (null steps) (typep pulses 'ratio))
+      (bjorklund (numerator pulses) (denominator pulses))
+      (progn
+        (assert (> steps 0) (steps))
+        (assert (>= steps pulses) (pulses))
+        (labels ((from-array (arr)
+                   (destructuring-bind (a b) (split arr)
+                     (if (and (> (length b) 1) (> (length a) 0))
+                         (from-array (lace a b))
+                         (alexandria:flatten (append a b)))))
+                 (split (arr)
+                   (let ((index (position (car (last arr)) arr :test #'equal)))
+                     (list (subseq arr 0 index)
+                           (subseq arr index))))
+                 (lace (a b)
+                   (append (loop
+                              :for x :in a
+                              :for i :from 0
+                              :collect (list x (nth i b)))
+                           (when (<= (length a) (length b))
+                             (subseq b (length a))))))
+          (alexandria:rotate
+           (from-array
+            (append (make-list pulses :initial-element (list 1))
+                    (make-list (- steps pulses) :initial-element (list 0))))
+           offset)))))

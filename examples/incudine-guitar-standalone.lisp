@@ -101,14 +101,23 @@
 
 (defun right ()
   ;;  (play-lsample-f (qcosr *myscale* 60 7 3/4) 1. .2)
-  ;; (pluck-test .7 440 .7 .1 .3 4 .5)
-  (pluck-test .01
-              (midihz (qcosr *myscale* 60 7 3/4))
-              (cosr .7 .2 .3) .1 .3 4 .5)
-  (at (+ (now) #[.6 b]) #'right)
+  (pluck-test .7 440 .7 .1 .3 4 .5)
+  ;;(pluck-test .01
+  ;;            (midihz (qcosr *myscale* 60 7 3/4))
+  ;;            (cosr .7 .2 .3) .1 .3 4 .5)
+  (at (tempo-sync #[1 b]) #'right)
+  )
+(defun left ()
+  ;;  (play-lsample-f (qcosr *myscale* 60 7 3/4) 1. .2)
+  (pluck-test .7 400 .7 .1 .3 4 .5)
+  ;;(pluck-test .01
+  ;;            (midihz (qcosr *myscale* 60 7 3/4))
+  ;;            (cosr .7 .2 .3) .1 .3 4 .5)
+  (at (tempo-sync #[3 b]) #'left)
   )
 
 (right)
+(left)
 ;; ***** Press the left button of the mouse to trigger a note *****
 
 (flush-pending)

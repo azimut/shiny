@@ -541,6 +541,7 @@ returned."
 ;; --------------------------------------------------------------------
 
 (setf (bpm *tempo*) 110)
+(setf (bpm *tempo*) 80)
 (defvar *root* nil)
 (setf *root* 0)
 (defvar *degree* nil)
@@ -576,7 +577,7 @@ returned."
   (if (> (random 1.0) .85) (melody '(0 1 0 -1) '(1/3 2/3 2/3 1)))
   (play-lsample-f (+ 48 *root*) (* dur (cosr .9 .3 1/7)) (cosr .6 .3 1/2))
   (play-lsample-f 36 (* dur (cosr .9 .3 1/7)) (cosr .6 .3 1/2))
-  (at (+ (now) #[dur b]) #'left (random-list '(1 2/3))))
+  (at (tempo-sync #[dur b]) #'left (random-list '(1 2/3))))
 
 (progn 
 (right 'i)
