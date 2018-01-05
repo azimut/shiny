@@ -56,12 +56,15 @@
 ;;; Alternative 1: a bus for master out
 ;;;
 
-(dsp! rms-master-out-test2 ()
-   (setf (bus 100) (rms (audio-out 0))))
+#|
 (dsp! rms-master-out-test2 ()
   (setf (bus 100) (audio-out 0)))
 (defun rms-master ()
   (lin->db (incudine.util:barrier (:memory) (bus 100))))
+|#
+(dsp! rms-master-out-test2 ()
+   (setf (bus 100)
+         (rms (audio-out 0))))
 (defun rms-master ()
   (incudine.util:barrier (:memory) (bus 100)))
 
