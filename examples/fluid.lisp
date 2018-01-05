@@ -41,7 +41,8 @@
 (fluidsynth:set-reverb *synth* 0.7d0 0.9d0 0.5d0 0.9d0)
 (set-rt-block-size 64)
 
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") .3)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
+(setf (fluidsynth:setting *fluid-settings* "synth.polyphony") 128)
 (setf (fluidsynth:setting *fluid-settings* "synth.midi-channels") 24)
 
 (rt-stop)
@@ -230,7 +231,7 @@
 (setf (bpm *tempo*) 30)
 
 (progn
-  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .1)
+  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
   (setf (bpm *tempo*) 90)
 )
   
@@ -239,9 +240,9 @@
 
 (defun sometune (dur root)
   (let ((time (now)))
-;;    (aat (+ time #[3 b]) #'play-midi-note it 36 90 (* 3.0 dur) 1)
+;    (aat (+ time #[3 b]) #'play-midi-note it 36 90 (* 3.0 dur) 1)
     (mapcar (lambda (x y)
-              (aat (+ time #[y b]) #'play-midi-note it x 100 (* 2.0 dur) 0))
+            (aat (+ time #[y b]) #'play-midi-note it x 100 (* 2.0 dur) 0))
             (make-chord 40
                         (cosr 75 10 1/32)
                         5
@@ -283,3 +284,83 @@
 (eu 0 (bjorklund 3 8)  (note-name-to-midi-number (symbol-name (nth 0 *notes*))))
 (eu 1 (bjorklund 4 4)  (note-name-to-midi-number (symbol-name (nth 1 *notes*))))
 (eu 2 (bjorklund 5 13) (note-name-to-midi-number (symbol-name (nth 2 *notes*))))
+
+
+;; -----------
+;; Playground
+;; https://digego.github.io/extempore/note-level-music.html
+;; http://impromptu.moso.com.au/tutorials/making_music/
+;; -----------
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .4)
+
+;; arpeggio
+(mapcar (lambda (note delay vel c)
+            (play-midi-note (+ (now) #[delay b]) note vel 2 c)
+            )
+          '(60 64 67 70)
+          '(1 2 3 4)
+          '(90 50 50 60)
+          '(0 1 2 3)
+          )
+;; chord
+(let ((time (now)))
+  (mapcar (lambda (note c)
+            (play-midi-note time note 80 5 c)
+            )
+          '(60 64 67)
+          '(0 1 2)
+          ))
+
+;; 1/f
+(defun 1f (repeats)
+    (mapcar (lambda (note delay vel c)
+            (play-midi-note (+ (now) #[delay b]) note vel 2 c)
+            )
+          (mapcar (lambda (x) (+ 60 x)) (1-over-f repeats))
+          (range (round (/ repeats 2)) :min 1 :step .5)
+          (repeat repeats '(60))
+          (repeat repeats '(0))
+          ))
+
+(1f 30)
+
+;; --------------------------------------------------------------------
+;; GOTO 2014 • Programming In Time - Live Coding for Creative Performances
+;; https://www.youtube.com/watch?v=Sg2BjFQnr9s
+;; --------------------------------------------------------------------
+#|
+(defun seq-test (&optional (root 60))
+  (let* ((newroot (random-list (cdr (assoc root '((60 58 55)
+                                                  (58 60 56)
+                                                  (56 55 58)
+                                                  (55 60 56)))))))
+    (dsp-seq
+     (play-lsample (+ root -12)  .35 .3)
+     (play-lsample (+ -5  root)  .35 .3)
+           ;(play-lsample  (- root 12) 1 .2 :id 2)
+           ;(play-lsample  (+ 12 root) 1  .2 :id 3)
+           (seq-test newroot))))
+|#
+
+(setf (bpm *tempo*) 60)
+(defvar *root* nil)
+(setf *root* 60)
+(defvar *myscale* nil)
+(setf *myscale* (scale 0 'aeolian))
+
+(defun left (time)
+  (setf *root* (random-list (cdr (assoc *root* '((60 58 55)
+                                                 (58 60 56)
+                                                 (56 55 58)
+                                                 (55 60 56))))))
+     (play-midi-note time (- *root* 12) 60 3 0)
+     (aat (tempo-sync #[3/2 b]) #'play-midi-note it (+ -5  *root*) 60 1 1)
+     (aat (tempo-sync #[4 b])   #'left it))
+
+(defun right ()
+  (play-lsa (round (qcosr *myscale* *root* 7 3/2)) 1.4 .1)
+  (at (tempo-sync #[.5 b]) #'right)
+)
+(left (now))
+(right)
+(flush-pending)
