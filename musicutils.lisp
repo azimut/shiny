@@ -688,3 +688,22 @@ See also: `pbjorklund'"
             (append (make-list pulses :initial-element (list 1))
                     (make-list (- steps pulses) :initial-element (list 0))))
            offset)))))
+
+;; ---------------------
+;; Algorithmic composition
+;; https://quod.lib.umich.edu/s/spobooks/bbv9810.0001.001/1:18/--algorithmic-composition-a-gentle-introduction-to-music?rgn=div1;view=fulltext
+;; ---------------------
+
+(defun 1-over-f (number)
+  (do* ((counter 0 (incf counter))
+        (blue (+ 1 (random 5)) (if (= counter 4)
+                                   (+ 1 (random 5)) blue))
+        (green (+ 1 (random 5)) (if (or
+                                     (= counter 2)
+                                     (= counter 4)
+                                     (= counter 6))
+                                    (+ 1 (random 5)) green))
+        (red (+ 1 (random 5)) (+ 1 (random 5)))
+        (total (+ blue green red) (+ blue green red))
+        (the-list (cons total ()) (cons total the-list)))
+       ((= counter (- number 1)) (reverse the-list))))
