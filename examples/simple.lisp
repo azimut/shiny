@@ -11,32 +11,30 @@
 (defun-g draw-verts-vert-stage ((vert :vec2))
   (v! vert 0 1))
 
-(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2) (time :float))
   (let* ((st    (v! (/ (x gl-frag-coord) (x resolution))
                     (/ (y gl-frag-coord) (y resolution))))
          (color (v! (step .5 (x st))
                     (step .5 (x st))
                     (step .5 (x st)))))
-    (v! color 1.0)
+    (v! (s~ color :xy) (sin time) 1.0)
   ))
 
 (defpipeline-g draw-verts-pipeline ()
   :vertex   (draw-verts-vert-stage :vec2)
   :fragment (draw-verts-frag-stage))
 
-(defun now ()
-  (float (get-internal-real-time)))
-
 (defun draw! ()
    (step-host)
-   (setf (resolution (current-viewport))
-         (surface-resolution (current-surface *cepl-context*)))
+;;   (setf (resolution (current-viewport))
+;;         (surface-resolution (current-surface *cepl-context*)))
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
-          :resolution (viewport-resolution (current-viewport)))
+          :resolution (viewport-resolution (current-viewport))
+          :time (mynow))
    (swap))
 
-(defun init ()
+(defun runinit ()
 
   (when *gpu-verts-arr*
     (free *gpu-verts-arr*))
@@ -62,5 +60,5 @@
         (make-buffer-stream *gpu-verts-arr*
                             :index-array *gpu-index-arr*)))
 
-(def-simple-main-loop play (:on-start #'init)
+(def-simple-main-loop runplay (:on-start #'runinit)
   (draw!))
