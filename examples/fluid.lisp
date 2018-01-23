@@ -5,8 +5,13 @@
 
 (ql:quickload :incudine-fluidsynth)
 
+(defun off-with-the-notes (s)
+  (loop :for c :from 0 :upto 25 :do
+     (mapcar (lambda (x) (fluidsynth:noteoff s c x)) (range 120))))
+
 (defvar *fluid-settings* (fluidsynth:new-settings
                           `(("synth.polyphony" 128)
+                            ("synth.midi-channels" 32)
                             ("synth.sample-rate" ,*sample-rate*)
                             ("audio.sample-format" "float"))))
 
@@ -27,8 +32,10 @@
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
-;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
-(fluidsynth:sfload *synth* "/home/sendai/Downloads/Nice-Keys-Ultimate-V2.3.sf2" 1)
+(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
+;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Nice-Keys-Ultimate-V2.3.sf2" 1)
+;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/grand-piano-YDP-20160804/grand-piano-YDP-20160804.sf2" 1)
+;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/KawaiUprightPiano-20180102/KawaiUprightPiano-20180102.sf2" 1)
 
 #|
 (fluidsynth:get-active-voice-count *synth*)
@@ -40,7 +47,7 @@
 (fluidsynth:set-reverb *synth* 0.7d0 0.9d0 0.5d0 0.9d0)
 (set-rt-block-size 64)
 
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") .8)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .7)
 ;(setf (fluidsynth:setting *fluid-settings* "synth.polyphony") 128)
 ;(setf (fluidsynth:setting *fluid-settings* "synth.midi-channels") 24)
 
@@ -48,6 +55,22 @@
 (rt-start)
 (fluid-test *synth*)
 ;;(fluidsynth:program-change *synth* 11 2)
+(fluidsynth:program-change *synth* 23 0)
+(fluidsynth:program-change *synth* 22 0)
+(fluidsynth:program-change *synth* 21 1)
+(fluidsynth:program-change *synth* 20 0)
+(fluidsynth:program-change *synth* 19 0)
+(fluidsynth:program-change *synth* 18 0)
+(fluidsynth:program-change *synth* 17 0)
+(fluidsynth:program-change *synth* 16 0)
+(fluidsynth:program-change *synth* 15 0)
+(fluidsynth:program-change *synth* 14 0)
+(fluidsynth:program-change *synth* 13 0)
+(fluidsynth:program-change *synth* 12 0)
+(fluidsynth:program-change *synth* 10 0)
+(fluidsynth:program-change *synth* 9 3)
+(fluidsynth:program-change *synth* 9 3)
+(fluidsynth:program-change *synth* 9 3)
 (fluidsynth:noteon *synth* 0 60 100)
 
 #|
@@ -64,8 +87,8 @@
      (at (+ time #[dur s]) #'fluidsynth:noteoff *synth* c pitch)
   )
 
-(play-midi-note (now) 60 90 2 11)
-(play-midi-note (now) 36 60 5 0)
+(play-midi-note (now) 60 90 2 15)
+(play-midi-note (now) 36 60 1 1)
 (play-midi-note (now) 36 60 10 (random 6))
 
 ;; ----------------------
@@ -140,11 +163,11 @@
 (setf (bpm *tempo*) 35)
 
 (defun player (time speed notes c)
-  (let ((n      (first notes))
+  (let ((note      (first notes))
         (notes  (cdr notes))) 
-    (when n
+    (when note
       (play-midi-note time
-                      (note-name-to-midi-number (symbol-name n))
+                      (note-name-to-midi-number (symbol-name note))
                       (round (cosr 60 10 1/2))
                       1
                       c)
@@ -233,7 +256,7 @@
 (setf (bpm *tempo*) 30)
 
 (progn
-  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
+  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .2)
   (setf (bpm *tempo*) 90)
 )
   
@@ -396,9 +419,42 @@
 
 (defvar *mtempos* nil)
 (setf *mtempos* nil)
-(setf (bpm *tempo*) 80)
+(setf (bpm *tempo*) 60)
 
-(defun spattern (time notes pattern r)
+;; All piano
+(dotimes (i 32) (fluidsynth:program-change *synth* i 0) )
+
+(fluidsynth:program-change *synth* 2 0)
+(fluidsynth:program-change *synth* 3 0)
+(fluidsynth:program-change *synth* 4 0)
+(fluidsynth:program-change *synth* 5 7)
+(fluidsynth:program-change *synth* 2 0)
+(dotimes (i 32) (fluidsynth:program-change *synth* i 12) )
+
+(fluidsynth:set-reverb *synth* 0.2d0 0.0d0 0.5d0 0.9d0)
+(fluidsynth:set-reverb *synth* 0.4d0 0.2d0 0.5d0 0.8d0)
+(fluidsynth:set-reverb *synth* 0.6d0 0.4d0 0.5d0 0.7d0)
+(fluidsynth:set-reverb *synth* 0.8d0 0.7d0 0.5d0 0.6d0)
+(fluidsynth:set-reverb *synth* 0.8d0 1.0d0 0.5d0 0.5d0)
+
+(fluidsynth:set-chorus *synth* 3 10.0d0 0.3d0 8.0d0 0)
+(fluidsynth:set-chorus *synth* 3 4.1d0 0.3d0 1.0d0 1)
+
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .6)
+;; (define-constant CHORUS-DEFAULT-N      3)  
+;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
+;; (define-constant CHORUS-DEFAULT-SPEED  0.3d0)
+;; (define-constant CHORUS-DEFAULT-DEPTH  8.0d0)
+;; (define-constant CHORUS-DEFAULT-TYPE   CHORUS-MOD-SINE)
+
+(defun play-midi-note (time pitch velocity dur c)
+     (at time #'fluidsynth:noteon *synth* c pitch velocity)
+     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+
+(defun spattern (time notes pattern lengths r)
+  (print r)
+  ;;(print notes)
+;;  (print pattern)
   (let* ((lpattern   (length pattern))
          (t-lpattern (tempo-sync #[(/ lpattern 2) b]))
          (pbeat      (remove nil
@@ -407,34 +463,39 @@
                                :collect (if (= 1 beat) nbeat)))))
     (loop :for cbeat :in pbeat :do
         (if (= cbeat 0)
-            (play-midi-note time (cm:next notes) 30 1 (random 8))
+            (play-midi-note time (cm:next notes) 25 (cm:next lengths) r)
             (let ((t-beat (tempo-sync #[(/ cbeat 2) b])))
-              (play-midi-note t-beat (cm:next notes) 30 1 (random 8))
+              (play-midi-note t-beat (cm:next notes) 25 (cm:next lengths) r)
               (setf *mtempos* (append *mtempos* (list cbeat))))))
     (if (= 1 (first pattern))
         (setf *mtempos* (append *mtempos* (list 0))))
-    (aat t-lpattern #'spattern it notes pattern r)))
+    (aat t-lpattern #'spattern it notes pattern lengths r)))
 
 ;; I need to use (mod) to get the next beat where there is a note
 (defun ppattern (time lpattern notes length1 length2 &key
                                                        (cbeat 0)
                                                        (ibeat 0)
-                                                       accumbeats accumnotes play pbeat)
+                                                       (chan 2)
+                                                       (pchan 0)
+                                                       accumbeats accumnotes accumlengths play pbeat)
   (if (not (null notes))
       (let ((nbeat   (+ .5 cbeat))
             (nibeat  (+  1 ibeat))
-            (t-nbeat (tempo-sync #[.5 b]))
-            (note    (first notes))
-            (swap    nil)) 
+            (nchan   (if (= 9 (+ 1 chan)) (+ 2 chan) (+ 1 chan)))
+            (npchan  (mod (+ pchan 1) 2))
+            ;;(t-nbeat (tempo-sync #[.5 b]))
+            (t-nbeat (+ time #[.5 b]))
+            (note    (first notes))) 
         ;; play now
         (cond ((or (equal play "yes")
                    (= pbeat ibeat))
                (progn
-                 (play-midi-note time note 50 1 (random 11))
-                 (setf notes      (cdr notes))
-                 (setf accumnotes (append accumnotes (list note)))
-                 (setf accumbeats (append accumbeats '(1)))
-                 (setf pbeat      (mod (+ ibeat (* length1 2)) lpattern))))
+                 (play-midi-note time note 35 length1 pchan)
+                 (setf notes        (cdr notes))
+                 (setf accumnotes   (append accumnotes (list note)))
+                 (setf accumbeats   (append accumbeats '(1)))
+                 (setf accumlengths (append accumlengths (list length1)))
+                 (setf pbeat        (mod (+ ibeat (* length1 2)) lpattern))))
               (t
                (setf accumbeats (append accumbeats '(0)))))
         ;; reset when the next .5 beat is the last beat of the pattern
@@ -442,51 +503,150 @@
         (if (= lpattern nibeat)
             (progn
               (print "endpattern")
-              (print length1)
               (print accumbeats)
+              (print length1)
               (aat t-nbeat #'spattern it
-                   (cm:new cm:cycle :of accumnotes) accumbeats 1)
+                   (cm:new cm:cycle :of accumnotes)
+                   accumbeats
+                   (cm:new cm:cycle :of accumlengths)
+                   chan)
               ;; This works to match agains the prev NOT the global
               (if (and (= 1 (first accumbeats)) (= pbeat 0))
                   (progn
                     (print "endswap")
-                    (print length1)
-;;                    (setf *mtempos* (append *mtempos* (list t-nbeat)))
-                    (aat t-nbeat #'ppattern it lpattern notes length2 length1 :pbeat pbeat))
-                  (aat t-nbeat #'ppattern it lpattern notes length1 length2 :pbeat pbeat)))
+;;                    (setf *mtempos* (append *mtempos* (list '(0))))
+                    (aat t-nbeat #'ppattern it lpattern notes length2 length1 :pbeat pbeat :chan nchan :pchan npchan ))
+                  (aat t-nbeat #'ppattern it lpattern notes length1 length2 :pbeat pbeat :chan nchan :pchan npchan )))
             (if (and (= pbeat (mod nibeat lpattern))
                      (numberp (position pbeat *mtempos*)))
                 (progn
                   (print "middle swap")
-                  (print pbeat)
-                  (print ibeat)
-                  (print length1)
                   (aat t-nbeat #'ppattern it lpattern notes length2 length1
                        :accumnotes accumnotes
                        :accumbeats accumbeats
+                       :accumlengths accumlengths
                        :cbeat nbeat
+                       :chan chan
                        :ibeat nibeat
                        :pbeat pbeat))
                 (progn
-                  ;; (print "normal")
-                  ;; (print pbeat)
-                  ;; (print ibeat)
                   (aat t-nbeat #'ppattern it lpattern notes length1 length2
                        :accumnotes accumnotes
                        :accumbeats accumbeats
+                       :accumlengths accumlengths
                        :cbeat nbeat
+                       :chan chan
                        :ibeat nibeat
                        :pbeat pbeat)))))))
 
 (defun mbox (time lpattern note length1 length2 pc)  
   (setf *mtempos* nil)
   (let* ((midinote (cm:keynum note))
-         (notes    (loop for x from -14 to 14 collect (relative midinote x pc))))
+         (notes    (loop for x from -14 to 21 collect (relative midinote x pc))))
+    (print notes)
     (ppattern time lpattern notes length1 length2 :play "yes")))
 
-(mbox (tempo-sync #[1 b]) 32 :E 4 3 (scale 0 'dorian))
+#|
+(mbox (tempo-sync #[1 b]) 32 :E 4 3 (scale 1 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :C 9 14.5 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :G 10 3.5 (scale 0 'dorian))
 
+(mbox (tempo-sync #[1 b]) 32 :C 8 14.5 (scale 0 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :D 9 1.5 (scale 0 'dorian))
+
 (flush-pending)
-(mapcar (lambda (x) (fluidsynth:noteoff *synth* 11 x)) (range 100))
+(off-with-the-notes *synth*)
+|#
+
+
+;; --------------------------------------------------------------------
+;; Gloriette for John Cage - Translated from notes from metalevel
+;; TODO: stop using a global and try to use a local variable instead
+;; --------------------------------------------------------------------
+(defvar *c0* 0)
+(setf *c0* 0)
+
+
+(defun bird (time offset vel chan p q i &optional (w 0))
+  (if (= chan 0) (setf vel 20))
+;  (if (not (= i 200))
+      (let* ((i    (1+ i))
+             (note (cm:next p))
+             (dur  (cm:next q))
+             (mul  12))
+        (setf *c0* (cm:interp i 0 .5 90 4))
+        ;;(setf *c0* 0)
+        ;;(setf i 0)
+        (print note)
+;;        (print i)
+        (if (not (equal note 'r))
+            (play-midi-note time (cm:keynum (cm:transpose note offset) ) vel (* dur (- mul 3) ) chan))
+        (aat (tempo-sync #[(* mul dur) b]) #'bird it offset vel chan p q i w)))
+
+(defun cage (offset vel chan)
+  (let* ((d (cm:pval *c0*))
+         (p (cm:new cm:weighting :of `((g3 :weight ,d)
+                                       (a3 :weight ,d)
+                                       bf3
+                                       (c4 :weight ,d)
+                                       d4
+                                       (e4 :weight ,d)
+                                       f4
+                                       (g4 :weight ,d)
+                                       (r :max 1 :weight .25))
+                    :for 1))
+         (q (cm:new cm:weighting :of (list 1/16
+                                           1/8
+                                           (cm:new cm:cycle :of 1/32 :for 2)))))
+    (aat (tempo-sync #[1 b]) #'bird it offset vel chan p q 0)))
+
+;; 10 violin
+;; 11 pizzicato (?)
+;; 15 wind
+
+(fluidsynth:program-change *synth* 0 32)
+(fluidsynth:program-change *synth* 1 12)
+(fluidsynth:program-change *synth* 2 10)
+(fluidsynth:program-change *synth* 1 10)
+
+
+(cage -12 30 0)
+(cage 0 30 1)
+(cage 12 30 2)
+
+(progn
+  (at (tempo-sync #[1 b])  #'cage -12 30 0)
+  (at (tempo-sync #[32 b]) #'cage 0 30 1)
+  (at (tempo-sync #[64 b]) #'cage 12 60 2))
+
+(flush-pending)
+(off-with-the-notes *synth*)
+
+#||
+(process repeat 100
+             for n = (next p)
+             for r = (rhythm (next q) 65)
+             for i from 0
+             set w = (interp i 0 .5 90 4)
+             output (new midi :time (now)
+                         :duration r 
+                         :keynum (transpose n offset))
+             wait r)
+||#
+
+;; --------------------------------------------------------------------
+;; Genetic music
+;; https://www.reddit.com/r/algorithmicmusic/comments/3xlrvk/some_music_composed_by_a_program_i_wrote_genetic/
+;; https://soundcloud.com/music-organism
+;;
+;; Basically, the program is based on a genetic algorithm. There are different "organisms/species" that are in charge of creating pieces of a song. For instance, one "species" generates a synthesizer definition. This species has 5 chromosomes: 1 for overall synth configuration (vibrato, envelope, etc.), and 4 that control signal generators (square wave, sine, tri, etc.) along with definitions for optional filters for each signal generator.
+;;
+;; There are similar "species" for overall song structure (bpm, meter, number of instruments/synths), pattern structure (allowed note range, on/off beat notes, etc.), and one for the actual melody (produces a list of notes, with durations and rests).
+;;
+;; The basic idea is that when a song is generated, it will choose 2 "organisms" from from a set from each type of "species". It mates these "organisms" together using common genetic algorithm techniques (crossover, mutation, etc). It will then use the offspring organism to create the different parts of the song. The whole thing gets exported to a format that supercollider can play, and I listen to it to see if it's any good (and the best ones get posted on the soundcloud account). The "organisms" that were used to make a "good" song get saved back to the set of possible organisms to choose from for the next song.
+;;
+;; Or that's how I want it to eventually work. Right now, it's already working like this for the synthesizer species, but the other species are basically just generating random organisms as a starting generation and then running a simple generation-based learning loop to try to produce "interesting" organisms. But soon, I'll make those species work the same as the synths.
+;;
+;; I don't have a website yet. Eventually the plan is to basically have it streaming music 24/7 where people would be able to listen and say "yeah this
+;; is cool" or "no this is garbage", which would then feed back into the algorithm and influence the next song.
+;; --------------------------------------------------------------------
