@@ -4,13 +4,14 @@
 
 (uiop:define-package somecepl
   (:shadowing-import-from #:cepl #:free)
-  (:shadowing-import-from #:incudine #:buffer-data)
-  (:use #:cl #:cepl #:rtg-math
-          #:nineveh
+  (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
+  (:use #:cl 
+          #:cepl
           #:vari
+          #:rtg-math
+          #:nineveh
           #:cl-ppcre
           #:incudine
-          ;#:incudine-fluidsynth
           #:cepl.skitter
           #:livesupport)
   (:import-from #:incudine.vug
@@ -21,7 +22,7 @@
                 #:delay1
                 #:cout
                 #:current-frame
-                #:buffer-play
+              ;;  #:buffer-play
                 #:foreach-channel
                 #:foreach-frame
                 #:pan2
@@ -43,7 +44,7 @@
                 #:make-f32-array
                 #:phasor-loop
                 #:bpf
-                #:buffer-read
+              ;;  #:buffer-read
                 #:butter-lp
                 #:fractal-noise
                 #:out
