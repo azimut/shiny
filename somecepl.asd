@@ -7,17 +7,27 @@
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
-  :depends-on (#:cepl
+  :depends-on (
                #:cepl.sdl2
                #:swank
+               #:cm
+               #:dendrite
                #:incudine
                #:nineveh
                #:livesupport
                #:cl-ppcre
+               #:skitter
+               #:classimp
+               #:cm-incudine
                #:cepl.skitter.sdl2
                #:dirt)
   :serial t
-  :components ((:file "package")
+  :components (
+               (:file "package")
                (:file "assets")
+               ;(:file "camera")
                (:file "musicutils")))
-
+;               (:file "examples/helpers/examples-data")
+;               (:file "examples/helpers/camera")
+;               (:file "examples/helpers/model-parsers")
+;               (:file "examples/helpers/meshes")))
