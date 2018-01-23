@@ -78,13 +78,13 @@
 
 (defun draw! ()
    (step-host)
-;;   (setf (resolution (current-viewport))
-;;         (surface-resolution (current-surface *cepl-context*)))
+   (setf (resolution (current-viewport))
+         (surface-resolution (current-surface (cepl-context))))
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
           :resolution (viewport-resolution (current-viewport))
           :time (mynow)
-          :rms (rms-master))
+          :rms .52)
    (swap))
 
 (defun runinit ()
