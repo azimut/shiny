@@ -650,3 +650,22 @@
 ;; I don't have a website yet. Eventually the plan is to basically have it streaming music 24/7 where people would be able to listen and say "yeah this
 ;; is cool" or "no this is garbage", which would then feed back into the algorithm and influence the next song.
 ;; --------------------------------------------------------------------
+
+;; --------------------------------------------------------------------
+;; https://www.youtube.com/watch?v=J_4zr0Qk6o0
+;; Major and minor eleventh chords in 5 limit just intonation modulate in a variety of ways. It doesn't stick to a fixed set of pitches, so it can modulate arbitrarily without intonation problems.
+;;
+;; As usual it's all PD with no samples or VSTs or anything.
+;;
+;; Basically I'm constructing major and minor eleventh chords from two chains of fifths (1/1, 3/2, 9/4) separated by a third (major or minor). The size of the major third can be set arbitrarily, and the minor third is derived from that. I can modulate to other chords in a number of ways:
+;;
+;; -Transpose the base pitch by 3/2 or 4/3 (dominant/subdominant)
+;; -Transpose the base pitch up or down by the third and toggle between major/minor thirds (diatonic mediant/submediant)
+;; -Transpose the base pitch up or down by the third (chromatic mediant/submediant)
+;; -Toggle between major/minor
+;; -Transpose by the interval between the major/minor thirds and toggle between major/minor (I'm not proficient enough to know what this is supposed to be called, but it's like alternating between Cm and BM).
+;;
+;; Sometimes several of these are combined (up to 4). This has to be done carefully to keep it from sounding too weird. I tried a couple other things besides that (hexatonic poles, etc.), but I thought they didn't work very well.
+;;
+;; Originally the idea was to use some exotic interval for the major third, but I found that most of them sounded too dissonant. For major thirds larger than about 32/25 (427 cents), some of the resulting intervals get too small. And for major thirds smaller than 5/4 (386 cents), the major and minor intervals are too close together. So the useful range is pretty small, and a lot of the ones I wanted to try (9/7, 11/9) don't really work. I thought the only major third sizes that worked well were 14/11, 81/64 (Pythagorean) and 5/4. I went with 5/4. But I want to revisit this idea with more exotic intervals. I'll just have to construct the chord differently so that it works better.
+;; --------------------------------------------------------------------

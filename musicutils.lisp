@@ -177,6 +177,20 @@
         ((= (mod arg (length lst)) 0) lst)
         (t (rotate (nconc (cdr lst) (list (car lst))) (- arg 1)))))
 
+(defun my-rotate (length shift)
+  "Return a list of given LENGTH, rotated by SHIFT."
+  (nconc
+   (loop for i from (1+ shift) to (- length shift -2) collect i)
+   (loop for i from 1 to shift collect i)))
+
+
+(defun rotate-list (list shift)
+  "Rotate the given LIST by the specified SHIFT."
+  (let ((len (length list)))
+    (setq shift (mod shift len)) ; handle circular shifts
+    (append (nthcdr (- len shift) list)
+            (butlast list shift))))
+
 ;; (define TWOPI (* 2.0 PI))
 (defvar TWOPI 6.283185)
 
@@ -328,7 +342,8 @@
 (defun cosr (centre amplitude period)
   (+ centre
      (* amplitude
-        (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
+        ;;(cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
+        (cos (* TWOPI (now) period)))))
 
 ;; -------------------------------
 

@@ -119,3 +119,46 @@
 (defvar *my-buffer* (make-buffer 1024))
 
 (rt-eval () (update-my-buffer some-node *my-buffer*))
+
+
+;; -----------
+;; From 2nd getting started
+
+;; Too noisy?
+;; Too cpu (?) expensive when converting to list with buffer->list
+
+(define-vug buffer-record ((buf buffer) in)
+  (incudine.vug:buffer-write buf (incudine.vug:counter 0 (buffer-size buf) :loop-p t) in))
+
+(dsp! buffer-record-test ((buf buffer))
+  (when (zerop incudine.vug:current-channel)
+    (buffer-record buf (audio-in 0))))
+
+(defvar btest (make-buffer 44100))
+(buffer-record-test btest :id 1)
+
+;; -----------
+
+(defvar env2 (make-perc .001 .4))
+
+(dsp! env-test-3 (freq amp pos (env envelope) gate)
+  (foreach-channel
+    (cout (pan2 (* (envelope env gate 1 #'stop)
+                   (sine freq amp 0))
+                pos))))
+
+(defun seq-test (rep freq amp pos)
+  (when (plusp rep)
+    (dsp-seq (env-test-3 freq amp pos env2 1)
+             (env-test-3 (* freq 7/4) amp pos env2 1)
+             (env-test-3 (* freq 2) amp pos env2 1)
+             (seq-test (1- rep) freq amp pos))))
+
+(defun phr1 (time)
+  (at time #'seq-test 8 200 .3 .5)
+  (at (+ time #[2 b]) #'seq-test 6 400 .3 .4)
+  (at (+ time #[4 b]) #'seq-test 4 600 .3 .6))
+
+
+(setf (bpm *tempo*) 120)
+(phr1 (now))
