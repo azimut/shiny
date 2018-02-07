@@ -342,8 +342,8 @@
 (defun cosr (centre amplitude period)
   (+ centre
      (* amplitude
-        ;;(cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
-        (cos (* TWOPI (now) period)))))
+        (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
+        ;;(cos (* TWOPI (now) period)))))
 
 ;; -------------------------------
 

@@ -32,8 +32,8 @@
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
-(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
-;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Nice-Keys-Ultimate-V2.3.sf2" 1)
+;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
+(fluidsynth:sfload *synth* "/home/sendai/Nice-Keys-Ultimate-V2.3.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/grand-piano-YDP-20160804/grand-piano-YDP-20160804.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/KawaiUprightPiano-20180102/KawaiUprightPiano-20180102.sf2" 1)
 
@@ -62,7 +62,6 @@
 (fluidsynth:program-change *synth* 19 0)
 (fluidsynth:program-change *synth* 18 0)
 (fluidsynth:program-change *synth* 17 0)
-(fluidsynth:program-change *synth* 16 0)
 (fluidsynth:program-change *synth* 15 0)
 (fluidsynth:program-change *synth* 14 0)
 (fluidsynth:program-change *synth* 13 0)
@@ -419,17 +418,17 @@
 
 (defvar *mtempos* nil)
 (setf *mtempos* nil)
-(setf (bpm *tempo*) 60)
+(setf (bpm *tempo*) 50)
 
 ;; All piano
-(dotimes (i 32) (fluidsynth:program-change *synth* i 0) )
+(dotimes (i 32) (fluidsynth:program-change *synth* i 1) )
 
 (fluidsynth:program-change *synth* 2 0)
 (fluidsynth:program-change *synth* 3 0)
-(fluidsynth:program-change *synth* 4 0)
-(fluidsynth:program-change *synth* 5 7)
-(fluidsynth:program-change *synth* 2 0)
-(dotimes (i 32) (fluidsynth:program-change *synth* i 12) )
+(fluidsynth:program-change *synth* 8 4)
+(fluidsynth:program-change *synth* 7 1)
+(fluidsynth:program-change *synth* 6 1)
+(dotimes (i 32) (fluidsynth:program-change *synth* i ) )
 
 (fluidsynth:set-reverb *synth* 0.2d0 0.0d0 0.5d0 0.9d0)
 (fluidsynth:set-reverb *synth* 0.4d0 0.2d0 0.5d0 0.8d0)
@@ -440,7 +439,7 @@
 (fluidsynth:set-chorus *synth* 3 10.0d0 0.3d0 8.0d0 0)
 (fluidsynth:set-chorus *synth* 3 4.1d0 0.3d0 1.0d0 1)
 
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") .6)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") 1.4)
 ;; (define-constant CHORUS-DEFAULT-N      3)  
 ;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
 ;; (define-constant CHORUS-DEFAULT-SPEED  0.3d0)
@@ -452,9 +451,9 @@
      (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
 (defun spattern (time notes pattern lengths r)
-  (print r)
+;;  (print r)
   ;;(print notes)
-;;  (print pattern)
+;  (print pattern)
   (let* ((lpattern   (length pattern))
          (t-lpattern (tempo-sync #[(/ lpattern 2) b]))
          (pbeat      (remove nil
@@ -551,6 +550,7 @@
 (mbox (tempo-sync #[1 b]) 32 :C 9 14.5 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :G 10 3.5 (scale 0 'dorian))
 
+
 (mbox (tempo-sync #[1 b]) 32 :C 8 14.5 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :D 9 1.5 (scale 0 'dorian))
 
@@ -575,8 +575,8 @@
              (dur  (cm:next q))
              (mul  12))
         (setf *c0* (cm:interp i 0 .5 90 4))
-        ;;(setf *c0* 0)
-        ;;(setf i 0)
+        ;; (setf *c0* 0)
+        ;; (setf i 0)
         (print note)
 ;;        (print i)
         (if (not (equal note 'r))
@@ -611,13 +611,13 @@
 
 
 (cage -12 30 0)
-(cage 0 30 1)
-(cage 12 30 2)
+(cage 0 50 1)
+(cage 12 40 2)
 
 (progn
-  (at (tempo-sync #[1 b])  #'cage -12 30 0)
-  (at (tempo-sync #[32 b]) #'cage 0 30 1)
-  (at (tempo-sync #[64 b]) #'cage 12 60 2))
+;;  (at (tempo-sync #[1 b])  #'cage -12 30 0)
+  (at (tempo-sync #[32 b]) #'cage 0 50 1)
+  (at (tempo-sync #[64 b]) #'cage 12 40 2))
 
 (flush-pending)
 (off-with-the-notes *synth*)
@@ -669,3 +669,253 @@
 ;;
 ;; Originally the idea was to use some exotic interval for the major third, but I found that most of them sounded too dissonant. For major thirds larger than about 32/25 (427 cents), some of the resulting intervals get too small. And for major thirds smaller than 5/4 (386 cents), the major and minor intervals are too close together. So the useful range is pretty small, and a lot of the ones I wanted to try (9/7, 11/9) don't really work. I thought the only major third sizes that worked well were 14/11, 81/64 (Pythagorean) and 5/4. I went with 5/4. But I want to revisit this idea with more exotic intervals. I'll just have to construct the chord differently so that it works better.
 ;; --------------------------------------------------------------------
+
+#|
+m maxima q quarter
+l longa  e eighth
+b brevis s sixteenth
+w whole  t thirty-second
+h half   x sixty-fourth
+|#
+
+;; https://github.com/benmca/csound-pieces/
+;; http://listenfaster.tumblr.com/
+
+(defun play-midi-note (time pitch velocity dur c)
+     (at time #'fluidsynth:noteon *synth* c pitch velocity)
+     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+
+;; trompet
+(fluidsynth:program-change *synth* 3 42)
+(fluidsynth:program-change *synth* 2 43)
+(fluidsynth:program-change *synth* 1 46)
+
+(defun pp (chan time keys rhythms)
+  (let ((note   (cm:keynum (cm:next keys)))
+        (rhythm (cm:rhythm (cm:next rhythms) 30)))
+    (play-midi-note time
+                    (cm:keynum note)
+                    30 rhythm chan)
+    (aat (tempo-sync #[rhythm b]) #'pp chan it keys rhythms)))
+
+(pp 1
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
+    (cm:new cm:cycle :of '(e s q e. s.)))
+
+(pp 2
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of '(e4 gs4 b4 ds4))
+    (cm:new cm:cycle :of '(s e s. e. q)))
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+(defun p (chan vel time keys rhythms amps &key (life nil))
+  ;;  (if (not (= chan 4))
+  (if (or (null life)
+          (> life 0))
+      (let* ((amp    (cm:next amps))
+             (note   (if (= amp 1) (cm:keynum (cm:next keys)) 0))
+             (rhythm (cm:rhythm (cm:next rhythms) 30))
+             (life   (if (integerp life) (1- life) nil)))
+        (if (not (= note 0))
+            (play-midi-note time
+                            (cm:keynum note)
+                            vel rhythm chan ))
+        (aat (+ time #[rhythm b]) #'p chan vel it keys rhythms amps
+             :life life))))
+
+(defun q1 (chan vel time keys &key (life nil))
+  (let ((rhythms (cm:new cm:cycle :of '(s s s s s s s s+q q)))
+        (amps    (cm:new cm:cycle :of '(0 1 0 1 0 1 0 1   0))))
+    (p chan vel time keys rhythms amps :life life)))
+
+(defun q2 (chan vel time keys &key (life nil))
+  (let ((rhythms (cm:new cm:cycle :of '(e e e e+q q)))
+        (amps    (cm:new cm:cycle :of '(1 1 1 1 0))))
+    (p chan vel time keys rhythms amps :life life)))
+
+(defun q3 (chan vel time keys &key (life nil))
+  (let ((rhythms (cm:new cm:cycle :of '(s q e.+q q)))
+        (amps    (cm:new cm:cycle :of '(1 1 1 0))))
+    (p chan vel time keys rhythms amps :life life)))
+
+(defun q4 (chan vel time keys &key (life nil) )
+  (let ((rhythms (cm:new cm:cycle :of '(e s s s s s s+q q)))
+        (amps    (cm:new cm:cycle :of '(1 1 1 1 1 1 1 0))))
+    (p chan vel time keys rhythms amps :life life)))
+
+(progn
+  (q1 1 10 (tempo-sync #[1 b]) (cm:new cm:heap :of '(gs4 b4 a4 fs4)))
+  (q2 2 30 (tempo-sync #[2 b]) (cm:new cm:heap :of '(gs4 b4 a4 fs4)))
+  (q3 3 60 (tempo-sync #[3 b]) (cm:new cm:heap :of '(e4 fs5)))
+  (q4 4 45 (tempo-sync #[4 b]) (cm:new cm:heap :of '(fs3))) )
+;; 33 sting
+;; 40 trumpet
+;; 37- winds wood
+;; 40- winds brass
+;; 46- winds synth
+(fluidsynth:program-change *synth* 1 1)
+(fluidsynth:program-change *synth* 2 1)
+(fluidsynth:program-change *synth* 3 1)
+(fluidsynth:program-change *synth* 4 1)
+(fluidsynth:program-change *synth* 3 33)
+(fluidsynth:program-change *synth* 4 40)
+
+(q4 3 40
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of '(e3 gs4 b4 ds4)))
+
+(p 4 40 (tempo-sync #[1 b])
+   (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
+   (cm:new cm:cycle :of '(s e s. e. q))
+   (cm:new cm:cycle :of '(1)))
+
+;; emergen.scm - launchOB
+
+(progn
+  (q1 1 30 (tempo-sync #[1 b])
+      (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
+  (q2 2 30 (tempo-sync #[1 b])
+      (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
+  (q3 4 35 (tempo-sync #[1 b])
+      (cm:new cm:heap :of '(e4 fs5)) :life 10)
+  (q4 4 45 (tempo-sync #[1 b])
+      (cm:new cm:heap :of '(fs3)) :life 10))
+
+
+(defun q5 (rhythms)
+  (let* ((rhythm (cm:rhythm (cm:next rhythms) 30)))
+    (print "hey")
+    (q1 1 30 (tempo-sync #[1 b])
+        (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
+    (q2 2 30 (tempo-sync #[1 b])
+        (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
+    (q3 4 35 (tempo-sync #[1 b])
+        (cm:new cm:heap :of '(e4 fs5)) :life 10)
+    (q4 4 45 (tempo-sync #[1 b])
+        (cm:new cm:heap :of '(fs3)) :life 10)
+    (aat (+ (now) #[rhythm s]) #'q5 rhythms)))
+ 
+(q5 (cm:new cm:cycle :of '(e s s s s s s+q q)))
+(q5 (cm:new cm:cycle :of '(w w+h w+w w+w+w)))
+    
+(q1 1 30 (tempo-sync #[1 b]) (cm:new cm:heap :of '(gs4 b4 as4 fs4)))
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+;; --------------------
+;; CM archive mailing list
+;; ftp://ccrma-ftp.stanford.edu/pub/Lisp/old-cmdist.html
+;; --------------------
+(defvar chorale1 nil)
+(setf chorale1 '((G2 B2 D3) (G3 B3 D4) (C4 E3 G3) (C4 E3 G3) (D4 FS3 A3)
+                 (G3 B3 D4) (B3 D3 FS3) (B3 D3 FS3) (E3 G3 B3) (C3 E3 G3)
+                 (C3 E3 G3) (C4 E4 G4) (FS3 A2 C3) (G2 B2 D3) (D3 FS3 A3)
+                 (G2 B2 D3) (D3 FS2 A2) (E3 G2 B2 D3) (FS3 A2 C3) (G3 B2 D3)
+                 (A3 C3 E3 G3) (D3 FS3 A3) (D3 FS3 A3 C4) (G2 B2 D3) (G2 B2 D3)
+                 (G2 B2 D3) (G2 B2 D3) (A2 C3 E3) (FS3 A2 C3) (G3 B2 D3)
+                 (G3 B2 D3) (G3 B2 D3) (G3 B2 D3) (G3 B2 D3) (D3 FS3 A2 C3)
+                 (G2 B2 D3) (D3 FS3 A3) (E3 G3 B3) (E3 G3 B3) (B3 D3 FS3)
+                 (B3 D3 FS3) (A3 C3 E3) (G3 B2 D3) (G3 B2 D3) (G3 B2 D3)
+                 (D3 FS3 A3 C4) (D3 FS3 A3 C4) (G2 B2 D3) (G2 B2 D3) (G3 B2 D3)
+                 (G2 B2 D3 F3) (C3 E3 G3) (G2 B2 D3) (D3 FS2 A2) (D3 FS2 A2 C3)
+                 (G2 B2 D3) (G2 B2 D3) (FS3 A2 C3) (G3 B2 D3) (G2 B2 D3)
+                 (D3 FS3 A3) (D3 FS3 A3 C4) (E3 G3 B3) (E3 G3 B3) (C3 E3 G3)
+                 (C3 E3 G3) (G2 B2 D3) (G2 B2 D3) (D3 FS3 A3) (G3 B3 D4)
+                 (D4 FS3 A3) (D4 FS3 A3) (C4 E3 G3) (C4 E3 G3) (E3 G3 B3)
+                 (E3 G3 B3) (A3 C3 E3 G3) (D3 FS3 A3) (D3 FS3 A3 C4) 
+                 (G2 B2 D3)))
+
+#|
+(defprocess play-chords (num chords rhy dur amp)
+  (process repeat num
+           for c = (next chords)
+           do
+           (dolist (k c)
+             (output (new midi time (now) duration dur
+                          keynum k amplitude amp)))
+           (wait rhy)))
+
+(events (play-chords 50 (markov-analyze chorale1 :order 1 :print nil)
+                     .5 .4 .2)
+        "midi.port")
+|#
+
+(defun m (time chords)
+  (let ((chord (cm:next chords))
+        (vel   (round (cosr 35 5 .5))))
+    (dolist (k chord)
+      (play-midi-note (now) (cm:keynum k) vel 1 1))
+    (aat (+ time #[1 b]) #'m it chords)))
+
+(m (tempo-sync #[1 b])
+   (cm:markov-analyze chorale1 :order 1 :print? nil))
+;; --------------------------------
+(defvar idxdur '((0.018 q) (.697 q)  (1.376 s)
+                 (1.538 e) (1.869 s) (2.032 s)
+                 (2.2 e)   (2.543 s) (2.705 q)
+                 (3.373 e.)(3.895 e) (4.232 q)
+                 (4.894 e) (5.236 s)))
+
+(defun quarterDur->tempo (quarterdur)
+  (* 60 (/ 1.0 quarterdur)))
+
+
+
+;; --------------------------------
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+;; --------------------------------
+;; https://www.quicklisp.org/beta/UNOFFICIAL/docs/fomus/doc/ch09s03.html
+;; 50 80 / 40 70
+;; 60 80 / 40 60
+(defun q (time rhythms)
+  (let ((rhythm (cm:rhythm (cm:next rhythms) 30)))
+    (play-midi-note time (cm:between 50 70) 30 1 1)
+    (play-midi-note time (cm:between 50 70) 30 1 2)
+    (play-midi-note time (cm:between 50 70) 30 1 2)
+    (aat (tempo-sync #[rhythm b]) #'q it rhythms)))
+
+(q (tempo-sync #[1 b]) (cm:new cm:cycle :of '(e q s s q)))
+
+
+;; Data set of Bach
+;; https://archive.ics.uci.edu/ml/datasets/Bach+Chorales
+
+
+;; Fractal music
+;; https://github.com/holgafreak/maxann-grace
+;; https://web.archive.org/web/20000118053335/http://www.sci.fi/~mjkoskin/fractal.cm
+(defvar mtrules nil)
+
+(setf mtrules '((0 :-> (0 1)) 
+                (1 :-> (1 0))))
+
+;; RW-NEXT -- returns next complete generation of rewrite
+;; rwthing = rules; alist = input string
+;; example: (rw-next mtrules '(1 0)) = (1 0 0 1)
+(defun rw-next (rwthing alist)
+  (let* ((this-rw (cm:new cm:rewrite
+                    :of (append rwthing '((rw-end :-> rw-end)))
+                    :initially (append alist (list 'rw-end))))
+         (sink (cm:next this-rw (+ (length alist) 1))))
+    (loop for x = (cm:next this-rw) until (eql x 'rw-end) collect x)))
+
+;; RWGEN -- returns arbitrary generation of rewrite
+;; (rwgen mtrules '(1 0) 2) =  (1 0 0 1 0 1 1 0)
+(defun rwgen (rwrules initgen gennbr)
+  (case gennbr 
+    (0 initgen)
+    (1 (rw-next rwrules initgen))
+    (t (rw-next rwrules (rwgen rwrules initgen (- gennbr 1))))))
+

@@ -18,7 +18,7 @@
                #:cl-ppcre
                #:skitter
                #:classimp
-               #:cm-incudine
+               ;;#:cm-incudine
                #:cepl.skitter.sdl2
                #:dirt)
   :serial t

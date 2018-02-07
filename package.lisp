@@ -12,6 +12,7 @@
           #:nineveh
           #:cl-ppcre
           #:incudine
+          ;#:cm
           #:cepl.skitter
           #:livesupport)
   (:import-from #:incudine.vug
