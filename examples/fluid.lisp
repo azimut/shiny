@@ -9,6 +9,18 @@
   (loop :for c :from 0 :upto 25 :do
      (mapcar (lambda (x) (fluidsynth:noteoff s c x)) (range 120))))
 
+(defun all-piano (s)
+  (dotimes (i 32) (fluidsynth:program-change s i 1) ))
+  
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .5)
+
+;; (define-constant CHORUS-DEFAULT-N      3)  
+;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
+;; (define-constant CHORUS-DEFAULT-SPEED  0.3d0)
+;; (define-constant CHORUS-DEFAULT-DEPTH  8.0d0)
+;; (define-constant CHORUS-DEFAULT-TYPE   CHORUS-MOD-SINE)
+
+
 (defvar *fluid-settings* (fluidsynth:new-settings
                           `(("synth.polyphony" 128)
                             ("synth.midi-channels" 32)
@@ -17,6 +29,10 @@
 
 
 (defvar *synth* (fluidsynth:new *fluid-settings*))
+
+(defun play-midi-note (time pitch velocity dur c)
+     (at time #'fluidsynth:noteon *synth* c pitch velocity)
+     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
 ;; (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
@@ -73,7 +89,6 @@
 (fluidsynth:noteon *synth* 0 60 100)
 
 #|
-(incudine:free 1)
 (flush-pending)
 (define play-midi-note
   (lambda (time device pitch velocity duration channel)
@@ -162,7 +177,7 @@
 (setf (bpm *tempo*) 35)
 
 (defun player (time speed notes c)
-  (let ((note      (first notes))
+  (let ((note   (first notes))
         (notes  (cdr notes))) 
     (when note
       (play-midi-note time
@@ -178,8 +193,8 @@
 |#
 
 (let ((time (now)))
-  (player time #[.338 b] *piece* 0)
-  (player time #[.335 b] *piece* 1))
+  (player time #[.338 b] *piece* 3)
+  (player time #[.335 b] *piece* 3))
 
 ;; --------------------------------------------------------------------
 ;; Another late christmas
@@ -312,9 +327,9 @@
 
 (flush-pending)
 
-(eu (now) 60 0 1/2 (bjorklund 5 13) '(:c3 :g3 :d3))
-(eu (now) 50 1 1   (bjorklund 4 4)  '(:c3 :g3 :d3))
-(eu (now) 50 2 1/2 (bjorklund 3 8)  '(:c3 :g3 :d3))
+(eu (tempo-sync #[1 b]) 60 0 1/2 (bjorklund 5 13) '(:c3 :g3 :d3))
+(eu (tempo-sync #[1 b]) 50 1 1   (bjorklund 4 4)  '(:c3 :g3 :d3))
+(eu (tempo-sync #[1 b]) 50 2 1/2 (bjorklund 3 8)  '(:c3 :g3 :d3))
 
 ;; -----------
 ;; Playground
@@ -388,7 +403,7 @@
      (aat (tempo-sync #[4 b])   #'left it))
 
 (defun right ()
-  (play-lsa (round (qcosr *myscale* *root* 7 3/2)) 1.4 .1)
+  (play-midi-note (round (qcosr *myscale* *root* 7 3/2)) 1.4 .1)
   (at (tempo-sync #[.5 b]) #'right)
 )
 (left (now))
@@ -420,10 +435,24 @@
 (setf *mtempos* nil)
 (setf (bpm *tempo*) 50)
 
+;; Specially needed the first "off" on ptterns
+;; might be a reason to drop midi :S
+(defun play-midi-note (time pitch velocity dur c)
+     (fluidsynth:noteoff *synth* c pitch)
+     (at time #'fluidsynth:noteon *synth* c pitch velocity)
+     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+
 ;; All piano
 (dotimes (i 32) (fluidsynth:program-change *synth* i 1) )
 
+(fluidsynth:program-change *synth* 4 34)
+(fluidsynth:program-change *synth* 2 1)
+(fluidsynth:program-change *synth* 3 42)
+
 (fluidsynth:program-change *synth* 2 0)
+(fluidsynth:program-change *synth* 2 0)
+(fluidsynth:program-change *synth* 2 0)
+
 (fluidsynth:program-change *synth* 3 0)
 (fluidsynth:program-change *synth* 8 4)
 (fluidsynth:program-change *synth* 7 1)
@@ -440,32 +469,28 @@
 (fluidsynth:set-chorus *synth* 3 4.1d0 0.3d0 1.0d0 1)
 
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") 1.4)
-;; (define-constant CHORUS-DEFAULT-N      3)  
-;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
-;; (define-constant CHORUS-DEFAULT-SPEED  0.3d0)
-;; (define-constant CHORUS-DEFAULT-DEPTH  8.0d0)
-;; (define-constant CHORUS-DEFAULT-TYPE   CHORUS-MOD-SINE)
-
-(defun play-midi-note (time pitch velocity dur c)
-     (at time #'fluidsynth:noteon *synth* c pitch velocity)
-     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
 (defun spattern (time notes pattern lengths r)
-;;  (print r)
-  ;;(print notes)
-;  (print pattern)
+  (print r)
+  (print pattern)
   (let* ((lpattern   (length pattern))
          (t-lpattern (tempo-sync #[(/ lpattern 2) b]))
          (pbeat      (remove nil
                             (loop :for beat :in pattern
                                :for nbeat :from 0 :upto 64
                                :collect (if (= 1 beat) nbeat)))))
+    (print lpattern)
+    (print pbeat)
     (loop :for cbeat :in pbeat :do
-        (if (= cbeat 0)
-            (play-midi-note time (cm:next notes) 25 (cm:next lengths) r)
-            (let ((t-beat (tempo-sync #[(/ cbeat 2) b])))
-              (play-midi-note t-beat (cm:next notes) 25 (cm:next lengths) r)
-              (setf *mtempos* (append *mtempos* (list cbeat))))))
+       (let ((note   (cm:next notes))
+             (length (cm:next lengths)))
+;;         (print note)
+;;         (print length)
+         (if (= cbeat 0)
+             (play-midi-note time note 25 length r)
+             (let ((t-beat (+ time #[(/ cbeat 2) b])))
+               (play-midi-note t-beat note 25 length r)
+               (setf *mtempos* (append *mtempos* (list cbeat)))))))
     (if (= 1 (first pattern))
         (setf *mtempos* (append *mtempos* (list 0))))
     (aat t-lpattern #'spattern it notes pattern lengths r)))
@@ -502,8 +527,8 @@
         (if (= lpattern nibeat)
             (progn
               (print "endpattern")
-              (print accumbeats)
-              (print length1)
+;;              (print accumbeats)
+;;              (print length1)
               (aat t-nbeat #'spattern it
                    (cm:new cm:cycle :of accumnotes)
                    accumbeats
@@ -541,7 +566,7 @@
 (defun mbox (time lpattern note length1 length2 pc)  
   (setf *mtempos* nil)
   (let* ((midinote (cm:keynum note))
-         (notes    (loop for x from -14 to 21 collect (relative midinote x pc))))
+         (notes    (loop for x :from -14 :to 24 :collect (relative midinote x pc))))
     (print notes)
     (ppattern time lpattern notes length1 length2 :play "yes")))
 
@@ -575,9 +600,9 @@
              (dur  (cm:next q))
              (mul  12))
         (setf *c0* (cm:interp i 0 .5 90 4))
-        ;; (setf *c0* 0)
-        ;; (setf i 0)
-        (print note)
+        ;;(setf *c0* 0)
+        ;;(setf i 0)
+;;        (print note)
 ;;        (print i)
         (if (not (equal note 'r))
             (play-midi-note time (cm:keynum (cm:transpose note offset) ) vel (* dur (- mul 3) ) chan))
@@ -605,17 +630,19 @@
 ;; 15 wind
 
 (fluidsynth:program-change *synth* 0 32)
-(fluidsynth:program-change *synth* 1 12)
-(fluidsynth:program-change *synth* 2 10)
 (fluidsynth:program-change *synth* 1 10)
+(fluidsynth:program-change *synth* 2 10)
 
+(fluidsynth:program-change *synth* 0 22)
+(fluidsynth:program-change *synth* 1 77)
+(fluidsynth:program-change *synth* 2 33)
 
-(cage -12 30 0)
+(cage -12 30 3)
 (cage 0 50 1)
 (cage 12 40 2)
 
 (progn
-;;  (at (tempo-sync #[1 b])  #'cage -12 30 0)
+  (at (tempo-sync #[1 b])  #'cage -12 30 3)
   (at (tempo-sync #[32 b]) #'cage 0 50 1)
   (at (tempo-sync #[64 b]) #'cage 12 40 2))
 
@@ -682,6 +709,7 @@ h half   x sixty-fourth
 ;; http://listenfaster.tumblr.com/
 
 (defun play-midi-note (time pitch velocity dur c)
+     (fluidsynth:noteoff *synth* c pitch)
      (at time #'fluidsynth:noteon *synth* c pitch velocity)
      (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
@@ -689,6 +717,16 @@ h half   x sixty-fourth
 (fluidsynth:program-change *synth* 3 42)
 (fluidsynth:program-change *synth* 2 43)
 (fluidsynth:program-change *synth* 1 46)
+
+
+(fluidsynth:program-change *synth* 4 1)
+
+(fluidsynth:program-change *synth* 3 33)
+
+
+
+(fluidsynth:program-change *synth* 1 1)
+(fluidsynth:program-change *synth* 2 1)
 
 (defun pp (chan time keys rhythms)
   (let ((note   (cm:keynum (cm:next keys)))
@@ -758,10 +796,10 @@ h half   x sixty-fourth
 ;; 37- winds wood
 ;; 40- winds brass
 ;; 46- winds synth
-(fluidsynth:program-change *synth* 1 1)
+(fluidsynth:program-change *synth* 1 40)
 (fluidsynth:program-change *synth* 2 1)
 (fluidsynth:program-change *synth* 3 1)
-(fluidsynth:program-change *synth* 4 1)
+(fluidsynth:program-change *synth* 1 1)
 (fluidsynth:program-change *synth* 3 33)
 (fluidsynth:program-change *synth* 4 40)
 
@@ -769,7 +807,7 @@ h half   x sixty-fourth
     (tempo-sync #[1 b])
     (cm:new cm:cycle :of '(e3 gs4 b4 ds4)))
 
-(p 4 40 (tempo-sync #[1 b])
+(p 4 30 (tempo-sync #[1 b])
    (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
    (cm:new cm:cycle :of '(s e s. e. q))
    (cm:new cm:cycle :of '(1)))
@@ -784,7 +822,7 @@ h half   x sixty-fourth
   (q3 4 35 (tempo-sync #[1 b])
       (cm:new cm:heap :of '(e4 fs5)) :life 10)
   (q4 4 45 (tempo-sync #[1 b])
-      (cm:new cm:heap :of '(fs3)) :life 10))
+      (cm:new cm:heap :of '(fs3)) :life 10) )
 
 
 (defun q5 (rhythms)
@@ -857,6 +895,14 @@ h half   x sixty-fourth
 
 (m (tempo-sync #[1 b])
    (cm:markov-analyze chorale1 :order 1 :print? nil))
+
+(defun m (time chords)
+  (let ((chord (cm:next chords)))
+    (play-midi-note time (cm:keynum (nth 0 chord)) 30 1 1)
+    (play-midi-note (+ time #[1 b]) (cm:keynum (nth 1 chord)) 30 1 1)
+    (play-midi-note (+ time #[2 b]) (cm:keynum (nth 2 chord)) 30 1 1)
+    (aat (+ time #[3 b]) #'m it chords)))
+
 ;; --------------------------------
 (defvar idxdur '((0.018 q) (.697 q)  (1.376 s)
                  (1.538 e) (1.869 s) (2.032 s)
@@ -896,6 +942,13 @@ h half   x sixty-fourth
 ;; Fractal music
 ;; https://github.com/holgafreak/maxann-grace
 ;; https://web.archive.org/web/20000118053335/http://www.sci.fi/~mjkoskin/fractal.cm
+
+;; ----------------------------------
+;; Morse-Thue
+;; From:
+;; - "Music composition with lisp"
+;; - nudruz
+ 
 (defvar mtrules nil)
 
 (setf mtrules '((0 :-> (0 1)) 
@@ -919,3 +972,314 @@ h half   x sixty-fourth
     (1 (rw-next rwrules initgen))
     (t (rw-next rwrules (rwgen rwrules initgen (- gennbr 1))))))
 
+(defun pw (chan time notes amps)
+  (let* ((amp  (cm:next amps)))
+    (if (= amp 1)
+        (play-midi-note time (cm:next notes) 40 1 chan))
+    (aat (tempo-sync #[1 b]) #'pw chan it notes amps)))
+
+; clav  - 19
+; brass - 40
+(fluidsynth:program-change *synth* 1 16)
+(fluidsynth:program-change *synth* 2 41)
+
+(defvar *chord* nil)
+(setf *chord* (make-chord 50 60 3 (scale 0 'aeolian)))
+(defvar *cycle* nil)
+(setf *cycle* (cm:new cm:cycle :of *chord*))
+
+(pw 1
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of *chord*)
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 2)))
+ 
+(pw 2
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of *chord*)
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+;; This one has "dynamic" chord progression
+
+(setf (bpm *tempo*) 60)
+
+(defvar *chord* nil)
+(defvar *notes* nil)
+(setf *chord* (make-chord 50 65 5 (scale 0 'phrygian)))
+(setf *notes*  (cm:new cm:cycle :of *chord*))
+
+(defun pw (chan time amps)
+  (let* ((amp  (cm:next amps)))
+    (if (= amp 1)
+        (play-midi-note time (cm:next *notes*) 40 1 chan))
+    (aat (tempo-sync #[1 b]) #'pw chan it amps)))
+
+(pw 1
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 2)))
+
+(pw 2
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+
+
+;; EXPWARP -- 'warps' pits by expt factor
+;; (above optional bass-note, or lowest note in chd)
+(defun expwarp (pits factor &optional (bassnote nil))
+      (let* ((orig-hz (remove-duplicates (cm:hertz pits)))
+	     (bn (if bassnote bassnote (apply #'min orig-hz)))
+	     (hzdiffs (mapcar (lambda (x) (- x bn)) orig-hz)))
+	(loop for n to (- (length orig-hz) 1) collect
+	      (cm:keynum
+	       (+ bn (* (nth n hzdiffs) factor))
+	       :hz 't))))
+
+(fluidsynth:program-change *synth* 1 33)
+
+(defvar *chords* nil)
+(setf *chords*  (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by .1 :collect (expwarp '(36 55 64) n))))
+
+(defun ew (time)
+  (let ((chord (cm:next *chords*)))
+    (dolist (k chord)
+      (play-midi-note time (round k) 30 1 1))
+    (aat (+ (now) #[1 b]) #'ew it)))
+
+(ew (now))
+
+(defun ewinc (time)
+  (setf *chords* (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by (random-list '(.2 .3 .4)) :collect (expwarp '(36 55 64) n))))
+  (aat (+ time #[4 b]) #'ewinc it))
+
+(ewinc .1)
+
+;; --------------------------------
+;; extepore tutorial
+;; cycle with two callbacks
+
+(defun ext (time notes)
+  (play-midi-note time (car notes) 40 1 1)
+  (if (null (cdr notes))
+      (aat (+ time #[1 b]) #'ext it '(60 62 65))
+      (aat (+ time #[1 b]) #'ext it (cdr notes))))
+
+(ext (now) '(60 62 65) )
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+;; --------------------------------
+;; https://www.quicklisp.org/beta/UNOFFICIAL/docs/fomus/doc/ch09s03.html
+;; 50 80 / 40 70
+;; 60 80 / 40 60
+(defun q (time rhythms)
+  (let ((rhythm (cm:rhythm (cm:next rhythms) 30)))
+    (play-midi-note time (cm:between 50 70) 30 1 1)
+    (play-midi-note time (cm:between 50 70) 30 1 2)
+    (play-midi-note time (cm:between 50 70) 30 1 2)
+    (aat (tempo-sync #[rhythm b]) #'q it rhythms)))
+
+(q (tempo-sync #[1 b]) (cm:new cm:cycle :of '(e q s s q)))
+
+
+;; Data set of Bach
+;; https://archive.ics.uci.edu/ml/datasets/Bach+Chorales
+
+
+;; Fractal music
+;; https://github.com/holgafreak/maxann-grace
+;; https://web.archive.org/web/20000118053335/http://www.sci.fi/~mjkoskin/fractal.cm
+
+;; ----------------------------------
+;; Morse-Thue
+;; From:
+;; - "Music composition with lisp"
+;; - nudruz
+ 
+(defvar mtrules nil)
+
+(setf mtrules '((0 :-> (0 1)) 
+                (1 :-> (1 0))))
+
+;; RW-NEXT -- returns next complete generation of rewrite
+;; rwthing = rules; alist = input string
+;; example: (rw-next mtrules '(1 0)) = (1 0 0 1)
+(defun rw-next (rwthing alist)
+  (let* ((this-rw (cm:new cm:rewrite
+                    :of (append rwthing '((rw-end :-> rw-end)))
+                    :initially (append alist (list 'rw-end))))
+         (sink (cm:next this-rw (+ (length alist) 1))))
+    (loop for x = (cm:next this-rw) until (eql x 'rw-end) collect x)))
+
+;; RWGEN -- returns arbitrary generation of rewrite
+;; (rwgen mtrules '(1 0) 2) =  (1 0 0 1 0 1 1 0)
+(defun rwgen (rwrules initgen gennbr)
+  (case gennbr 
+    (0 initgen)
+    (1 (rw-next rwrules initgen))
+    (t (rw-next rwrules (rwgen rwrules initgen (- gennbr 1))))))
+
+(defun pw (chan time notes amps)
+  (let* ((amp  (cm:next amps)))
+    (if (= amp 1)
+        (play-midi-note time (cm:next notes) 40 1 chan))
+    (aat (tempo-sync #[1 b]) #'pw chan it notes amps)))
+
+; clav  - 19
+; brass - 40
+(fluidsynth:program-change *synth* 1 33)
+(fluidsynth:program-change *synth* 2 41)
+
+(defvar *chord* nil)
+(setf *chord* (make-chord 50 60 3 (scale 0 'aeolian)))
+(defvar *cycle* nil)
+(setf *cycle* (cm:new cm:cycle :of *chord*))
+
+(pw 1
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of *chord*)
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 2)))
+ 
+(pw 2
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of *chord*)
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
+
+;; This one has "dynamic" chord progression
+
+(setf (bpm *tempo*) 60)
+
+(defvar *chord* nil)
+(defvar *notes* nil)
+(setf *chord* (make-chord 50 65 5 (scale 0 'phrygian)))
+(setf *notes*  (cm:new cm:cycle :of *chord*))
+
+(defun pw (chan time amps)
+  (let* ((amp  (cm:next amps)))
+    (if (= amp 1)
+        (play-midi-note time (cm:next *notes*) 40 1 chan))
+    (aat (tempo-sync #[1 b]) #'pw chan it amps)))
+
+(pw 1
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 2)))
+
+(pw 2
+    (tempo-sync #[1 b])
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+
+
+;; EXPWARP -- 'warps' pits by expt factor
+;; (above optional bass-note, or lowest note in chd)
+(defun expwarp (pits factor &optional (bassnote nil))
+      (let* ((orig-hz (remove-duplicates (cm:hertz pits)))
+	     (bn (if bassnote bassnote (apply #'min orig-hz)))
+	     (hzdiffs (mapcar (lambda (x) (- x bn)) orig-hz)))
+	(loop for n to (- (length orig-hz) 1) collect
+	      (cm:keynum
+	       (+ bn (* (nth n hzdiffs) factor))
+	       :hz 't))))
+
+(fluidsynth:program-change *synth* 1 33)
+
+(defvar *chords* nil)
+(setf *chords*  (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by .1 :collect (expwarp '(36 55 64) n))))
+
+(defun ew (time)
+  (let ((chord (cm:next *chords*)))
+    (dolist (k chord)
+      (play-midi-note time (round k) 30 1 1))
+    (aat (+ (now) #[1 b]) #'ew it)))
+
+(ew (now))
+
+(defun ewinc (time)
+  (setf *chords* (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by (random-list '(.2 .3 .4)) :collect (expwarp '(36 55 64) n))))
+  (aat (+ time #[4 b]) #'ewinc it))
+
+(ewinc .1)
+
+;; --------------------------------
+;; extepore tutorial
+;; cycle with two callbacks
+;; spicing it up with pick, but the gist is that if defined like this
+;;   we can change the things "dynamicly" without recurring to globs
+
+(defun ext (time notes)
+  (play-midi-note time (car notes) 40 1 1)
+  (if (null (cdr notes))
+;;      (aat (+ time #[1 b]) #'ext it `(60 62 ,(cm:pick 65 67)))
+      (aat (+ time #[1 b]) #'ext it (cm:pick '(60 62 65)
+                                             '(60 62 67)
+                                             '(60 62 67 69) ))
+      (aat (+ time #[1 b]) #'ext it (cdr notes))))
+
+(ext (now) '(60 62 65) )
+
+(setf (bpm *tempo*) 60)
+
+(defun exte (chan time notes rhythms)
+  (print (car notes))
+  (print (car rhythms))
+  (print "A")
+  (play-midi-note time (car notes) 40 (car rhythms) 1)
+  (aat (+ time #[(car rhythms) b]) #'exte chan it
+       (if (null (cdr notes))
+           '(60 62 65 69 67)
+           (cdr notes))
+       (if (null (cdr rhythms))
+           '(1/4 1/4 1/2 1/4)
+           (cdr rhythms))))
+
+(exte 1 (now) '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
+(exte 2 (now) '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
+
+; Pick 2 random number from the list-lispy
+;(loop :for x :below 2 :collect (cm:pickl '(60 45 63)))
+
+(defun extem (chan time notes rhythms)
+  (play-midi-note time (car notes) 40 (car rhythms) chan)
+  (aat (+ time #[(car rhythms) b]) #'extem chan it
+       (if (null (cdr notes))
+           (loop :for x :below 4 :collect (cm:pickl '(60 62 64 67 69)))
+           (cdr notes))
+       (if (null (cdr rhythms))
+           '(1/4 1/4 1/4 1/4)
+           (cdr rhythms))))
+
+(extem 2 (now) '(60 62 64 67) '(1/4))
+
+(defun extemp (chan time notes rhythms)
+;  (print (+ 60 (* 50 (cos (* 3.141592 0.0315 time)))))
+  (play-midi-note time
+                  (car notes)
+                  (abs (round (+ 1 (* 40 (cos (* 3.141592 0.0315 (get-internal-real-time)))))))
+;;                  (abs (round (+ 1 (* 40 (cos (* 3.141592 0.0315 (get-universal-time)))))))
+;;                  (round (cosr 30 10 .6))
+                  (car rhythms) chan)
+  (aat (+ time #[(car rhythms) b]) #'extemp chan it
+       (if (null (cdr notes))
+           (loop :for x :below 4 :collect (cm:pickl '(60 62 64 67 69)))
+           (cdr notes))
+       (if (null (cdr rhythms))
+           '(1/4 1/4 1/4 1/4)
+           (cdr rhythms))))
+
+(extemp 2 (now) '(60 62 64 67) '(1/4))
+(extemp 3 (now) '(60 62 64 67) '(1/2))
+
+#|
+(flush-pending)
+(off-with-the-notes *synth*)
+|#
