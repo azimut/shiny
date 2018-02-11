@@ -9,10 +9,10 @@
   (loop :for c :from 0 :upto 25 :do
      (mapcar (lambda (x) (fluidsynth:noteoff s c x)) (range 120))))
 
-(defun all-piano (s)
-  (dotimes (i 32) (fluidsynth:program-change s i 1) ))
+(defun all-piano (s &optional (instrument 0))
+  (dotimes (i 32) (fluidsynth:program-change s i instrument) ))
   
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") .5)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
 
 ;; (define-constant CHORUS-DEFAULT-N      3)  
 ;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
@@ -449,8 +449,11 @@
 (fluidsynth:program-change *synth* 2 1)
 (fluidsynth:program-change *synth* 3 42)
 
-(fluidsynth:program-change *synth* 2 0)
-(fluidsynth:program-change *synth* 2 0)
+(fluidsynth:program-change *synth* 4 33)
+(fluidsynth:program-change *synth* 5 77)
+(fluidsynth:program-change *synth* 6 77)
+(fluidsynth:program-change *synth* 7 77)
+(fluidsynth:program-change *synth* 5 0)
 (fluidsynth:program-change *synth* 2 0)
 
 (fluidsynth:program-change *synth* 3 0)
@@ -468,7 +471,7 @@
 (fluidsynth:set-chorus *synth* 3 10.0d0 0.3d0 8.0d0 0)
 (fluidsynth:set-chorus *synth* 3 4.1d0 0.3d0 1.0d0 1)
 
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") 1.4)
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") .7)
 
 (defun spattern (time notes pattern lengths r)
   (print r)
@@ -479,8 +482,8 @@
                             (loop :for beat :in pattern
                                :for nbeat :from 0 :upto 64
                                :collect (if (= 1 beat) nbeat)))))
-    (print lpattern)
-    (print pbeat)
+;;    (print lpattern)
+;;    (print pbeat)
     (loop :for cbeat :in pbeat :do
        (let ((note   (cm:next notes))
              (length (cm:next lengths)))
@@ -563,21 +566,22 @@
                        :ibeat nibeat
                        :pbeat pbeat)))))))
 
-(defun mbox (time lpattern note length1 length2 pc)  
+(defun mbox (time lpattern note length1 length2 bottom up pc)  
   (setf *mtempos* nil)
   (let* ((midinote (cm:keynum note))
-         (notes    (loop for x :from -14 :to 24 :collect (relative midinote x pc))))
+         (notes    (loop for x :from bottom :to up :collect (relative midinote x pc))))
     (print notes)
     (ppattern time lpattern notes length1 length2 :play "yes")))
 
 #|
-(mbox (tempo-sync #[1 b]) 32 :E 4 3 (scale 1 'dorian))
-(mbox (tempo-sync #[1 b]) 32 :C 9 14.5 (scale 0 'dorian))
-(mbox (tempo-sync #[1 b]) 32 :G 10 3.5 (scale 0 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :E 4 3 -14 24 (scale 1 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :C 9 14.5 -14 14 (scale 0 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :G 10 3.5 -14 14 (scale 0 'dorian))
 
+(mbox (tempo-sync #[1 b]) 32 :C 8 14.5 -7 14 (scale 0 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :D 9 1.5 -14 14 (scale 0 'dorian))
 
-(mbox (tempo-sync #[1 b]) 32 :C 8 14.5 (scale 0 'dorian))
-(mbox (tempo-sync #[1 b]) 32 :D 9 1.5 (scale 0 'dorian))
+(mbox (tempo-sync #[1 b]) 32 :C 7 3 -7 14 (scale 0 'aeolian)) 
 
 (flush-pending)
 (off-with-the-notes *synth*)
@@ -593,15 +597,15 @@
 
 
 (defun bird (time offset vel chan p q i &optional (w 0))
-  (if (= chan 0) (setf vel 20))
+  (if (= chan 3) (setf vel 40))
 ;  (if (not (= i 200))
       (let* ((i    (1+ i))
              (note (cm:next p))
              (dur  (cm:next q))
              (mul  12))
         (setf *c0* (cm:interp i 0 .5 90 4))
-        ;;(setf *c0* 0)
-        ;;(setf i 0)
+       ;; (setf *c0* 0)
+       ;; (setf i 0)
 ;;        (print note)
 ;;        (print i)
         (if (not (equal note 'r))
@@ -633,13 +637,13 @@
 (fluidsynth:program-change *synth* 1 10)
 (fluidsynth:program-change *synth* 2 10)
 
-(fluidsynth:program-change *synth* 0 22)
+(fluidsynth:program-change *synth* 3 26)
 (fluidsynth:program-change *synth* 1 77)
 (fluidsynth:program-change *synth* 2 33)
 
-(cage -12 30 3)
-(cage 0 50 1)
-(cage 12 40 2)
+(cage -12 20 3)
+(cage   0 50 1)
+(cage  12 30 2)
 
 (progn
   (at (tempo-sync #[1 b])  #'cage -12 30 3)
@@ -1055,7 +1059,7 @@ h half   x sixty-fourth
   (setf *chords* (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by (random-list '(.2 .3 .4)) :collect (expwarp '(36 55 64) n))))
   (aat (+ time #[4 b]) #'ewinc it))
 
-(ewinc .1)
+(ewinc (now))
 
 ;; --------------------------------
 ;; extepore tutorial
@@ -1283,3 +1287,242 @@ h half   x sixty-fourth
 (flush-pending)
 (off-with-the-notes *synth*)
 |#
+
+
+;;; ----------------------------------
+;; Extempore tutorial - Pitch classes
+;;; ----------------------------------
+
+;; Proofs that we cannot always transpose
+;; things by adding
+(pc:? 60 '(0 4 7))                                                                                       
+(pc:? 84 '(0 4 7))                                                                                       
+(pc:? 35 '(0 4 7))                                                                                       
+(pc:? 79 '(0 4 7))  
+
+(print (ispitch 60 '(0 4 7))) ;T
+(print (ispitch 84 '(0 4 7))) ;T
+(print (ispitch 35 '(0 4 7))) ;NIL
+(print (ispitch 79 '(0 4 7))) ;T
+
+;; ---
+
+;; this chooses a C in any octave
+(print (pcrrandom 0 127 '(0)))
+;; this chooses any note from a D minor chord in octave 4
+(print (pcrrandom 60 73 '(2 5 7)))
+;; this chooses any note from a C pentatonic octaves 3-6
+(print (pcrrandom 48 97 '(0 2 4 7 9)))
+
+;; ---
+
+(print (mapcar (lambda (p)
+                 (ispitch
+                  (+ p 7)
+                  '(0 2 4 5 7 9 11)))
+               '(60 62 64 65 67 69 71)))
+
+(print (mapcar (lambda (p)
+                 (ispitch
+                  (+ p 5)
+                  '(0 2 4 5 7 9 11)))
+               '(60 62 64 65 67 69 71)))
+
+(print (mapcar (lambda (p)
+                 (ispitch
+                  (+ p 4)
+                  '(0 2 4 5 7 9 11)))
+               '(60 62 64 65 67 69 71)))
+
+;; ---
+
+(print (relative 60 1 '(0 2 4 5 7 9 11))); 62
+(print (relative 60 4 '(0 2 4 5 7 9 11))); 67
+(print (relative 67 0 '(0 2 4 5 7 9 11))); 67
+(print (relative 60 -2 '(0 2 4 5 7 9 11))); 57
+
+;; -------------------
+
+;; define a melody
+(defvar *melody* nil)
+(setf *melody* (loop
+                  :for x
+                  :from 1
+                  :to 24
+                  :collect (pcrrandom 60 83 '(0 2 4 5 7 9 11))))
+
+;; Doc: Scheme's named-loops (aka let-loop) can be written with
+;;      Lisp's do loops
+;;      https://stackoverflow.com/questions/30178852/is-there-a-style-convention-for-common-lisp-recursive-helper-functions
+
+;; define a random walk melody seeded with 60
+;; (we remove this at the end with cdr)
+;; "random walk"
+(setf *melody* (do ((i 0 (1+ i))
+                    (lst '(60) (cons
+                                (relative (car lst)
+                                          (cm:pick -1 1)
+                                          '(0 2 4 5 7 9 11))
+                                lst)))
+                   ((>= i 24)(cdr (reverse lst)))))
+
+(setf *melody* (do ((i 0 (1+ i))
+                    (lst '(60) (cons
+                                (relative (car lst)
+                                          (cm:pick -2 -1 1 2 3)
+                                          '(0 2 4 5 7 9 11))
+                                lst)))
+                   ((>= i 24)(cdr (reverse lst)))))
+
+;; define harmony up a perfect 5th (4 places away in the pitch class set)
+(defvar *harmony* nil)
+(setf *harmony* (mapcar (lambda (p) (relative p 4 '(0 2 4 5 7 9 11))) *melody*))
+
+;; set c at start and end                                                                                
+(setf *melody* (cons 60 *melody*))
+(setf *harmony* (cons 60 *harmony*))
+(setf *melody* (reverse (cons 60 (reverse *melody*))))
+(setf *harmony* (reverse (cons 60 (reverse *harmony*))))
+
+;; random rhythm                                                        
+(defvar *rhythm* nil)
+(setf *rhythm* (loop :for x :from 1 :to 24 :collect (cm:pick 1/2 1)))
+;; set long start and end to rhythm
+(setf *rhythm* (cons 2 *rhythm*))
+(setf *rhythm* (reverse (cons 2 (reverse *rhythm*))))
+
+(defun organum (time melody harmony rhythm)
+  (play-midi-note time (car melody) 30 (car rhythm) 1)
+  (play-midi-note time (car harmony) 30 (car rhythm) 2)
+  (if (not (null (cdr melody)))
+      (aat (+ time #[(car rhythm) b]) #'organum it (cdr melody) (cdr harmony) (cdr rhythm))))
+
+;; start
+(fluidsynth:program-change *synth* 1 77)
+(fluidsynth:program-change *synth* 2 77)
+
+(organum (now) *melody* *harmony* *rhythm*)        
+
+;;; -----------------------------------------
+;; Extempore tutorial - Making chords with PC
+;;; -----------------------------------------
+(defun crazy-chord (time)
+  (play-midi-note time (pcrrandom 24 97 '(0 4 7 10 2 3 5 9 6 11 1)) 40 .3 1)
+  (aat (+ time #[.3 b]) #'crazy-chord it))
+
+(defun crazy-chord (time)
+  (play-midi-note time (pcrrandom 24 97 '(0 4 7 10)) 40 .3 1)
+  (aat (+ time #[.3 b]) #'crazy-chord it))
+
+(crazy-chord (now))
+
+; C-major and repeat 
+(defun chords (time)
+  (mapcar (lambda (x) (play-midi-note time x 30 1 1))
+          (make-chord 60 72 3 '(0 4 7)))
+  (aat (+ time #[1 b]) #'chords it))
+
+(chords (now))
+
+;; I IV V
+;; I-C IV-F V-E
+(defun chords (time chord)
+  (mapcar (lambda (x)
+            (play-midi-note time x 30 1 1))
+          (make-chord 48 90 3 chord))
+  (aat (+ time #[1 b]) #'chords
+       it
+       (if (> (random 1.0) .8)
+           (cm:pick '(0 4 7) '(5 9 0) '(7 11 2))
+           chord)))
+
+(chords (now) '(0 4 7))
+
+;; ------------------------------
+;; Extempore tutorial - Harmony
+;; ------------------------------
+
+;; markov chord progression I IV V
+(defun exhar (time pc)
+  (mapcar (lambda (n c)
+            (play-midi-note time n 30 1 c))
+          (make-chord 60 73 3
+                      (cm:pickl (cdr (assoc pc '(((0 4 7) (5 9 0) (7 11 2))
+                                                 ((5 9 0) (7 11 2)(0 4 7))
+                                                 ((7 11 2)(0 4 7))) :test #'equal))))
+          '(1 2 0))
+  (aat (+ time #[1 b]) #'exhar it pc))
+
+(exhar (now) '(0 4 7))
+
+;; markov chord progression I ii iii IV V vi vii
+(defun progression (time degree)
+  (mapcar
+   (lambda (x) (play-midi-note time x 30 1 (random 20)))
+   (make-chord 48 77 5 (diatonic 0 '^ degree)))
+  (aat (+ time #[1 b]) #'progression it
+       (cm:pickl (cdr (assoc degree '((i iv v iii vi)
+                                      (ii v vii)
+                                      (iii vi)
+                                      (iv v ii vii i)
+                                      (v i vi)
+                                      (vii v i)
+                                      (vi ii)))))))
+ 
+(progression (now) 'i)
+
+
+#|
+(define play-note-mord                                                                                   
+  (lambda (time inst pitch vol duration pc)                                                               
+    (play-note (- time 5000) inst pitch (- vol 10) 2500)                                                 
+    (play-note (- time 2500) inst (pc:relative pitch 1 pc) (- vol 10) 2500)                              
+    (play-note time inst pitch vol (- duration 5000))))
+|#
+;; mordant
+(defun play-note-mord (time pitch vol dur pc)
+  (play-midi-note (- time #[1/4 b])
+                  pitch
+                  (- vol 10)
+                  1/2
+                  1)
+  (play-midi-note (- time #[1/8 b])
+                  (relative pitch 1 pc)
+                  (- vol 10)
+                  1/2
+                  2)
+  (play-midi-note time
+                  pitch
+                  vol dur 3))
+
+;; markov chord progression I ii iii IV V vi vii
+(defun progression (time degree)
+  (let ((dur (if (member degree '(i iv)) 2 1)))
+    (mapcar (lambda (x c) (if (and (> x 70) (> (random 1.0) .7))
+                       (play-note-mord time x (cm:pick 30 40) (* .9 dur) '(0 2 4 5 7 9 11))
+                       (play-midi-note time x (cm:pick 30 40) (* .9 dur) c)))
+            (make-chord 40 78 4 (diatonic 0 '^ degree))
+            '(6 7 8 9))
+    (aat (+ time #[(* .9 dur) b]) #'progression (+ time #[dur b])
+         (cm:pickl (cdr (assoc degree '((i iv v iii vi)
+                                        (ii v vii)
+                                        (iii vi)
+                                        (iv v ii vii i)
+                                        (v i vi)
+                                        (vii v i)
+                                        (vi ii))))))))                                                                                               
+(progression (now) 'i)
+
+(fluidsynth:program-change *synth* 0 78)
+
+;;; -------------------------
+;; Extempore tutorial - Beats
+;;; -------------------------
+
+(defun drum-loop (time dur)
+  (play-midi-note time 40 40 dur 1)
+  (aat (+ time #[(* .5 dur) b]) #'drum-loop
+       (+ #[dur b] time)
+       (cm:pick 1/2 1/4)))
+
+(drum-loop (now) 1/4)  
