@@ -1233,10 +1233,7 @@ h half   x sixty-fourth
 
 (setf (bpm *tempo*) 60)
 
-(defun exte (chan time notes rhythms)
-  (print (car notes))
-  (print (car rhythms))
-  (print "A")
+(defun exte (chan time notes rhythms))
   (play-midi-note time (car notes) 40 (car rhythms) 1)
   (aat (+ time #[(car rhythms) b]) #'exte chan it
        (if (null (cdr notes))
@@ -1246,8 +1243,8 @@ h half   x sixty-fourth
            '(1/4 1/4 1/2 1/4)
            (cdr rhythms))))
 
-(exte 1 (now) '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
-(exte 2 (now) '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
+(exte 1 (tempo-sync #[1 b])   '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
+(exte 2 (tempo-sync #[.75 b]) '(60 62 65 69 67) '(1/4 1/4 1/2 1/4))
 
 ; Pick 2 random number from the list-lispy
 ;(loop :for x :below 2 :collect (cm:pickl '(60 45 63)))
@@ -1519,10 +1516,249 @@ h half   x sixty-fourth
 ;; Extempore tutorial - Beats
 ;;; -------------------------
 
-(defun drum-loop (time dur)
-  (play-midi-note time 40 40 dur 1)
-  (aat (+ time #[(* .5 dur) b]) #'drum-loop
-       (+ #[dur b] time)
-       (cm:pick 1/2 1/4)))
+(fluidsynth:program-change *synth* 2 1)
 
-(drum-loop (now) 1/4)  
+(defun drum-loop2 (time dur))
+  (play-midi-note time 40 50 dur 2)
+  (aat (+ time #[(* .5 dur) b]) #'drum-loop2
+       (+ time #[dur b])
+       (cm:pick 1.25 1.75)))
+
+(drum-loop2 (tempo-sync #[1 b]) 3/4)
+
+;; beat loop at 120bpm
+(defun drump-loop (time dur)
+  (play-midi-note time 40 50 dur 1)
+  (aat (+ time #[dur b]) #'drump-loop
+       (+ time #[dur b])
+       (cm:pick 1/3 1/2 1/4) ))
+  
+(drum-loop (now) 1/4)
+
+;; (define *metro* (make-metro 120))
+;; creates a metronome object
+;; metro is basically a linear function that returns
+;; a time in absolute samples when given a time in beats.
+;;
+;; metro is instantiated with a starting tempo.
+;; you can call the metro with the following symbols
+;;
+;; 'get-time ; which is also the default
+;; 'get-beat
+;; 'get-tempo
+;; 'set-tempo
+;; 'get-cycle
+;; 'set-cycle
+;; 'pos
+;; 'dur
+;
+(defun make-metro (start-tempo)
+  (let* ((offset (now)) ; args
+         (cycle 4)
+         (mark offset)
+         (loffset 0.0)
+         (total-beats 0) ; args
+         (cycle-beats total-beats)
+         (g-tempo (/ 60 start-tempo))
+         (beat-pos (lambda (x1 y1 x2 y2)
+                     (let* ((m (if (= 0 (- x2 x1)) 0 (/ (- y2 y1) (- x2 x1))))
+                            (c (- y1 (* m x1))))
+                       (lambda (time)
+                         (+ (* time m) c)))))
+         (beat-env (funcall beat-pos mark total-beats
+                            (+ mark (* g-tempo *sample-rate*))
+                            (+ total-beats 1)))
+         (samp-env (funcall beat-pos total-beats mark
+                            (+ total-beats 1)
+                            (+ mark (* g-tempo *sample-rate*)))))
+    (lambda (sym &rest args)
+      (cond ((numberp sym)
+             (+ (funcall samp-env sym) loffset))
+            ((equal sym 'get-mark)
+             (cons mark total-beats))
+            ((equal sym 'get-time)
+             (+ (funcall samp-env (car args)) loffset))
+            ((equal sym 'get-cycle) cycle)
+            ((equal sym 'get-cycle-mark) cycle-beats)
+            ((equal sym 'set-cycle)
+             (setf cycle-beats (cadr args))
+             (setf cycle (car args)))
+            ((equal sym 'pos)
+             (mod (- (car args) cycle-beats) cycle))
+            ((equal sym 'beat-at-time)
+             (funcall beat-env (car args))) ;; FIXME
+            ((equal sym 'set-tempo)
+             (let ((time (if (null (cdr args)) (now) (cadr args))))
+               (if (or (null (cdr args))
+                       (null (cddr args)))
+                   (setf total-beats
+                         (+ total-beats (/ (- time mark)
+                                           (* *sample-rate* g-tempo))))
+                   (setf total-beats (caddr args)))
+               (setf g-tempo (/ 60 (car args)))
+               (setf mark time)
+               (setf samp-env (funcall beat-pos total-beats
+                                       mark
+                                       (+ total-beats 1)
+                                       (+ mark (* g-tempo *sample-rate*))))
+               (setf beat-env (funcall beat-pos mark
+                                       total-beats
+                                       (+ mark (* g-tempo *sample-rate*))
+                                       (+ total-beats 1)))
+               (car args)))
+            ((equal sym 'get-tempo) (* (/ 1 g-tempo) 60))
+            ((equal sym 'dur) (* *sample-rate* g-tempo (car args)))
+            ((equal sym 'push) (setf loffset (+ loffset 256)))
+            ((equal sym 'pull) (setf loffset (- loffset 256)))
+            ((equal sym 'get-beat)
+             (let ((val (+ total-beats
+                           (/ (- (now) mark)
+                              (* *sample-rate* g-tempo))))
+                   (quantize (if (null args) 1.0 (car args))))
+               (+ val (- quantize (mod val quantize)))))
+            (t 'bad-method-name)
+            ))))
+
+(defvar *metro* nil)
+(setf *metro* (make-metro 60))
+
+;; (funcall *metro* 'get-beat 4)
+;; 88 -- BEAT
+
+;; (funcall *metro* 88)
+;; 2.88797696d8 -- GLOBAL SAMPLES
+
+;; (funcall *metro* 'dur 1)
+;; 57600 -- N SAMPLES
+(defun drum-loop (time duration pitch pc)
+  (play-midi-note (funcall *metro* time)
+                  (round (qcosr pc pitch 5 .9))
+                  40
+                  (funcall *metro* 'dur duration)
+                  1)
+  (aat (funcall *metro* (+ time duration)) #'drum-loop
+       (+ time duration)
+       duration
+       pitch
+       pc))
+
+(drum-loop (funcall *metro* 'get-beat 4) 1   40 '(0 4 7)) 
+(drum-loop (funcall *metro* 'get-beat 4) .75 50 '(0 4 7 9))
+
+(defun tempo-shift (time)
+  (funcall *defmash* 'set-tempo (+ 60 (* 40 (cos (* .25 3.141592 time)))))
+  (aat (funcall *defmash* (+ time .25)) #'tempo-shift (+ time .25)))
+
+(tempo-shift (funcall *defmash* 'get-beat 1.0))
+
+;; --
+; creates a meter where metre is a list of numerators
+; and base is a shared denominator (relative to impromptu beats. i.e. 1 = crotchet,  0.5 = eighth etc.)
+;
+; e.g.  (define *metre* (make-metre '(2 3 2) 0.5)) = 2/8 3/8 2/8 rotating cycle.
+;
+; then call meter with time and beat 
+; if beat matches time then #t else #f
+;
+; e.g. give the above define
+;      (*metre* 2.5 1.0) => #t because 0.0 = 1, 0.5 = 2, 1.0 = 1, 1.5 = 2, 2.0 = 3, 2.5 = 1, 3.0 = 2 and repeat.
+(defun make-metre (metre base)
+  (let ((metre-length (apply '+ metre)))
+    (lambda (time &rest beat)
+      (let ((b (do ((qtime (mod (/ time base) metre-length))
+                    (lst metre (cdr lst))
+                    (valuea (car metre) (+ valuea (cadr lst)))
+                    (valueb 0 (+ valueb (car lst))))
+                   ((< qtime valuea)
+                    (1+ (- qtime valueb))))))
+       ;; (print b)
+        (if (null beat)
+            b
+            (if (= (car beat) b) t nil))))))
+
+(defvar *metre* nil)
+(setf *metre* (make-metre '(2 3 2) 0.5))
+
+(defun metre-test (time)
+  (if (funcall *metre* time 1.0)
+      (play-midi-note (funcall *metro* time) 60 30 .4 5))
+  (aat (funcall *metro* (+ time .5)) #'metre-test (+ time .5) ))
+
+(metre-test (funcall *metro* 'get-beat 1.0))
+
+;; ---------
+
+(defvar *metre1* nil)
+(defvar *metre2* nil)
+(setf *metre1* (make-metre '(3) .5)) ;; 3/8
+(setf *metre2* (make-metre '(2) .5)) ;; 2/8
+
+(defun metre-test (time)
+  (if (funcall *metre1* time 1.0)
+      (play-midi-note (funcall *metro* time) 50 20 1 1))
+  (if (funcall *metre2* time 1.0)
+      (play-midi-note (funcall *metro* time) 60 25 1 2))
+  (at (funcall *metro* (+ time .5)) #'metre-test (+ time .5)))
+
+(metre-test (funcall *metro* 'get-beat 1.0))
+;; ---------
+(setf *metre1* (make-metre '(2 3 4 3 2) .5))
+(setf *metre2* (make-metre '(3 5 7 5 3) .5))
+
+(defvar *p1* nil)
+(setf *p1* (cm:new cm:weighting :of '((42 :weight .8) (46 :weight .2))))
+
+
+(defun metre-test (time)
+  (play-midi-note (funcall *metro* time) (cm:next *p1*) 10 1 1)
+  (if (funcall *metre1* time 1.0)
+      (play-midi-note (funcall *metro* time) 53 10 1 2))
+  (if (funcall *metre2* time 1.0)
+      (play-midi-note (funcall *metro* time) 70 20 1 3))
+  (at (funcall *metro* (+ time .25)) #'metre-test (+ time .25) ))
+(metre-test (funcall *metro* 'get-beat 1.0))
+(defun metre-test (time)
+  (play-midi-note (funcall *metro* time) (cm:next *p1*) 10 1 1)
+  (if (funcall *metre1* time 1.0)
+      (play-midi-note (funcall *metro* time) 53 10 1 2))
+  (if (funcall *metre2* time 1.0)
+      (play-midi-note (funcall *metro* time) 70 20 1 3))
+  (at (funcall *metro* (+ time .25)) #'metre-test (+ time .25) ))
+
+
+(define metre-test                                                                                         (lambda (time)                                                                                          
+    (play-note (*metro* time) drums                                                                                     (random (cons .8 *gm-closed-hi-hat*) (cons .2 *gm-open-hi-hat*))
+               (+ 40 (* 20 (cos (* 2 3.441592 time))))
+               (random (cons .8 500)  (cons .2 2000)))                                                       (if (*metre1* time 1.0)                                                                                      (begin (play-note (*metro* time) drums *gm-snare* 80 10000)                                                     (play-note (*metro* time) drums *gm-pedal-hi-hat* 80 100000)))                                (if (*metre2* time 1.0)                                                                                      (begin (play-note (*metro* time) drums *gm-kick* 80 100000)                                                     (play-note (*metro* time) drums *gm-ride-bell* 100 100000)))                                  (callback (*metro* (+ time 0.2)) 'metre-test (+ time 0.25))))  
+
+;; -------------------------------------------------
+;; Playground
+;; -------------------------------------------------
+
+(defun harmony (time duration pitch)
+  (play-midi-note (funcall *metro* time)
+                  (round (qcosr '(0 4 7) pitch 5 .9))
+                  30
+                  (funcall *metro* 'dur duration)
+                  1)
+  (aat (funcall *metro* (+ time duration)) #'harmony
+       (+ time duration)
+       duration
+       pitch
+       ))
+
+(defun melody (time duration)
+  (play-midi-note (funcall *metro* time)
+                  (round (qcosr '(0 4 7) 60 10 .9))
+                  30
+                  (funcall *metro* 'dur duration)
+                  1)
+  (aat (funcall *metro* (+ time duration)) #'melody
+       (+ time duration)
+       duration
+;;       (cm:pick .75 .5 .5 1)
+            ))
+
+(harmony (funcall *metro* 'get-beat 4) 1   40) 
+(melody  (funcall *metro* 'get-beat 4) .75)
+
