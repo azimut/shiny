@@ -164,6 +164,147 @@
      (locrian . (1 2 2 1 2 2))))
 
 
+(defvar *gm-kick* 35)
+(defvar *gm-kick-2* 36)
+(defvar *gm-side-stick* 37)
+(defvar *gm-snare* 38)
+(defvar *gm-hand-clap* 39)
+(defvar *gm-snare-2* 40)
+(defvar *gm-low-floor-tom* 41)
+(defvar *gm-closed-hi-hat* 42)
+(defvar *gm-hi-floor-tom* 43)
+(defvar *gm-pedal-hi-hat* 44)
+(defvar *gm-low-tom* 45)
+(defvar *gm-open-hi-hat* 46)
+(defvar *gm-low-mid-tom* 47)
+(defvar *gm-hi-mid-tom* 48)
+(defvar *gm-crash* 49)
+(defvar *gm-hi-tom* 50)
+(defvar *gm-ride* 51)
+(defvar *gm-chinese* 52)
+(defvar *gm-ride-bell* 53)
+(defvar *gm-tambourine* 54)
+(defvar *gm-splash* 55)
+(defvar *gm-cowbell* 56)
+(defvar *gm-crash-2* 57)
+(defvar *gm-vibraslap* 58)
+(defvar *gm-ride-2* 59)
+(defvar *gm-hi-bongo* 60)
+(defvar *gm-low-bongo* 61)
+(defvar *gm-mute-hi-conga* 62)
+(defvar *gm-hi-conga* 63)
+(defvar *gm-low-conga* 64)
+(defvar *gm-hi-timbale* 65)
+(defvar *gm-low-timbale* 66)
+(defvar *gm-hi-agogo* 67)
+(defvar *gm-low-agogo* 68)
+(defvar *gm-cabasa* 69)
+(defvar *gm-maracas* 70)
+(defvar *gm-short-whistle* 71)
+(defvar *gm-long-whistle* 72)
+(defvar *gm-short-guiro* 73)
+(defvar *gm-long-guiro* 74)
+(defvar *gm-claves* 75)
+(defvar *gm-hi-wood-block* 76)
+(defvar *gm-low-wood-block* 77)
+(defvar *gm-mute-cuica* 78)
+(defvar *gm-open-cuica* 79)
+(defvar *gm-mute-triangle* 80)
+(defvar *gm-open-triangle* 81)
+(defvar *gm-mute-surdo* 86)
+(defvar *gm-open-surdo* 87)
+
+;; Nice keys2 - Program names
+;; Nice-Keys-Ultimate-V2.3.sf2
+;; $ echo "inst 1" | fluidsynth /path/to/FluidR3_GM.sf2 |
+;; | tr '[[:upper:]]' '[[:lower:]]'
+;; | tr -dc '[[:alnum:]]\n ' 
+;; | tr ' ' '-'
+;; | sed -e 's/^\(..\)-\(.*\)/\*nk-\2\* \1/g' 
+;; | sed 's/^/(defvar /g'
+;; | sed 's/$/)/g'
+(defvar *nk-yamaha-c5-grand* 00)
+(defvar *nk-dark-grand* 01)
+(defvar *nk-mellow-grand* 02)
+(defvar *nk-bright-grand* 03)
+(defvar *nk-very-bright-grand* 04)
+(defvar *nk-upright-piano* 05)
+(defvar *nk-upright-bright* 06)
+(defvar *nk-resonance* 07)
+(defvar *nk-yam-c5-no-resonance* 08)
+(defvar *nk-straight-rhodes* 10)
+(defvar *nk-rhodes-bright* 11)
+(defvar *nk-slow-lighttremolo* 12)
+(defvar *nk-slt-bright* 13)
+(defvar *nk-slow-heavytremolo* 14)
+(defvar *nk-fast-lighttremolo* 15)
+(defvar *nk-fast-heavytremolo* 16)
+(defvar *nk-hs-dx7-rhodes* 17)
+(defvar *nk-hard-fm-ep* 18)
+(defvar *nk-harpsichord* 19)
+(defvar *nk-silky-pad* 20)
+(defvar *nk-warm-pad* 21)
+(defvar *nk-full-strings-vel* 22)
+(defvar *nk-slow-strings* 23)
+(defvar *nk-fast-strings* 24)
+(defvar *nk-chamber-strings-sso* 25)
+(defvar *nk-full-orchestra* 26)
+(defvar *nk-mono-strings-velo* 27)
+(defvar *nk-pizzicato-strings* 28)
+(defvar *nk-synth-strings* 29)
+(defvar *nk-stackstrings* 31)
+(defvar *nk-violin-vel-sso* 32)
+(defvar *nk-cello* 33)
+(defvar *nk-cello-sso* 34)
+(defvar *nk-viola-sso* 35)
+(defvar *nk-bass-strings-sso* 36)
+(defvar *nk-flute8-vel-sso* 37)
+(defvar *nk-flute* 38)
+(defvar *nk-piccolo* 39)
+(defvar *nk-tenor-sax* 40)
+(defvar *nk-alto-sax* 41)
+(defvar *nk-trumpet8-vel* 42)
+(defvar *nk-trumpet* 43)
+(defvar *nk-trombone* 45)
+(defvar *nk-tuba* 46)
+(defvar *nk-brass* 47)
+(defvar *nk-oboe* 48)
+(defvar *nk-clarinet* 49)
+(defvar *nk-bassoon* 50)
+(defvar *nk-timpani* 51)
+(defvar *nk-pan-flute* 52)
+(defvar *nk-marimba* 53)
+(defvar *nk-fiddle* 54)
+(defvar *nk-banjo-5-string* 56)
+(defvar *nk-mandolin-expression* 57)
+(defvar *nk-bagpipe* 59)
+(defvar *nk-brightness* 61)
+(defvar *nk-atmosphere* 62)
+(defvar *nk-voyager8* 63)
+(defvar *nk-saw-wave* 64)
+(defvar *nk-moog-pad* 65)
+(defvar *nk-moog-55-rez* 66)
+(defvar *nk-rotary-orgs* 68)
+(defvar *nk-hammond-orgf* 69)
+(defvar *nk-b3-fast-leslie* 70)
+(defvar *nk-pipe-organ* 72)
+(defvar *nk-grand-pleinjeu* 73)
+(defvar *nk-principaux-8-4* 74)
+(defvar *nk-accordion* 75)
+(defvar *nk-italian-accordion* 76)
+(defvar *nk-steel-guitar-fret* 77)
+(defvar *nk-12-string-guitar* 78)
+(defvar *nk-nylon-guitar-fret* 79)
+(defvar *nk-spanish-v-slide* 80)
+(defvar *nk-single-coil-fx* 81)
+(defvar *nk-lp-twin-elec-gtr* 82)
+(defvar *nk-jazz-guitar-1* 83)
+(defvar *nk-overdrive-guitar* 84)
+(defvar *nk-distortion-guitar* 85)
+(defvar *nk-muted-guitar-1* 86)
+(defvar *nk-muted-guitar-2* 87)
+(defvar *nk-muted-acoustic-gtr* 88)
+
 (setf *random-state* (make-random-state t))
 
 ;; https://stackoverflow.com/questions/6158990/generating-randoms-numbers-in-a-certain-range-for-common-lisp
@@ -724,52 +865,142 @@ See also: `pbjorklund'"
        ((= counter (- number 1)) (reverse the-list))))
 
 
-(defvar *gm-kick* 35)
-(defvar *gm-kick-2* 36)
-(defvar *gm-side-stick* 37)
-(defvar *gm-snare* 38)
-(defvar *gm-hand-clap* 39)
-(defvar *gm-snare-2* 40)
-(defvar *gm-low-floor-tom* 41)
-(defvar *gm-closed-hi-hat* 42)
-(defvar *gm-hi-floor-tom* 43)
-(defvar *gm-pedal-hi-hat* 44)
-(defvar *gm-low-tom* 45)
-(defvar *gm-open-hi-hat* 46)
-(defvar *gm-low-mid-tom* 47)
-(defvar *gm-hi-mid-tom* 48)
-(defvar *gm-crash* 49)
-(defvar *gm-hi-tom* 50)
-(defvar *gm-ride* 51)
-(defvar *gm-chinese* 52)
-(defvar *gm-ride-bell* 53)
-(defvar *gm-tambourine* 54)
-(defvar *gm-splash* 55)
-(defvar *gm-cowbell* 56)
-(defvar *gm-crash-2* 57)
-(defvar *gm-vibraslap* 58)
-(defvar *gm-ride-2* 59)
-(defvar *gm-hi-bongo* 60)
-(defvar *gm-low-bongo* 61)
-(defvar *gm-mute-hi-conga* 62)
-(defvar *gm-hi-conga* 63)
-(defvar *gm-low-conga* 64)
-(defvar *gm-hi-timbale* 65)
-(defvar *gm-low-timbale* 66)
-(defvar *gm-hi-agogo* 67)
-(defvar *gm-low-agogo* 68)
-(defvar *gm-cabasa* 69)
-(defvar *gm-maracas* 70)
-(defvar *gm-short-whistle* 71)
-(defvar *gm-long-whistle* 72)
-(defvar *gm-short-guiro* 73)
-(defvar *gm-long-guiro* 74)
-(defvar *gm-claves* 75)
-(defvar *gm-hi-wood-block* 76)
-(defvar *gm-low-wood-block* 77)
-(defvar *gm-mute-cuica* 78)
-(defvar *gm-open-cuica* 79)
-(defvar *gm-mute-triangle* 80)
-(defvar *gm-open-triangle* 81)
-(defvar *gm-mute-surdo* 86)
-(defvar *gm-open-surdo* 87)
+
+(defun brownian-motion (start number-of-notes)
+  (do* ((counter 0 (incf counter))
+        (the-array (make-array 7 :initial-contents
+                               '(-3 -2 -1 0 1 2 3)))
+        (note start (+ note (aref the-array (random 7))))
+        (the-list (cons start ()) (cons note the-list)))
+       ((= counter (- number-of-notes 1)) (reverse the-list))))
+
+;;; ----------------------------
+;; Extempore - Rhythm functions
+;; -----------------------------
+
+
+;; (define *metro* (make-metro 120))
+;; creates a metronome object
+;; metro is basically a linear function that returns
+;; a time in absolute samples when given a time in beats.
+;;
+;; metro is instantiated with a starting tempo.
+;; you can call the metro with the following symbols
+;;
+;; 'get-time ; which is also the default
+;; 'get-beat
+;; 'get-tempo
+;; 'set-tempo
+;; 'get-cycle
+;; 'set-cycle
+;; 'pos
+;; 'dur
+;
+(defun make-metro (start-tempo &rest args)
+  (let* ((offset (if (null args) (round (now)) (caar args))) ; args
+         (cycle 4)
+         (mark offset)
+         (loffset 0.0)
+         (total-beats (if (null args) 0 (cdar args))) ; args
+         (cycle-beats total-beats)
+         (g-tempo (/ 60 start-tempo))
+         (beat-pos (lambda (x1 y1 x2 y2)
+                     (let* ((m (if (= 0 (- x2 x1)) 0 (/ (- y2 y1) (- x2 x1))))
+                            (c (- y1 (* m x1))))
+                       (lambda (time)
+                         (+ (* time m) c)))))
+         (beat-env (funcall beat-pos mark total-beats
+                            (+ mark (* g-tempo *sample-rate*))
+                            (+ total-beats 1)))
+         (samp-env (funcall beat-pos total-beats mark
+                            (+ total-beats 1)
+                            (+ mark (* g-tempo *sample-rate*)))))
+    (lambda (sym &rest args)
+      (cond ((numberp sym)
+             (+ (funcall samp-env sym) loffset))
+            ((equal sym 'get-mark)
+             (cons mark total-beats))
+            ((equal sym 'get-time)
+             (+ (funcall samp-env (car args)) loffset))
+            ((equal sym 'get-cycle) cycle)
+            ((equal sym 'get-cycle-mark) cycle-beats)
+            ((equal sym 'set-cycle)
+             (setf cycle-beats (cadr args))
+             (setf cycle (car args)))
+            ((equal sym 'pos)
+             (mod (- (car args) cycle-beats) cycle))
+            ((equal sym 'beat-at-time)
+             (funcall beat-env (car args))) ;; FIXME
+            ((equal sym 'set-tempo)
+             (let ((time (if (null (cdr args)) (round (now)) (cadr args))))
+               (if (or (null (cdr args))
+                       (null (cddr args)))
+                   (setf total-beats
+                         (+ total-beats (/ (- time mark)
+                                           (* *sample-rate* g-tempo))))
+                   (setf total-beats (caddr args)))
+               (setf g-tempo (/ 60 (car args)))
+               (setf mark time)
+               (setf samp-env (funcall beat-pos total-beats
+                                       mark
+                                       (+ total-beats 1)
+                                       (+ mark (* g-tempo *sample-rate*))))
+               (setf beat-env (funcall beat-pos mark
+                                       total-beats
+                                       (+ mark (* g-tempo *sample-rate*))
+                                       (+ total-beats 1)))
+               (car args)))
+            ((equal sym 'get-tempo) (* (/ 1 g-tempo) 60))
+            ((equal sym 'dur) (* *sample-rate* g-tempo (car args)))
+            ((equal sym 'push) (setf loffset (+ loffset 256)))
+            ((equal sym 'pull) (setf loffset (- loffset 256)))
+            ((equal sym 'get-beat)
+             (let ((val (+ total-beats
+                           (/ (- (round (now)) mark)
+                              (* *sample-rate* g-tempo))))
+                   (quantize (if (null args) 1.0 (car args))))
+               (+ val (- quantize (mod val quantize)))))
+            (t 'bad-method-name)
+            ))))
+
+
+
+; creates a meter where metre is a list of numerators
+; and base is a shared denominator (relative to impromptu beats. i.e. 1 = crotchet,  0.5 = eighth etc.)
+;
+; e.g.  (define *metre* (make-metre '(2 3 2) 0.5)) = 2/8 3/8 2/8 rotating cycle.
+;
+; then call meter with time and beat 
+; if beat matches time then #t else #f
+;
+; e.g. give the above define
+;      (*metre* 2.5 1.0) => #t because 0.0 = 1, 0.5 = 2, 1.0 = 1, 1.5 = 2, 2.0 = 3, 2.5 = 1, 3.0 = 2 and repeat.
+#|
+(define make-metre
+  (lambda (metre base)
+    (let ((metre-length (apply + metre)))
+      (lambda (time . beat)
+        (let ((b (let loop ((qtime (modulo (/ time base) metre-length))
+                            (lst metre) 
+                            (valuea (car metre))
+                            (valueb 0))
+                   (if (< qtime valuea)
+                       (+ 1.0 (- qtime valueb))
+                       (loop qtime (cdr lst) (+ valuea (cadr lst)) (+ valueb (car lst)))))))
+          (if (null? beat)  
+              b
+              (if (= (car beat) b) #t #f)))))))
+|#
+(defun make-metre (metre base)
+  (let ((metre-length (apply '+ metre)))
+    (lambda (time &rest beat)
+      (let ((b (do ((qtime (mod (/ time base) metre-length))
+                    (lst metre (cdr lst))
+                    (valuea (car metre) (+ valuea (cadr lst)))
+                    (valueb 0 (+ valueb (car lst))))
+                   ((< qtime valuea)
+                    (+ 1.0 (- qtime valueb))))))
+        (print b)
+        (if (null beat)
+            b
+            (if (= (car beat) b) t nil))))))
