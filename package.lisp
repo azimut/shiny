@@ -10,6 +10,7 @@
           #:vari
           #:rtg-math
           #:nineveh
+          #:arrow-macros
           #:cl-ppcre
           #:incudine
           ;#:cm

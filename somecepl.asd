@@ -14,6 +14,7 @@
                #:dendrite
                #:incudine
                #:nineveh
+               #:arrow-macros
                #:livesupport
                #:cl-ppcre
                #:skitter

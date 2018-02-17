@@ -141,7 +141,8 @@
 
 ;; various scales defined as pc sets
 (defvar *scales*
-   '((pentatonic . (2 2 3 2)) 
+  '((pentatonic . (2 2 3 2))
+    (ryukyu . (4 1 2 4))
      (wholetone . (2 2 2 2 2)) 
      (chromatic . (1 1 1 1 1 1 1 1 1 1 1)) 
      (octatonic . (2 1 2 1 2 1 2)) 
@@ -675,6 +676,29 @@ scheme<7099> (pc:scale 0 'aeolian)
          (r (random n)))
     (nth r mylist)))
 
+;;  cl-losh/losh.lisp
+(defun random-elt (seq &optional (generator #'random))
+  "Return a random element of `seq`, and whether one was available.
+
+  This will NOT be efficient for lists.
+
+  Examples:
+
+    (random-elt #(1 2 3))
+    => 1
+       T
+
+    (random-elt nil)
+    => nil
+       nil
+
+  "
+  (let ((length (length seq)))
+    (if (zerop length)
+      (values nil nil)
+      (values (elt seq (funcall generator length)) t))))
+
+
 ; From extempore - Scheme
 ;; (define note-name-to-midi-number
 ;;   (lambda (name)
@@ -1000,7 +1024,6 @@ See also: `pbjorklund'"
                     (valueb 0 (+ valueb (car lst))))
                    ((< qtime valuea)
                     (+ 1.0 (- qtime valueb))))))
-        (print b)
         (if (null beat)
             b
             (if (= (car beat) b) t nil))))))
