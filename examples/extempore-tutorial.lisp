@@ -280,20 +280,20 @@
     (play-note time inst pitch vol (- duration 5000))))
 |#
 ;; mordant
-(defun play-note-mord (time pitch vol dur pc)
+(defun play-note-mord (time pitch vol dur pc chan)
   (play-midi-note (- time #[1/4 b])
                   pitch
                   (- vol 10)
-                  1/2
-                  1)
+                  (/ dur 2)
+                  chan)
   (play-midi-note (- time #[1/8 b])
                   (relative pitch 1 pc)
                   (- vol 10)
-                  1/2
-                  2)
+                  (/ dur 2)
+                  chan)
   (play-midi-note time
                   pitch
-                  vol dur 3))
+                  vol dur chan))
 
 ;; markov chord progression I ii iii IV V vi vii
 (defun progression (time degree)

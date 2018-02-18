@@ -33,7 +33,7 @@
               (setf compr comp)))
           (decf skip)
           (setf xold x)
-          (setf yold y)))
+         (setf yold y)))
     (reverse output)))
 
 (defun sign(x)
@@ -101,10 +101,16 @@
                          (cm:interp -0.3 25 0.3 95)
                          (round))))
 
-(setf *n2* (loop :for x :in (nthcdr 0 (kamtorus 12 :angle 1.3 :comp 10))
+(setf *n2* (loop :for x :in (nthcdr 0 (kamtorus 24))
               :collect (-> x
-                         (second)
+                         (first)
                          (cm:interp -0.3 25 0.3 95)
+                         (round))))
+
+(setf *n2* (loop :for x :in (nthcdr 0 (lorenz 50 :dt 0.01 :a 4 :b 10))
+              :collect (-> x
+                         (first)
+                         (cm:interp -15 25 15 95)
                          (round))))
 
 (setf *t1* (loop :for x :in (nthcdr 0 (kamtorus 12))
@@ -132,12 +138,16 @@
          it (rest notes) (rest rhythms))))
 
 (defun fractaltest2 (time &optional notes rhythms)
-  
+
+  ;; normal
+  ;; transpose
+  ;; reverse
   (when (null notes)    
-    (if (cm:odds .7)
-        (setf notes *n2*)
-        (setf notes (reverse *n2*))))
-  
+    (let ((r (random 1.0)))
+      (cond ((> r .5)(setf notes *n2*))
+            ((> r .1)(setf notes (mapcar (lambda (x) (- x 12)) *n2*)))
+            (t (setf notes (reverse *n2*))))))
+
   (when (null rhythms)
     (setf rhythms (repeat 24 '(.5))))
   

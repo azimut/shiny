@@ -164,6 +164,24 @@
      (aeolian . (2 1 2 2 1 2)) 
      (locrian . (1 2 2 1 2 2))))
 
+;; returns a scale based on a chord (standard jazz translations)
+(defvar *pc-chord->scale*
+   '((i . (0 . ionian))
+     (i7 . (0 . ionian))
+     (ii . (2 . dorian))
+     (ii7 . (2 . dorian))
+     (ii9 . (2 . dorian))
+     (iii . (4 . phrygian))
+     (iii7 . (4 . phrygian))
+     (iv . (5 . lydian))
+     (iv7 . (5 . lydian))
+     (v . (7 . mixolydian))
+     (v7 . (7 . mixolydian))
+     (vi . (9 . aeolian))
+     (vi7 . (9 . aeolian))
+     (vii . (11 . locrian))
+     (vii7 . (11 . locrian))))
+
 
 (defvar *gm-kick* 35)
 (defvar *gm-kick-2* 36)
@@ -557,6 +575,45 @@
                      (t (print "Derp!") nil))))
       (f 0 (round pitch-in))
       ))
+
+;; -------------------------------
+
+(defun pc-quantize-list (lst pc)
+  (mapcar (lambda (_) (quant _ pc))
+          lst))
+
+(defun ivl-retrograde reverse)
+
+(defun ivl-invert (lst &rest args)
+  "invert list paying no attention to key"
+  (let ((pivot (if (null args)
+                   (car lst)
+                   (car args))))
+    (cons (car lst) (mapcar (lambda (_) (- pivot (- _ pivot)))
+                            (cdr lst)))))
+
+(defun ivl-transpose (val lst)
+  "transpose list paying no attention to key"
+  (mapcar (lambda (_) (+ _ val))
+          lst))
+
+;; TODO ivl:expand/contract
+
+(defun pc-invert (lst pc &rest args)
+  "invert the values of lst quantizing to pc"
+  (if (null args)
+      (pc-quantize-list (ivl-invert lst) pc)
+      (pc-quantize-list (ivl-invert lst (car args)) pc)))
+
+(defun pc-transpose (val lst pc)
+  "transpose the values of lst quantizing to pc"
+  (pc-quantize-list (ivl-transpose val lst) pc))
+
+;; TODO ivl:expand/contract
+
+(defun pc-chord->scale (root type)
+  (scale (mod (+ (cadr (assoc type *pc-chord->scale*)) root) 12)
+         (cddr (assoc type *pc-chord->scale*))))
 
 ;; -------------------------------
 
@@ -983,7 +1040,7 @@ See also: `pbjorklund'"
                            (/ (- (round (now)) mark)
                               (* *sample-rate* g-tempo))))
                    (quantize (if (null args) 1.0 (car args))))
-               (+ val (- quantize (mod val quantize)))))
+               (round (+ val (- quantize (mod val quantize))))))
             (t 'bad-method-name)
             ))))
 
@@ -1027,3 +1084,5 @@ See also: `pbjorklund'"
         (if (null beat)
             b
             (if (= (car beat) b) t nil))))))
+
+

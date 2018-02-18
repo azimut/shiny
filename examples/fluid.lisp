@@ -440,89 +440,6 @@
 (fluidsynth:set-chorus *synth* 3 4.1d0 0.3d0 1.0d0 1)
 
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") .3)
-
-;; --------------------------------------------------------------------
-;; Gloriette for John Cage - Translated from notes from metalevel
-;; TODO: stop using a global and try to use a local variable instead
-;; --------------------------------------------------------------------
-(defvar *c0* 0)
-(setf *c0* 0)
-
-(defun bird (time offset vel chan p q i &optional (w 0))
-;  (if (= chan 3) (setf vel 40))
-;  (if (not (= i 200))
-      (let* ((i    (1+ i))
-             (note (cm:next p))
-             (dur  (cm:next q))
-             (mul  12))
-        (setf *c0* (cm:interp i 0 .5 90 4))
-       ;; (setf *c0* 0)
-       ;; (setf i 0)
-        (if (not (equal note 'r))
-            (play-midi-note time (cm:keynum (cm:transpose note offset)) vel (* dur (- mul 3) ) chan))
-        (aat (tempo-sync #[(* mul dur) b]) #'bird it offset vel chan p q i w)))
-
-(defun cage (offset vel chan)
-  (let* ((d (cm:pval *c0*))
-         (p (cm:new cm:weighting :of `((g3 :weight ,d)
-                                       (a3 :weight ,d)
-                                       bf3
-                                       (c4 :weight ,d)
-                                       d4
-                                       (e4 :weight ,d)
-                                       f4
-                                       (g4 :weight ,d)
-                                       (r :max 1 :weight .25))
-                    :for 1))
-         (q (cm:new cm:weighting :of (list 1/16
-                                           1/8
-                                           (cm:new cm:cycle :of 1/32 :for 2)))))
-    (aat (tempo-sync #[1 b]) #'bird it offset vel chan p q 0)))
-
-;; 10 violin
-;; 11 pizzicato (?)
-;; 15 wind
-
-(fluidsynth:program-change *synth* 3 10)
-(fluidsynth:program-change *synth* 1 33)
-(fluidsynth:program-change *synth* 2 10)
-
-(fluidsynth:program-change *synth* 3 26)
-(fluidsynth:program-change *synth* 1 77)
-(fluidsynth:program-change *synth* 2 33)
-
-(at (funcall *metro* (funcall *metro* 'get-beat 4))    #'cage -12 40 3)
-(at (funcall *metro* (funcall *metro* 'get-beat 4.5))  #'cage 0 45 1)
-(at (funcall *metro* (funcall *metro* 'get-beat 1.75)) #'cage 12 45 2)
-
-(at (tempo-sync #[4 b]) #'cage -12 40 3)
-(at (tempo-sync #[4.5 b]) #'cage 0 45 1)
-(at (tempo-sync #[1.75 b]) #'cage 12 45 2)
-
-
-(cage   0 50 1)
-(cage  12 30 2)
-
-(progn
-  (at (tempo-sync #[1 b])  #'cage -12 30 3)
-  (at (tempo-sync #[32 b]) #'cage 0 50 1)
-  (at (tempo-sync #[64 b]) #'cage 12 40 2))
-
-(flush-pending)
-(off-with-the-notes *synth*)
-
-#||
-(process repeat 100
-             for n = (next p)
-             for r = (rhythm (next q) 65)
-             for i from 0
-             set w = (interp i 0 .5 90 4)
-             output (new midi :time (now)
-                         :duration r 
-                         :keynum (transpose n offset))
-             wait r)
-||#
-
 ;; --------------------------------------------------------------------
 ;; Genetic music
 ;; https://www.reddit.com/r/algorithmicmusic/comments/3xlrvk/some_music_composed_by_a_program_i_wrote_genetic/
@@ -1175,63 +1092,6 @@ h half   x sixty-fourth
 
 (fluidsynth:program-change *synth* 1 1)
 
-;; ----------
-
-(defvar *metre* nil)
-(setf *metre* (make-metre '(2 3 2) 0.5))
-(setf *metre* (make-metre '(3) .5)) ;; 3/8
-(setf *metre* (make-metre '(20) .5)) ;; 2/8
-
-(defun newscale (time pitch)
-  (play-midi-note time pitch (if (cm:odds .3) 0 30) .3 1)
-  (aat (+ time #[(random-elt #(.5 .25 .5 .5)) b])
-       #'newscale it
-       (if (and (cm:odds .4)
-                (ispitch pitch '(0))
-                (not (= pitch 60)))
-           60
-           (relative
-            pitch
-            (random-elt #(1 -1))
-            (scale 0 'ryukyu)))))
-
-(newscale (tempo-sync #[1 b]) 60)
-(fluidsynth:program-change *synth* 1 1)
-(fluidsynth:program-change *synth* 2 33)
-
-(defvar *metro* nil)
-(setf *metro* (make-metro 90))
-
-(defun newscale (beat time &optional (pitch 60))
-  (let ((n-beat (+ beat .5)))
-    (when (funcall *metre* beat 1.0)
-      (dolist (x (make-chord 48
-                             72
-                             (random-elt #(2 3)) '(0 4 5 7 11)))
-        (play-midi-note time x 50 4 9)))
-    (play-midi-note time pitch (cm:odds .1 20 30) .5 1)
-    (aat (funcall *metro* n-beat) #'newscale
-         n-beat it
-         (if (and (cm:odds .4)
-                  (ispitch pitch '(0))
-                  (not (= pitch 60)))
-             60
-             (relative pitch (random-elt #(1 -1)) '(0 4 5 7 11))))))
-
-(newscale (funcall *metro* 'get-beat 4)
-          (funcall *metro* (funcall *metro* 'get-beat 4)))
-
-(fluidsynth:program-change *synth* 8 33)
-(fluidsynth:program-change *synth* 9 33)
-(fluidsynth:program-change *synth* 10 33)
-(fluidsynth:program-change *synth* 11 33)
-(fluidsynth:program-change *synth* 12 33)
-
-
-(fluidsynth:program-change *synth* 2 77)
-(fluidsynth:program-change *synth* 3 33)
-(fluidsynth:program-change *synth* 4 33)
-
 
 ;; ----------------------------
 
@@ -1242,3 +1102,4 @@ h half   x sixty-fourth
 
 (hithat (funcall *metro* (funcall *metro* 'get-beat 4)))
 (fluidsynth:program-change *synth* 5 1)
+
