@@ -1,6 +1,9 @@
 ;;;
 ;; Moonlight
 ;; https://github.com/devinroth/GenerativeMusic
+;; trying to translate it...but is ending up in a different thing
+;; which is fine because I am getting used to "traditional"
+;; things like bass notes and arpeggios
 ;;;
 
 (defun play-midi-arpeggio (time notes vel dur chan)
@@ -68,7 +71,7 @@ func generateMelody(_ chord: [Int]) -> Int {
 |#
 
 (defun moonlight (beat time)
-  (let* ((n-beat (+ beat 4)))
+  (let* ((n-beat (+ beat 1)))
     (play-midi-note time 45 27 .5 1)
     (aat (funcall *metro* n-beat) #'moonlight n-beat it)))
 
@@ -78,8 +81,8 @@ func generateMelody(_ chord: [Int]) -> Int {
     (play-midi-note time 45 27 .5 1)
     (when (funcall *m1* beat 1.0)
       (if (cm:odds .6)
-          (play-midi-arpeggio time chord 40 1 2)
-          (play-midi-arpeggio time (ivl-transpose 6 chord) 40 1 2)))
+          (play-midi-arpeggio time chord 40 2 2)
+          (play-midi-arpeggio time (ivl-transpose 6 chord) 40 2 2)))
     (aat (funcall *metro* n-beat) #'moonlight n-beat it)))
 
 (defun moonlight (beat time)
@@ -92,11 +95,11 @@ func generateMelody(_ chord: [Int]) -> Int {
                          r-n-chord)))
     (play-midi-note time 45 27 .5 1)
     (when (funcall *m1* beat 1.0)
-      (play-midi-arpeggio time chord 40 1 2))
+      (play-midi-arpeggio time chord 40 2 2))
     (when (funcall *m2* beat 1.0)
-      (if (cm:odds .8)
-          (play-midi-note time r-chord (cm:odds .3 45 35) 2 4)
-          (play-midi-note time r-nn-chord 45 3 4)))
+      (if (cm:odds .3)
+          (play-midi-note time r-chord (cm:odds .3 45 35) 3 4)
+          (play-note-mord time r-nn-chord 35 3 '(0 4 7) 4)))
     (aat (funcall *metro* n-beat) #'moonlight n-beat it)))
 
 (defun moonlight  (beat time)
@@ -109,14 +112,38 @@ func generateMelody(_ chord: [Int]) -> Int {
          (r-nn-chord (if (> r-n-chord 84)
                          (- r-n-chord 12)
                          r-n-chord)))
-    (play-midi-note time 45 27 .5 1)
+    
+    ;; beat
+;;    (play-midi-note time 45 27 .5 3)
+;;    (play-midi-note time (random-elt #(60 45)) 27 .5 3)
+
+    ;; bass + melody
+    ;; (when (funcall *m1* beat 1.0)
+    ;;   (play-midi-note time (+ -12 (nth 0 chord)) 30 20 (random 2))
+    ;;   (play-midi-note time r-nn-chord 30 20 (random 2)))
+    
+    ;; ;; arpeggio
+    ;; - violin
+    ;; (when (funcall *m1* beat 1.0)
+    ;;   (play-midi-arpeggio time chord 40 2 11))
+    ;; - trompet
     (when (funcall *m1* beat 1.0)
-      (play-midi-arpeggio time chord 40 1 2))
+      (play-midi-arpeggio time chord 40 2 2))
+
+    ;; trompet solo - kill beat
+    ;; (when (funcall *m1* beat 1.0)
+    ;;   (play-midi-arpeggio time chord 40 2 24))
+    
+    ;; ghost
+;;    (play-midi-note time 72 30 20 (+ 20 (random 2)))
+    
+    ;; mord or note
     (when (funcall *m2* beat 1.0)
-      (if (cm:odds .1)
-          (play-midi-note time r-chord (cm:odds .3 45 35) 3 4)
-          (play-note-mord time r-nn-chord 40 3.5 '(0 4 7) 7)))
-;;          (play-midi-note time r-nn-chord 55 5 4)))
+      (if (cm:odds .6)
+          (play-midi-note time r-chord (cm:odds .3 35 30) 3 4)
+          (play-note-mord time r-nn-chord 30 3.5 '(0 4 7) 7)))
+    ;; ;;    (play-midi-note time r-nn-chord 55 5 4)))
+    
     (aat (funcall *metro* n-beat) #'moonlight n-beat it)))
 
 (moonlight (funcall *metro* 'get-beat 4)
@@ -125,8 +152,14 @@ func generateMelody(_ chord: [Int]) -> Int {
 (fluidsynth:program-change *synth* 1 1)
 (fluidsynth:program-change *synth* 4 46)
 (fluidsynth:program-change *synth* 7 38)
+(fluidsynth:program-change *synth* 11 33)
+
+(fluidsynth:program-change *synth* 21 43)
+(fluidsynth:program-change *synth* 20 43)
+
 
 (flush-pending)
+(off-with-the-notes *synth*)
 
 (defun play-note-mord (time pitch vol dur pc chan)
   (play-midi-note time
