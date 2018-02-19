@@ -118,17 +118,27 @@ func generateMelody(_ chord: [Int]) -> Int {
 ;;    (play-midi-note time (random-elt #(60 45)) 27 .5 3)
 
     ;; bass + melody
-    ;; (when (funcall *m1* beat 1.0)
-    ;;   (play-midi-note time (+ -12 (nth 0 chord)) 30 20 (random 2))
-    ;;   (play-midi-note time r-nn-chord 30 20 (random 2)))
+    ;; bass slightly less loud
+    (when (funcall *m1* beat 1.0)
+      (play-midi-note time
+                      (+ 36 (nth 0 pc))
+                      (+ 15 (random 10))
+                      20 (random 2))
+      (play-midi-note time
+                      r-nn-chord
+                      (+ 20 (random 10))
+                      20 (random 2)))
     
     ;; ;; arpeggio
     ;; - violin
     ;; (when (funcall *m1* beat 1.0)
     ;;   (play-midi-arpeggio time chord 40 2 11))
     ;; - trompet
-    (when (funcall *m1* beat 1.0)
-      (play-midi-arpeggio time chord 40 2 2))
+    ;; (when (funcall *m1* beat 1.0)
+    ;;   ;; (play-midi-note time
+    ;;   ;;                 (+ 24 (nth 0 chord))
+    ;;   ;;                 40 20 (+ 20 (random 2)))
+    ;;   (play-midi-arpeggio time chord 40 2 2))
 
     ;; trompet solo - kill beat
     ;; (when (funcall *m1* beat 1.0)
@@ -138,10 +148,10 @@ func generateMelody(_ chord: [Int]) -> Int {
 ;;    (play-midi-note time 72 30 20 (+ 20 (random 2)))
     
     ;; mord or note
-    (when (funcall *m2* beat 1.0)
-      (if (cm:odds .6)
-          (play-midi-note time r-chord (cm:odds .3 35 30) 3 4)
-          (play-note-mord time r-nn-chord 30 3.5 '(0 4 7) 7)))
+    ;; (when (funcall *m2* beat 1.0)
+    ;;   (if (cm:odds .6)
+    ;;       (play-midi-note time r-chord (cm:odds .3 35 30) 3 4)
+    ;;       (play-note-mord time r-nn-chord 30 3.5 '(0 4 7) 7)))
     ;; ;;    (play-midi-note time r-nn-chord 55 5 4)))
     
     (aat (funcall *metro* n-beat) #'moonlight n-beat it)))
