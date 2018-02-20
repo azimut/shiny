@@ -131,8 +131,8 @@ func generateMelody(_ chord: [Int]) -> Int {
     
     ;; ;; arpeggio
     ;; - violin
-    ;; (when (funcall *m1* beat 1.0)
-    ;;   (play-midi-arpeggio time chord 40 2 11))
+    (when (funcall *m1* beat 1.0)
+      (play-midi-arpeggio time chord 30 1.8 11))
     ;; - trompet
     ;; (when (funcall *m1* beat 1.0)
     ;;   ;; (play-midi-note time
@@ -162,7 +162,7 @@ func generateMelody(_ chord: [Int]) -> Int {
 (fluidsynth:program-change *synth* 1 1)
 (fluidsynth:program-change *synth* 4 46)
 (fluidsynth:program-change *synth* 7 38)
-(fluidsynth:program-change *synth* 11 33)
+(fluidsynth:program-change *synth* 11 21) ;; 33
 
 (fluidsynth:program-change *synth* 21 43)
 (fluidsynth:program-change *synth* 20 43)

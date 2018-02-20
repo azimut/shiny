@@ -505,6 +505,9 @@
         (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
         ;;(cos (* TWOPI (now) period)))))
 
+(defun rcosr (centre amplitude period)
+  (round (cosr centre amplitude period)))
+
 ;; -------------------------------
 
 ;; root 60
@@ -582,7 +585,7 @@
   (mapcar (lambda (_) (quant _ pc))
           lst))
 
-(defun ivl-retrograde reverse)
+(defun ivl-retrograde (args) (reverse args))
 
 (defun ivl-invert (lst &rest args)
   "invert list paying no attention to key"

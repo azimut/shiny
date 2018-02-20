@@ -1095,7 +1095,7 @@ h half   x sixty-fourth
 
 ;; ----------------------------
 
-(defun hithat (time &optional (ry 1)))
+(defun hithat (time &optional (ry 1))
   (play-midi-note time 40 30 3 5)
   (aat (+ time #[ry b])
        #'hithat it 4))
@@ -1103,3 +1103,4 @@ h half   x sixty-fourth
 (hithat (funcall *metro* (funcall *metro* 'get-beat 4)))
 (fluidsynth:program-change *synth* 5 1)
 
+;; -------------------------
