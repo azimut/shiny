@@ -385,10 +385,13 @@
           (if (null? choices) -1
               (random choices))))))
 |#
-(defun pcrrandom (lower upper pc)
-  (if (not pc) -1
-      (let ((choices (filter (lambda (x) (if (ispitch x pc) x)) (range upper :min lower))))
-        (if (not choices) -1
+(defun pc-random (lower upper pc)
+  (if (not pc)
+      -1
+      (let ((choices (filter (lambda (x) (if (ispitch x pc) x))
+                             (range upper :min lower))))
+        (if (not choices)
+            -1
             (random-list choices)))))
 
 ;; -------------------------------
@@ -416,11 +419,38 @@
   (let ((chord (assoc type *chord-syms*)))
     (if chord
         (labels ((f (l newlst)
-                   (if (not l) (reverse newlst)
-                               (f (cdr l) (cons (mod (+ (car l) root) 12) newlst)))
-                   ))
-    (f (cdr chord) '() )
-    ))))
+                   (if (not l)
+                       (reverse newlst)
+                       (f (cdr l)
+                          (cons (mod (+ (car l) root) 12)
+                                newlst)))))
+          (f (cdr chord) '() )))))
+
+;; -------------------------------
+;; returns chord options for root in maj-min key of pc
+;;
+;; e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian)) => ((0 4 7) (0 4 7 11) (0 5 7) (0 4 7 11 2) (0 4 7 11 6)) 
+(defun chord-options (root maj-min pc)
+  (let ((major7 '(^ ^7 ^sus ^9 ^7#4))
+        (dom7   '(^ 7 ^sus 9))
+        (minor7 '(- -7 -sus -9))
+        (dim7   '(o -7b5 o7))
+        (degree  (pc-degree root pc)))
+    (mapcar (lambda (sym) (chord root sym))
+            (if (equal maj-min '^)
+                (case degree
+                  ((-1) '())
+                  ((1 4) major7)
+                  ((5) dom7)
+                  ((2 3 6) minor7)
+                  ((7) dim7))
+                (case degree
+                  ((-1) '())
+                  ((1 4 6) minor7)
+                  ((3) major7)
+                  ((5) (append minor7 dom7))
+                  ((2) dim7)
+                  ((7) (append dom7 dim7)))))))
 
 ;; -------------------------------
 
@@ -445,17 +475,29 @@
          (if (= cnt i) p 
          (loop (inc p 1) cnt)))))))
 |#
-(defun relative (pitch i pc)
+(defun pc-relative (pitch i pc)
   (setf i (round i))
-  (if (= i 0) pitch
-  (let* ((inc (if (< i 0) '- '+)))
-    (labels ((f (p cnt)
-               (progn (if (ispitch p pc)
-                          (setf cnt (funcall inc cnt 1)))
-                      (if (= cnt i) p
-                          (f (funcall inc p 1) cnt)))))
-      (f (funcall inc pitch 1) 0)))))
+  (if (= i 0)
+      pitch
+      (let* ((inc (if (< i 0) '- '+)))
+        (labels ((f (p cnt)
+                   (progn (if (ispitch p pc)
+                              (setf cnt (funcall inc cnt 1)))
+                          (if (= cnt i)
+                              p
+                              (f (funcall inc p 1) cnt)))))
+          (f (funcall inc pitch 1) 0)))))
 
+;; -------------------------------
+;; Returns a scale degree of a given value (pitch) based on a pc
+(defun pc-degree (value pc)
+  (labels ((f (i lst)
+             (if (null lst)
+                 -1
+                 (if (= (car lst) (mod value 12))
+                     i
+                     (f (1+ i) (cdr lst))))))
+    (f 1 pc)))
 
 ;; -------------------------------
 
@@ -483,8 +525,7 @@
   (let ((val (assoc degree (if (eq '^ maj-min)
                                *diatonic-major*
                                *diatonic-minor*))))
-    (chord (mod (+ root (cadr val)) 12) (cddr val)))
-  )
+    (chord (mod (+ root (cadr val)) 12) (cddr val))))
 
 ;; -------------------------------
 
@@ -544,14 +585,13 @@
 ;;                ((< inc 7) (loop (+ inc 1) pitch))
 ;;                (else (print-notification "no pc value to quantize to" pitch pc) 
 ;;                      #f)))))
-(defun quant (pitch-in pc)
+(defun pc-quantize (pitch-in pc)
     (labels ((f (inc pitch)
                (cond ((ispitch  (+ pitch inc) pc) (+ pitch inc))
                      ((ispitch  (- pitch inc) pc) (- pitch inc))
                      ((< inc 7) (f (+ inc 1) pitch))
                      (t (print "Derp!") nil))))
-      (f 0 (round pitch-in))
-      ))
+      (f 0 (round pitch-in))))
 
 ;; quantize pc
 ;; Always slelects a lower value before a higher value where distance is equal.
@@ -570,19 +610,18 @@
 ;;                ((< inc 7) (loop (+ inc 1) pitch))
 ;;                (else (print-notification "no pc value to quantize to" pitch pc)
 ;;                      #f)))))
-(defun quant-low (pitch-in pc)
+(defun pc-quantize-low (pitch-in pc)
     (labels ((f (inc pitch)
                (cond ((ispitch  (- pitch inc) pc) (- pitch inc))
                      ((ispitch  (+ pitch inc) pc) (+ pitch inc))
                      ((< inc 7) (f (+ inc 1) pitch))
                      (t (print "Derp!") nil))))
-      (f 0 (round pitch-in))
-      ))
+      (f 0 (round pitch-in))))
 
 ;; -------------------------------
 
 (defun pc-quantize-list (lst pc)
-  (mapcar (lambda (_) (quant _ pc))
+  (mapcar (lambda (_) (pc-quantize _ pc))
           lst))
 
 (defun ivl-retrograde (args) (reverse args))
@@ -630,7 +669,7 @@
 ;;   `(pc:quantize (cosr ,@args) ,pc))
 
 (defun qcosr (pc center amplitude period)
-  (quant (cosr center amplitude period) pc))
+  (pc-quantize (cosr center amplitude period) pc))
 
 ;; -------------------------------
 
@@ -713,12 +752,14 @@ scheme<7099> (pc:scale 0 'aeolian)
   (let ((chord '()))
     (labels ((f (l u n p)
                (if (< n 1)
-                   (mapcar (lambda (x) (round x)) (sort (remove -1 chord) '<))
+                   (mapcar (lambda (x) (round x))
+                           (sort (remove -1 chord) '<))
                    (let* ((range (- u l))
                           (gap   (round (/ range n)))
-                          (pitch (pcrrandom l (+ l gap) p)))
+                          (pitch (pc-random l (+ l gap) p)))
                      (if (< pitch 0)
-                         (setf chord (cons (pcrrandom lower upper p) chord))
+                         (setf chord (cons (pc-random lower upper p)
+                                           chord))
                          (setf chord (cons pitch chord)))
                      (f (+ l gap)
                         u
@@ -1048,6 +1089,9 @@ See also: `pbjorklund'"
             ))))
 
 
+
+(defvar *metro* nil)
+(setf *metro* (make-metro 90))
 
 ; creates a meter where metre is a list of numerators
 ; and base is a shared denominator (relative to impromptu beats. i.e. 1 = crotchet,  0.5 = eighth etc.)
