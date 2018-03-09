@@ -14,6 +14,7 @@
                #:dendrite
                #:incudine
                #:nineveh
+               #:temporal-functions
                #:arrow-macros
                #:livesupport
                #:cl-ppcre

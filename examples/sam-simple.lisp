@@ -4,16 +4,9 @@
 
 ;;; "somecepl" goes here. Hacks and glory await!
 
-(defvar *tex* nil)
 (defvar *ctex* nil)
-(setf *ctex* (loop :for j :below 2 :collect
-                (loop :for i :below 512 :collect
-                   (random 1.0))))
-(setf *tex*  (make-texture *ctex*
-              :element-type :float
-              :dimensions '(2 512)))
+(defvar *tex* nil)
 (defvar *sam* nil)
-(setf *sam* (cepl:sample *tex*))
 (defvar *gpu-verts-arr* nil)
 (defvar *gpu-index-arr* nil)
 (defvar *vert-stream* nil)
@@ -223,14 +216,15 @@ void main() {
 
 
 
-(defun-g frag (&uniform (time :float) (resolution :vec2))
+(defun-g frag (&uniform (time :float)
+                        (tt :sampler-2d)
+                        (resolution :vec2))
   (let* ((st (/ (s~ gl-frag-coord :xy)
-                resolution))
+                (/ resolution .02)))
+         (ttt (texture tt st))
          (col (v! 1. .4 .1))
          (col (* col (x st))))
-    (v! col 0)))
-
-
+    (v! (s~ ttt :xxx) 0)))
 
 
 (defpipeline-g draw-verts-pipeline ()
@@ -244,7 +238,9 @@ void main() {
   (clear)
   (with-viewport *viewport*
     (map-g #'draw-verts-pipeline *vert-stream*
-           :resolution (viewport-resolution (current-viewport))
+           :resolution (viewport-resolution
+                        (current-viewport))
+           :tt *sam*
            :time (mynow)))
   (swap))
 
@@ -252,10 +248,38 @@ void main() {
 
   (when *gpu-verts-arr*
     (free *gpu-verts-arr*))
+
   (when *gpu-index-arr*
     (free *gpu-index-arr*))
   (when *vert-stream*
     (free *vert-stream*))
+  (when *tex*
+    (free *tex*))
+  ;; (setf *tex* (make-texture
+  ;;              (loop :for j :below 2 :collect
+  ;;                 (loop :for i :below 512 :collect
+  ;;                    (random 1.0)))
+  ;;              :element-type :float
+  ;;              :dimensions '(2 512)))  
+  (setf *tex* (make-texture
+               (loop :for j :below 512 :collect
+                  (loop :for i :below 512 :collect
+                     (random 254)))
+               :element-type :uint8
+               :dimensions '(512 512)))  
+  ;; (setf *tex* (make-texture
+  ;;              (loop :for j :below 512 :collect
+  ;;                 (loop :for i :below 2 :collect
+  ;;                    (random 254)))
+  ;;              :element-type :uint8
+  ;;              :dimensions '(512 2)))  
+  ;; (setf *tex* (make-texture
+  ;;              (loop :for j :below 2 :collect
+  ;;                 (loop :for i :below 512 :collect
+  ;;                    (random 1.0)))
+  ;;              :element-type :r8
+  ;;              :dimensions '(2 512)))  
+  (setf *sam* (cepl:sample *tex*))
   
   (setf *gpu-verts-arr*
         (make-gpu-array

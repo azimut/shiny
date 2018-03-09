@@ -11,6 +11,7 @@
           #:rtg-math
           #:nineveh
           #:arrow-macros
+          #:temporal-functions
           #:cl-ppcre
           #:incudine
           ;#:cm
