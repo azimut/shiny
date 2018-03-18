@@ -28,6 +28,8 @@
 (setf *mtempos* nil)
 (setf (bpm *tempo*) 50)
 
+(setf (fluidsynth:setting *fluid-settings* "synth.gain") 2.)
+
 ;; Specially needed the first "off" on ptterns
 ;; might be a reason to drop midi :S
 (defun play-midi-note-loop (time pitch velocity dur c)
@@ -51,7 +53,7 @@ NOTES a list midi notes to play
 PATTERN a list with 0's and 1's that indicate when to play the beat  
 LENGTHS a list of duration in beats a note should play
 R is the midi channel used."
-  (when (cm:odds .5)
+;;  (when (cm:odds .5)
   (print r)
   (print pattern)
   (let* ((lpattern   (length pattern))
@@ -71,7 +73,7 @@ R is the midi channel used."
          (if (= cbeat 0)
              (play-midi-note-loop time note 25 length r)
              (play-midi-note-loop (+ time #[(/ cbeat 2) b]) note 25 length r))))
-    (aat t-lpattern #'spattern it notes pattern lengths r))))
+    (aat t-lpattern #'spattern it notes pattern lengths r)))
 
 ;; I need to use (mod) to get the next beat where there is a note
 (defun ppattern (time lpattern notes length1 length2 &key
@@ -79,35 +81,39 @@ R is the midi channel used."
                                                        (ibeat 0)
                                                        (chan 2)
                                                        (pchan 0)
-                                                       accumbeats accumnotes accumlengths play pbeat)
+                                                       accumbeats
+                                                       accumnotes
+                                                       accumlengths
+                                                       play
+                                                       pbeat)
   (if (not (null notes))
       (let ((nbeat   (+ .5 cbeat))
             (nibeat  (+  1 ibeat))
             (nchan   (if (= 9 (+ 1 chan)) (+ 2 chan) (+ 1 chan)))
             (npchan  (mod (+ pchan 1) 2))
             (t-nbeat (+ time #[.5 b]))
-            (note    (first notes))) 
+            (note    (first notes)))
         ;; play now
-        (cond ((or (equal play "yes")
-                   (= pbeat ibeat))
-               (progn
-                 (play-midi-note time note 35 length1 pchan)
-                 (setf notes        (cdr notes))
-                 (setf accumnotes   (append accumnotes (list note)))
-                 (setf accumbeats   (append accumbeats '(1)))
-                 (setf accumlengths (append accumlengths (list length1)))
-                 (setf pbeat        (mod (+ ibeat (* length1 2)) lpattern))))
-              (t
-               (setf accumbeats (append accumbeats '(0)))))
+        (if (or (eq play 'yes)
+                (= pbeat ibeat))
+            (progn
+              (play-midi-note time note 35 length1 pchan)
+              (setf notes        (cdr notes)
+                    pbeat        (mod (+ ibeat (* length1 2))
+                                      lpattern))
+              (push note    accumnotes)
+              (push 1       accumbeats)
+              (push length1 accumlengths))
+            (push 0 accumbeats))
         ;; reset when the next .5 beat is the last beat of the pattern
         ;; if not is business as usual and we stick with this pattern
         (if (= lpattern nibeat)
             (progn
               (print "endpattern")
               (aat t-nbeat #'spattern it
-                   (cm:new cm:cycle :of accumnotes)
-                   accumbeats
-                   (cm:new cm:cycle :of accumlengths)
+                   (cm:new cm:cycle :of (reverse accumnotes))
+                   (reverse accumbeats)
+                   (cm:new cm:cycle :of (reverse accumlengths))
                    chan)
               ;; This works to match agains the prev NOT the global
               (if (and (= 1 (first accumbeats))
@@ -145,14 +151,14 @@ R is the midi channel used."
                        :ibeat nibeat
                        :pbeat pbeat)))))))
 
-(defun mbox (time lpattern note length1 length2 bottom up pc &optional startchan)
+(defun mbox (time lpattern note length1 length2 bottom up pc
+             &optional startchan)
   (setf *mtempos* nil)
   (let* ((midinote (cm:keynum note))
          (notes    (loop
                       :for x :from bottom :to up
-                      :collect (relative midinote x pc))))
-    (ppattern time lpattern notes length1 length2 :play "yes")))
-
+                      :collect (pc-relative midinote x pc))))
+    (ppattern time lpattern notes length1 length2 :play 'yes)))
 
 #|
 

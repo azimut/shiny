@@ -1133,3 +1133,9 @@ See also: `pbjorklund'"
             (if (= (car beat) b) t nil))))))
 
 
+;; http://stevelosh.com/blog/2016/08/playing-with-syntax/
+(defmacro mulf (place factor)
+  `(setf ,place (* ,place ,factor)))
+
+(defmacro divf (place divisor)
+  `(setf ,place (/ ,place ,divisor)))

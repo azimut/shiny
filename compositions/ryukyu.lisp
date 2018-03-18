@@ -10,6 +10,16 @@
 ;; Just a random walk over the scale has an interesting sound
 ;;; -----------
 
+(defun play-midi-arpeggio (time notes vel dur chan)
+  (let ((l-notes (length notes)))
+    (mapcar (lambda (x y) (play-midi-note (+ time #[x b])
+                                     y vel dur chan))
+            (do ((i dur (+ i dur))
+                 (l '() (push i l)))
+                ((> i (* dur l-notes)) (reverse l)))
+            notes)))
+
+
 (defvar *metro* nil)
 (defvar *metre* nil)
 (setf *metro* (make-metro 90))
@@ -28,7 +38,7 @@
                 (ispitch pitch '(0))
                 (not (= pitch 60)))
            60
-           (relative
+           (pc-relative
             pitch
             (random-elt #(1 -1))
             (scale 0 'ryukyu)))))
@@ -67,25 +77,25 @@
     ;;   (play-midi-note time (+ 12 pitch) 20 40 10))
 
     ;; chord
-    ;; (when (funcall *metre* beat 1.0)
-    ;;   (dolist (x (make-chord 48
-    ;;                          72
-    ;;                          (random-elt #(2 3)) '(0 4 5 7 11)))
-    ;;     (play-midi-note time x 25 4 8)))
+    (when (funcall *metre* beat 1.0)
+      (dolist (x (make-chord 48
+                             72
+                             (random-elt #(2 3)) '(0 4 5 7 11)))
+        (play-midi-note time x 25 4 8)))
     
-    ;; (when (funcall *metre* beat 1.0)
-;;       (if (cm:odds .9)
-;;           (let ((c (reverse (make-chord
-;;                              60
-;;                              84
-;;                              3 '(0 4 5 7 11)))))
-;;             ;; ghost            
-;; ;;            (play-midi-note time (+ 24 pitch) 30 65 (+ 23 (random 2)))
-;;             (play-midi-arpeggio time c 25 1 8))
-;;           (dolist (x (make-chord 48
-;;                                  72
-;;                                  (random-elt #(2 3)) '(0 4 5 7 11)))
-;;             (play-midi-note time x 25 4 7))))
+    (when (funcall *metre* beat 1.0)
+      (if (cm:odds .9)
+          (let ((c (reverse (make-chord
+                             60
+                             84
+                             3 '(0 4 5 7 11)))))
+            ;; ghost            
+            (play-midi-note time (+ 24 pitch) 30 65 (+ 23 (random 2)))
+            (play-midi-arpeggio time c 25 1 8))
+          (dolist (x (make-chord 48
+                                 72
+                                 (random-elt #(2 3)) '(0 4 5 7 11)))
+            (play-midi-note time x 25 4 7))))
 
     (play-midi-note time pitch (cm:odds .1 25 35) .3 1)
     (aat (funcall *metro* n-beat) #'newscale
@@ -94,7 +104,7 @@
                   (ispitch pitch '(0))
                   (not (= pitch 60)))
              60
-             (relative pitch (random-elt #(1 -1)) '(0 4 5 7 11))))))
+             (pc-relative pitch (random-elt #(1 -1)) '(0 4 5 7 11))))))
 
 (newscale (funcall *metro* 'get-beat 4)
           (funcall *metro* (funcall *metro* 'get-beat 4)))

@@ -41,10 +41,10 @@
            (f32-ref right current-frame)))))
 
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
-;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
-(fluidsynth:sfload *synth* "/home/sendai/Nice-Keys-Ultimate-V2.3.sf2" 1)
+;;(fluidsynth:sfload *synth* "/home/sendai/Nice-Keys-Ultimate-V2.3.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/grand-piano-YDP-20160804/grand-piano-YDP-20160804.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/KawaiUprightPiano-20180102/KawaiUprightPiano-20180102.sf2" 1)
 
@@ -295,7 +295,7 @@
 (setf (bpm *tempo*) 30)
 
 (progn
-  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .2)
+  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
   (setf (bpm *tempo*) 90)
 )
   

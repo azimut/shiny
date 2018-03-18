@@ -13,6 +13,7 @@
                #:cm
                #:dendrite
                #:incudine
+               #:rtg-math.vari
                #:nineveh
                #:temporal-functions
                #:arrow-macros
