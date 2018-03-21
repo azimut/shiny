@@ -16,15 +16,15 @@ My goal is learn enough of both topics by taking popular and forgotten topics of
 ## Installation
 
 1. Install/Clone on your local Quicklisp local-projects:
-..* https://github.com/titola/incudine
-..* https://github.com/ormf/cm
-..* This repo
+  * https://github.com/titola/incudine
+  * https://github.com/ormf/cm
+  * This repo
 
 2. Install on your machine **with your distribution package manager** the incudine and cepl dependencies:
-..* [fluidsynth](http://www.fluidsynth.org/)
-..* [assimp](https://github.com/assimp/assimp)
-..* [portmidi](http://portmedia.sourceforge.net/)
-..* [gsl](https://www.gnu.org/software/gsl/)
+  * [fluidsynth](http://www.fluidsynth.org/)
+  * [assimp](https://github.com/assimp/assimp)
+  * [portmidi](http://portmedia.sourceforge.net/)
+  * [gsl](https://www.gnu.org/software/gsl/)
 
 ## Usage
 1. You NEED to be using [jack](http://www.jackaudio.org) as your audio output to start making sounds. That means stopping all your applications that generate audio and starting jackd. Look for [qjackctl](http://qjackctl.sourceforge.net/) as an easy way to make start it. (portaudio might work too, but not for me).
