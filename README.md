@@ -34,7 +34,7 @@ My goal is learn enough of both topics by taking popular and forgotten topics of
 > (in-package :somecepl)
 > (rt-start)
 ```
-3. On emacs, open the file compositions/fluid.lisp and evaluate the up to (including) the defun of play-mini-note.
+3. On emacs, open the file compositions/fluid.lisp and evaluate the up to (including) the defun of play-mini-note. Make sure to change the path where your .sf2 [SoundFont](https://github.com/FluidSynth/fluidsynth/wiki/SoundFont) is located.
 4. On, your shell copy default rc and vim to modify and have the line `(setq *rt-block-size* 64)`:
 ```
 $ cp ~/quicklisp/local-projects/incudine/incudinerc-example ~/.incudinerc
