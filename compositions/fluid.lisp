@@ -12,13 +12,6 @@
 (defun all-piano (s &optional (instrument 0))
   (dotimes (i 32) (fluidsynth:program-change s i instrument) ))
 
-;; (define-constant CHORUS-DEFAULT-N      3)  
-;; (define-constant CHORUS-DEFAULT-LEVEL  2.0d0)
-;; (define-constant CHORUS-DEFAULT-SPEED  0.3d0)
-;; (define-constant CHORUS-DEFAULT-DEPTH  8.0d0)
-;; (define-constant CHORUS-DEFAULT-TYPE   CHORUS-MOD-SINE)
-
-
 (defvar *fluid-settings* (fluidsynth:new-settings
                           `(("synth.polyphony" 128)
                             ("synth.midi-channels" 32)
@@ -27,9 +20,6 @@
 
 
 (defvar *synth* (fluidsynth:new *fluid-settings*))
-
-
-;; (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
 
 (dsp! fluid-test ((synth fluidsynth:synth))
   (with ((len   (block-size))
@@ -40,8 +30,16 @@
       (out (f32-ref left current-frame)
            (f32-ref right current-frame)))))
 
-;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+(fluid-test *synth*)
+
+(defun play-midi-note (time pitch velocity dur c)  
+  (at time #'fluidsynth:noteon *synth* c pitch velocity)
+  (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+
+
+
+;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/Sonatina_Symphonic_Orchestra.sf2" 1)
 ;;(fluidsynth:sfload *synth* "/home/sendai/Nice-Keys-Ultimate-V2.3.sf2" 1)
@@ -65,7 +63,6 @@
 
 (rt-stop)
 (rt-start)
-(fluid-test *synth*)
 ;;(fluidsynth:program-change *synth* 11 2)
 (fluidsynth:program-change *synth* 23 0)
 (fluidsynth:program-change *synth* 22 0)
@@ -264,69 +261,6 @@
 
 ;; Ah!...tempo-sync...I mean beat...without it I cannot sync two things...dah!
 
-;; --------------------------------------------------------------------
-;; Extempore - An Overview
-;; https://vimeo.com/21956071
-;; at 11:30
-;; --------------------------------------------------------------------
-#|
-(define loop
-    (lambda (beat dur root)
-      (for-each (lambda (p offset)
-                  (play (+ offset) sampler p 100 (* 2.0 dur)))
-                (pc:make-chord 40 (cosr 75 10 1/32) 5
-                               (pc:chord root (if (member root '(10 8))
-                                                  '^7
-                                                  '-7)))
-                '(1/3 1 3/2 1 2 3))
-      (callback (*metro* (+ beat (* .5 dur))) 'loop (+ dur beat)
-                dur
-                (if (member root '(0 8))
-                    (random '(2 7 10))
-                    (random '(0 8))))))
-(loop (*metro* get-beat 4) 4 0)
-|#
-
-(fluidsynth:set-reverb *synth* 0.7d0 0.3d0 0.5d0 0.9d0)
-
-(defvar *beat-offset* nil)
-(setf *beat-offset* '(1/3 1 3/2 1 2 3))
-(setf *beat-offset* '(1/3 4 1 1.5))
-(setf (bpm *tempo*) 30)
-
-(progn
-  (setf (fluidsynth:setting *fluid-settings* "synth.gain") .9)
-  (setf (bpm *tempo*) 90)
-)
-  
-(sometune 4 0)
-(flush-pending)
-
-(defun sometune (dur root)
-  (let ((time (now)))
-;    (aat (+ time #[3 b]) #'play-midi-note it 36 90 (* 3.0 dur) 1)
-    (mapcar (lambda (x y)
-            (aat (+ time #[y b]) #'play-midi-note it x 100 (* 2.0 dur) 0))
-            (make-chord 40
-                        (cosr 75 10 1/32)
-                        5
-                        (chord root (if (member root '(10 8))
-                                        '^7
-                                        '-7)))
-            *beat-offset*)
-    (at (+ time #[4 b]) #'sometune
-        dur
-        (if (member root '(0 8))
-            (random-list '(2 7 10))
-            (random-list '(0 8))))))
-
-(setf *beat-offset* (reverse *beat-offset*))
-
-(setf *beat-offset* '(0 0.1 1/3 0.7 0.9 0.9))
-(setf *beat-offset* '(0 0.2 1/3 0.5 0.8))
-(setf *beat-offset* '(0 0.2 0.4 0.6 0.8))
-(setf *beat-offset* '(0 0.1 0.2 0.3 0.4))
-(setf *beat-offset* '(0 0.1 0.11 0.13 0.15 0.17 0.2 0.4 0.5 0.55 0.6 0.8))
 
 ;; -----------
 ;; Playground
