@@ -28,7 +28,8 @@
   :components (
                (:file "package")
                (:file "assets")
-               ;(:file "camera")
+               ;;(:file "camera")
+               (:file "nudruz")
                (:file "musicutils")))
 ;               (:file "examples/helpers/examples-data")
 ;               (:file "examples/helpers/camera")

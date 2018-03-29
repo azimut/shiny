@@ -2,7 +2,6 @@
 
 ;; Run it on the repl
 ;; (rt-start)
-
 (ql:quickload :incudine-fluidsynth)
 
 (defun off-with-the-notes (s)
@@ -781,35 +780,6 @@ h half   x sixty-fourth
     (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4)))
 
 
-;; EXPWARP -- 'warps' pits by expt factor
-;; (above optional bass-note, or lowest note in chd)
-(defun expwarp (pits factor &optional (bassnote nil))
-      (let* ((orig-hz (remove-duplicates (cm:hertz pits)))
-	     (bn (if bassnote bassnote (apply #'min orig-hz)))
-	     (hzdiffs (mapcar (lambda (x) (- x bn)) orig-hz)))
-	(loop for n to (- (length orig-hz) 1) collect
-	      (cm:keynum
-	       (+ bn (* (nth n hzdiffs) factor))
-	       :hz 't))))
-
-(fluidsynth:program-change *synth* 1 33)
-
-(defvar *chords* nil)
-(setf *chords*  (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by .1 :collect (expwarp '(36 55 64) n))))
-
-(defun ew (time)
-  (let ((chord (cm:next *chords*)))
-    (dolist (k chord)
-      (play-midi-note time (round k) 30 1 1))
-    (aat (+ (now) #[1 b]) #'ew it)))
-
-(ew (now))
-
-(defun ewinc (time)
-  (setf *chords* (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by (random-list '(.2 .3 .4)) :collect (expwarp '(36 55 64) n))))
-  (aat (+ time #[4 b]) #'ewinc it))
-
-(ewinc (now))
 
 
 ;; --------------------------------
@@ -998,7 +968,7 @@ h half   x sixty-fourth
 
 ;; Play a random note from the PC
 (defun playme (time pc)
-  (play-midi-note time (pcrrandom 60 70 pc) 40 1 0)
+  (play-midi-note time (pc-random 60 70 pc) 40 1 0)
   (aat (+ time #[1 b]) #'playme it pc))
 
 (playme (tempo-sync #[1 b]) *pc*)
@@ -1007,7 +977,7 @@ h half   x sixty-fourth
 (setf (bpm *tempo*) 35)
 
 (defun playme2 (time notes dur)
-  (play-midi-note time (cm:next notes) 40 dur 1)
+  (play-midi-note time (cm:next notes) 60 dur 1)
   (aat (+ time #[dur b]) #'playme2 it notes dur))
 
 ;; Phasing (ew)
@@ -1016,15 +986,17 @@ h half   x sixty-fourth
 
 
 (defun playme3 (time notes rhythms)
-  (let ((dur (cm:next rhythms)))
-    (play-midi-note time (cm:next notes) 40 dur 1)
-    (aat (+ time #[dur b]) #'playme2 it notes rhythms)))
+  (let ((dur  (cm:next rhythms))
+        (chan (random 10)))
+    (play-midi-note time (cm:next notes) 40 dur chan)
+    (aat (+ time #[dur b]) #'playme3 it notes rhythms)))
 
 (playme3 (tempo-sync #[1 b])
          (cm:new cm:cycle :of *notes*)
-         (cm:new cm:weighting :of (cm:rhythm '(0 0 0 0 x x t t s s e q) 30)))
+         (cm:new cm:heap :of (cm:rhythm '(0 0 0 0 x x t t s s e q) 30)))
 
-(fluidsynth:program-change *synth* 1 1)
+(fluidsynth:program-change *synth* 1 52)
+(fluidsynth:program-change *synth* 0 53)
 
 
 ;; ----------------------------

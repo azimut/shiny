@@ -1139,3 +1139,8 @@ See also: `pbjorklund'"
 
 (defmacro divf (place divisor)
   `(setf ,place (/ ,place ,divisor)))
+
+;; Set if not defined, need a better name (?
+(defmacro setp (var values)
+  `(when (null ,var)
+     (setf ,var ,values)))
