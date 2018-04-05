@@ -3,6 +3,7 @@
 ;; vari to use dot
 
 (uiop:define-package somecepl
+  (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:cepl #:free)
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:use #:cl 
@@ -54,6 +55,12 @@
                 #:~
                 #:sine
                 #:dsp!)
+  (:import-from #:cm
+                #:pick
+                #:pickl
+                #:ran
+                #:between
+                #:odds)
   (:import-from #:incudine.util
                 #:with-samples
                 #:f32-ref

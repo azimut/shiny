@@ -289,13 +289,11 @@
 ;; 1/f
 (defun 1f (repeats)
     (mapcar (lambda (note delay vel c)
-            (play-midi-note (+ (now) #[delay b]) note vel 2 c)
-            )
+            (play-midi-note (+ (now) #[delay b]) note vel 2 c))
           (mapcar (lambda (x) (+ 60 x)) (1-over-f repeats))
           (range (round (/ repeats 2)) :min 1 :step .5)
           (repeat repeats '(60))
-          (repeat repeats '(0))
-          ))
+          (repeat repeats '(0))))
 
 (1f 30)
 
@@ -883,36 +881,6 @@ h half   x sixty-fourth
     (tempo-sync #[1 b])
     (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
 
-
-;; EXPWARP -- 'warps' pits by expt factor
-;; (above optional bass-note, or lowest note in chd)
-(defun expwarp (pits factor &optional (bassnote nil))
-      (let* ((orig-hz (remove-duplicates (cm:hertz pits)))
-	     (bn (if bassnote bassnote (apply #'min orig-hz)))
-	     (hzdiffs (mapcar (lambda (x) (- x bn)) orig-hz)))
-	(loop for n to (- (length orig-hz) 1) collect
-	      (cm:keynum
-	       (+ bn (* (nth n hzdiffs) factor))
-	       :hz 't))))
-
-(fluidsynth:program-change *synth* 1 33)
-
-(defvar *chords* nil)
-(setf *chords*  (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by .1 :collect (expwarp '(36 55 64) n))))
-
-(defun ew (time)
-  (let ((chord (cm:next *chords*)))
-    (dolist (k chord)
-      (play-midi-note time (round k) 30 1 1))
-    (aat (+ (now) #[1 b]) #'ew it)))
-
-(ew (now))
-
-(defun ewinc (time)
-  (setf *chords* (cm:new cm:cycle :of (loop :for n :from 1.0 :to 2.0 :by (random-list '(.2 .3 .4)) :collect (expwarp '(36 55 64) n))))
-  (aat (+ time #[4 b]) #'ewinc it))
-
-(ewinc .1)
 
 
 ;; -------------------------------------------------
