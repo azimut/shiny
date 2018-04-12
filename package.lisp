@@ -1,23 +1,24 @@
-;;;; package.lisp
-
-;; vari to use dot
-
 (uiop:define-package somecepl
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:cepl #:free)
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:use #:cl 
-          #:cepl
-          #:vari
-          #:rtg-math
-          #:nineveh
-          #:arrow-macros
-          #:temporal-functions
-          #:cl-ppcre
-          #:incudine
-          ;#:cm
-          #:cepl.skitter
-          #:livesupport)
+        #:cepl
+        #:vari
+        #:rtg-math
+        #:nineveh
+        #:arrow-macros
+        #:temporal-functions
+        #:cl-ppcre
+        #:incudine
+        #:cepl.skitter
+        #:livesupport)
+  (:import-from #:cm
+                #:pick
+                #:pickl
+                #:ran
+                #:between
+                #:odds)
   (:import-from #:incudine.vug
                 #:define-vug
                 #:define-ugen
@@ -55,12 +56,6 @@
                 #:~
                 #:sine
                 #:dsp!)
-  (:import-from #:cm
-                #:pick
-                #:pickl
-                #:ran
-                #:between
-                #:odds)
   (:import-from #:incudine.util
                 #:with-samples
                 #:f32-ref
@@ -74,5 +69,4 @@
                 #:*SAMPLE-DURATION*
                 #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
-                #:+sample-zero+)
-)
+                #:+sample-zero+))
