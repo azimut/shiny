@@ -1,7 +1,6 @@
 (in-package #:somecepl)
 ;; ----------- Overtone / Clojure
 
-
 ;; https://github.com/tororo060608/danmachi/blob/master/src/util.lisp
 
 (defun take-nth (n seq)
@@ -164,7 +163,7 @@
         (t (error "Bad argument."))))
 
 ;; NOTE: hack in 
-(defun ov-scale (&optional s)
+(defparameter *scale*
   (flet ((rotate (scale-sequence offset)
            (take (length scale-sequence)
                  (nthcdr offset (append scale-sequence scale-sequence)))))
@@ -244,9 +243,7 @@
                  (:purvi             . (1 3 2 1 1 3 1))
                  (:chinese           . (4 2 1 4 1))
                  (:lydian-minor      . (2 2 2 1 1 2 2))))))
-      (if s
-          (gethash s _)
-          _))))
+      _)))
 
 (defparameter *degree*
   (let ((degrees '((:i   . 1) (:ii . 2) (:iii . 3)
@@ -266,7 +263,7 @@
        1 therefore the 4th degree is (+ 2 2 1 2) semitones from the
        start of the scale."
   (if y
-      (reduce #'+ (take y (repeat 64 (gethash x (ov-scale)))))
+      (reduce #'+ (take y (repeat 64 (gethash x *scale*))))
       (nth-interval :diatonic x)))
 
 (defun resolve-degrees (degrees)
@@ -274,7 +271,7 @@
   or leaves them unmodified"
   (mapcar (lambda (x) (if (keywordp x) (degree x) x)) degrees))
 
-(defun o-scale (x y &optional z)
+(defun ov-scale (x y &optional z)
   "Returns a list of notes for the specified scale. The root must be
    in midi note format i.e. :C4 or :Bb4
 
@@ -285,7 +282,7 @@
       (let ((root    (note x))
             (degrees (resolve-degrees z)))
         (cons root (mapcar (lambda (x) (+ root (nth-interval y x))) degrees)))
-      (o-scale x y (range 8 :min 1))))
+      (ov-scale x y (range 8 :min 1))))
 
 (defparameter *chord*
   (let ((major  '(0 4 7))
@@ -415,9 +412,8 @@
       (let* ((d-int       (degree->int degree))
              (num-degrees (1- (+ d-int (* num-notes 2)))))
         (take-nth 2 (nthcdr (degree->int degree)
-                            (o-scale root mode (range num-degrees)))))
+                            (ov-scale root mode (range num-degrees)))))
       (chord-degree degree root mode 4)))
-
 
 #|
 Scales can be quickly generated using the scale function, which takes a root note and the type of scale as arguments.
