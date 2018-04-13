@@ -127,6 +127,8 @@
   (reverse-notes (notes (to-keyword pc))))
 
 (defun note-info (midi-string)
+  "Takes a string representing a midi note such as C4 and returns a map
+  of note info"
   (let* ((matches     (validate-midi-string! midi-string))
          (pitch-class (aref matches 0))
          (octave      (aref matches 1))
@@ -265,6 +267,28 @@
   (if y
       (reduce #'+ (take y (repeat 64 (gethash x *scale*))))
       (nth-interval :diatonic x)))
+
+(defun find-pitch-class-name (note)
+  "Given a midi number representing a note, returns the name of the note
+  independent of octave.
+
+  (find-pitch-class-name 62) ;=> :D
+  (find-pitch-class-name 74) ;=> :D
+  (find-pitch-class-name 75) ;=> :Eb"
+  (reverse-notes (mod note 12)))
+
+(defun find-note-name (note)
+  "Given a midi number representing a note, returns a keyword
+  representing the note including octave number. Reverse of the fn note.
+
+  (find-note-name 45) ;=> A2
+  (find-note-name 57) ;=> A3
+  (find-note-name 58) ;=> Bb3"
+  (when note
+    (let ((octave (1- (floor (/ note 12)))))
+      (to-keyword (concatenate 'string
+                               (name (find-pitch-class-name note))
+                               (write-to-string octave))))))
 
 (defun resolve-degrees (degrees)
   "Either maps the degrees to integers if they're keywords using the map DEGREE
