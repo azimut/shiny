@@ -1,6 +1,15 @@
 (in-package #:somecepl)
 ;; ----------- Overtone / Clojure
 
+
+;; https://github.com/tororo060608/danmachi/blob/master/src/util.lisp
+
+(defun take-nth (n seq)
+  (do ((i 0 (+ i n))
+       (res nil (cons (elt seq i) res))
+       (len (length seq)))
+      ((<= len i) (nreverse res))))
+
 ;; http://www.appservgrid.com/hyper/hyp/lisp#take
 ;; SOMECEPL> (take 2 '(0 1 2 3 4 5))
 ;; (0 1)
@@ -12,6 +21,7 @@
         (t (cons (car l) (take (- n 1) (cdr l))))))
 
 ;; Taking a similar function to cycle
+;; NOTE: use make-list
 (defun repeat (n l &optional (nl '()))
   (if (zerop n)
       nl
@@ -153,18 +163,261 @@
         ((stringp n)  (gethash :midi-note (note-info n)))
         (t (error "Bad argument."))))
 
-#|
-(defgeneric chord (root)
-  (:documentation "return a chord, ov style"))
-(defmethod chord ((root chord-name))
-  (chord root chord-name 0))
+;; NOTE: hack in 
+(defun ov-scale (&optional s)
+  (flet ((rotate (scale-sequence offset)
+           (take (length scale-sequence)
+                 (nthcdr offset (append scale-sequence scale-sequence)))))
+    (let* ((ionian-sequence     '(2 2 1 2 2 2 1))
+           (hex-sequence        '(2 2 1 2 2 3))
+           (pentatonic-sequence '(3 2 2 3 2))
+           (_ (alexandria:alist-hash-table
+               `((:diatonic     . ,ionian-sequence)
+                 (:ionian       . ,(rotate ionian-sequence 0))
+                 (:major        . ,(rotate ionian-sequence 0))
+                 (:dorian       . ,(rotate ionian-sequence 1))
+                 (:phrygian     . ,(rotate ionian-sequence 2))
+                 (:lydian       . ,(rotate ionian-sequence 3))
+                 (:mixolydian   . ,(rotate ionian-sequence 4))
+                 (:aeolian      . ,(rotate ionian-sequence 5))
+                 (:minor        . ,(rotate ionian-sequence 5))
+                 (:locrian      . ,(rotate ionian-sequence 6))
+                 (:hex-major6   . ,(rotate hex-sequence 0))
+                 (:hex-dorian   . ,(rotate hex-sequence 1))
+                 (:hex-phrygian . ,(rotate hex-sequence 2))
+                 (:hex-major7   . ,(rotate hex-sequence 3))
+                 (:hex-sus      . ,(rotate hex-sequence 4))
+                 (:hex-aeolian  . ,(rotate hex-sequence 5))
+                 (:minor-pentatonic . ,(rotate pentatonic-sequence 0))
+                 (:yu               . ,(rotate pentatonic-sequence 0))
+                 (:major-pentatonic . ,(rotate pentatonic-sequence 1))
+                 (:gong             . ,(rotate pentatonic-sequence 1))
+                 (:egyptian         . ,(rotate pentatonic-sequence 2))
+                 (:shang            . ,(rotate pentatonic-sequence 2))
+                 (:jiao             . ,(rotate pentatonic-sequence 3))
+                 (:pentatonic       . ,(rotate pentatonic-sequence 4))
+                 (:zhi              . ,(rotate pentatonic-sequence 4))
+                 (:ritusen          . ,(rotate pentatonic-sequence 4))
+                 (:whole-tone        . (2 2 2 2 2 2))
+                 (:whole             . (2 2 2 2 2 2))
+                 (:chromatic         . (1 1 1 1 1 1 1 1 1 1 1 1))
+                 (:harmonic-minor    . (2 1 2 2 1 3 1))
+                 (:melodic-minor-asc . (2 1 2 2 2 2 1))
+                 (:hungarian-minor   . (2 1 3 1 1 3 1))
+                 (:octatonic         . (2 1 2 1 2 1 2 1))
+                 (:messiaen1         . (2 2 2 2 2 2))
+                 (:messiaen2         . (1 2 1 2 1 2 1 2))
+                 (:messiaen3         . (2 1 1 2 1 1 2 1 1))
+                 (:messiaen4         . (1 1 3 1 1 1 3 1))
+                 (:messiaen5         . (1 4 1 1 4 1))
+                 (:messiaen6         . (2 2 1 1 2 2 1 1))
+                 (:messiaen7         . (1 1 1 2 1 1 1 1 2 1))
+                 (:super-locrian     . (1 2 1 2 2 2 2))
+                 (:hirajoshi         . (2 1 4 1 4))
+                 (:kumoi             . (2 1 4 2 3))
+                 (:neapolitan-major  . (1 2 2 2 2 2 1))
+                 (:bartok            . (2 2 1 2 1 2 2))
+                 (:bhairav           . (1 3 1 2 1 3 1))
+                 (:locrian-major     . (2 2 1 1 2 2 2))
+                 (:ahirbhairav       . (1 3 1 2 2 1 2))
+                 (:enigmatic         . (1 3 2 2 2 1 1))
+                 (:neapolitan-minor  . (1 2 2 2 1 3 1))
+                 (:pelog             . (1 2 4 1 4))
+                 (:augmented2        . (1 3 1 3 1 3))
+                 (:scriabin          . (1 3 3 2 3))
+                 (:harmonic-major    . (2 2 1 2 1 3 1))
+                 (:melodic-minor-desc. (2 1 2 2 1 2 2))
+                 (:romanian-minor    . (2 1 3 1 2 1 2))
+                 (:hindu             . (2 2 1 2 1 2 2))
+                 (:iwato             . (1 4 1 4 2))
+                 (:melodic-minor     . (2 1 2 2 2 2 1))
+                 (:diminished2       . (2 1 2 1 2 1 2 1))
+                 (:marva             . (1 3 2 1 2 2 1))
+                 (:melodic-major     . (2 2 1 2 1 2 2))
+                 (:indian            . (4 1 2 3 2))
+                 (:spanish           . (1 3 1 2 1 2 2))
+                 (:prometheus        . (2 2 2 5 1))
+                 (:diminished        . (1 2 1 2 1 2 1 2))
+                 (:todi              . (1 2 3 1 1 3 1))
+                 (:leading-whole     . (2 2 2 2 2 1 1))
+                 (:augmented         . (3 1 3 1 3 1))
+                 (:purvi             . (1 3 2 1 1 3 1))
+                 (:chinese           . (4 2 1 4 1))
+                 (:lydian-minor      . (2 2 2 1 1 2 2))))))
+      (if s
+          (gethash s _)
+          _))))
+
+(defparameter *degree*
+  (let ((degrees '((:i   . 1) (:ii . 2) (:iii . 3)
+                   (:iv  . 4) (:v  . 5) (:vi  . 6)
+                   (:vii . 7) (:_  . nil))))
+    (alexandria:alist-hash-table degrees)))
+
+(defun degree (d)
+  (gethash d *degree*))
+
+(defun nth-interval (x &optional y)
+  "Return the count of semitones for the nth degree from the start of
+  the diatonic scale in the specific mode (or ionian/major by
+  default).
+
+  i.e. the ionian/major scale has an interval sequence of 2 2 1 2 2 2
+       1 therefore the 4th degree is (+ 2 2 1 2) semitones from the
+       start of the scale."
+  (if y
+      (reduce #'+ (take y (repeat 64 (gethash x (ov-scale)))))
+      (nth-interval :diatonic x)))
+
+(defun resolve-degrees (degrees)
+  "Either maps the degrees to integers if they're keywords using the map DEGREE
+  or leaves them unmodified"
+  (mapcar (lambda (x) (if (keywordp x) (degree x) x)) degrees))
+
+(defun o-scale (x y &optional z)
+  "Returns a list of notes for the specified scale. The root must be
+   in midi note format i.e. :C4 or :Bb4
 
 
-|#
-;; (defmethod chord ((root chord-name inversion))
-;;   (let* ((root  (note root))
-;;          (chord (resolve-chord chord-name))
-;;          (notes (map)))))
+   (scale :c4 :major)  ; c major      -> (60 62 64 65 67 69 71 72)
+   (scale :Bb4 :minor) ; b flat minor -> (70 72 73 75 77 78 80 82)"
+  (if z
+      (let ((root    (note x))
+            (degrees (resolve-degrees z)))
+        (cons root (mapcar (lambda (x) (+ root (nth-interval y x))) degrees)))
+      (o-scale x y (range 8 :min 1))))
+
+(defparameter *chord*
+  (let ((major  '(0 4 7))
+        (minor  '(0 3 7))
+        (major7 '(0 4 7 11))
+        (dom7   '(0 4 7 10))
+        (minor7 '(0 3 7 10))
+        (aug    '(0 4 8))
+        (dim    '(0 3 6))
+        (dim7   '(0 3 6 9)))
+    (alexandria:alist-hash-table
+     `((:1           . (0))
+       (:5           . (0 7))
+       (:+5          . (0 4 8))
+       (:m+5         . (0 3 8))
+       (:sus2        . (0 2 7))
+       (:sus4        . (0 5 7))
+       (:6           . (0 4 7 9))
+       (:m6          . (0 3 7 9))
+       (:7sus2       . (0 2 7 10))
+       (:7sus4       . (0 5 7 10))
+       (:7-5         . (0 4 6 10))
+       (:m7-5        . (0 3 6 10))
+       (:7+5         . (0 4 8 10))
+       (:m7+5        . (0 3 8 10))
+       (:9           . (0 4 7 10 14))
+       (:m9          . (0 3 7 10 14))
+       (:m7+9        . (0 3 7 10 14))
+       (:maj9        . (0 4 7 11 14))
+       (:9sus4       . (0 5 7 10 14))
+       (:6*9         . (0 4 7 9 14))
+       (:m6*9        . (0 3 9 7 14))
+       (:7-9         . (0 4 7 10 13))
+       (:m7-9        . (0 3 7 10 13))
+       (:7-10        . (0 4 7 10 15))
+       (:9+5         . (0 10 13))
+       (:m9+5        . (0 10 14))
+       (:7+5-9       . (0 4 8 10 13))
+       (:m7+5-9      . (0 3 8 10 13))
+       (:11          . (0 4 7 10 14 17))
+       (:m11         . (0 3 7 10 14 17))
+       (:maj11       . (0 4 7 11 14 17))
+       (:11+         . (0 4 7 10 14 18))
+       (:m11+        . (0 3 7 10 14 18))
+       (:13          . (0 4 7 10 14 17 21))
+       (:m13         . (0 3 7 10 14 17 21))
+       (:major       . ,major)
+       (:M           . ,major)
+       (:minor       . ,minor)
+       (:m           . ,minor)
+       (:major7      . ,major7)
+       (:dom7        . ,dom7)
+       (:7           . ,dom7)
+       (:M7          . ,major7)
+       (:minor7      . ,minor7)
+       (:m7          . ,minor7)
+       (:augmented   . ,aug)
+       (:a           . ,aug)
+       (:diminished  . ,dim)
+       (:dim         . ,dim)
+       (:i           . ,dim)
+       (:diminished7 . ,dim7)
+       (:dim7        . ,dim7)
+       (:i7          . ,dim7)))))
+
+(defun inc-first (elems n)
+  "Remove the first element, increment it by n, and append to seq."
+  (append (rest elems)
+          (list (+ n (first elems)))))
+
+(defun dec-last (elems n)
+  "Remove the last element, decrement it by n, and prepend to seq."
+  (append (list (- (last elems) n))
+          (butlast elems)))
+
+(defun resolve-chord (chord)
+  "Either looks the chord up in the map of CHORDs if it's a keyword or
+  simply returns it unnmodified. Allows users to specify a chord
+  either with a set such as #{0 4 7} or by keyword such as :major"
+  (if (keywordp chord)
+      (gethash chord *chord*)
+      chord))
+
+(defun invert-chord (notes shift)
+  "Move a chord voicing up or down.
+
+    ;first inversion
+    (invert-chord [60 64 67] 1) ;=> (64 67 72)
+
+    ; second inversion
+    (invert-chord [60 64 67] 2) ;=> (67 72 76)
+  "
+  (cond ((> shift 0) (invert-chord (inc-first notes 12) (1- shift)))
+        ((< shift 0) (invert-chord (dec-last notes 12)  (1+ shift)))
+        ((= shift 0) notes)))
+
+;; NOTE: retuns might not be sorted accordingly (?
+;;       also second example is incorrect (!
+(defun chord (root chord-name &optional inversion)
+  "Returns a set of notes for the specified chord. The root must be in
+  midi note format i.e. :C4.
+
+  (chord :c4 :major)  ; c major           -> #{60 64 67}
+  (chord :a4 :minor)  ; a minor           -> #{57 60 64}
+  (chord :Bb4 :dim)   ; b flat diminished -> #{70 73 76}
+  "
+  (if inversion
+      (let* ((root (note root))
+             (chord (resolve-chord chord-name))
+             (notes (mapcar (lambda (x) (+ x root)) chord)))
+        (invert-chord notes inversion))
+      (chord root chord-name 0)))
+
+;; NOTE: missing some validation
+(defun degree->int (degree)
+  (degree degree))
+
+(defun chord-degree (degree root mode &optional num-notes)
+  "Returns the notes constructed by picking thirds in a given scale
+  from in a given root. Useful if you want to try out playing standard
+  chord progressions. For example:
+
+  (chord-degree :i :c4 :ionian) ;=> (60 64 67 71)
+  (chord-degree :ii :c4 :melodic-minor-asc) ;=> (62 65 69 72)
+  "
+  (if num-notes
+      (let* ((d-int       (degree->int degree))
+             (num-degrees (1- (+ d-int (* num-notes 2)))))
+        (take-nth 2 (nthcdr (degree->int degree)
+                            (o-scale root mode (range num-degrees)))))
+      (chord-degree degree root mode 4)))
+
 
 #|
 Scales can be quickly generated using the scale function, which takes a root note and the type of scale as arguments.
