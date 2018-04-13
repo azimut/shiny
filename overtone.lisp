@@ -49,7 +49,7 @@
 ;;;
 
 (defun to-keyword (s)
-  (cond ((stringp s) (intern s "KEYWORD"))
+  (cond ((stringp s) (intern (string-upcase s) "KEYWORD"))
         ((keywordp s) s)))
 
 (defun name (n)
@@ -60,19 +60,19 @@
   "Convert an octave and interval to a midi note."
   (+ (* octave 12) interval 12))
 
-(defvar *notes* (alexandria:alist-hash-table
-                 '((:C  . 0)  (:B# . 0)
-                   (:C# . 1)  (:DB . 1)
-                   (:D  . 2)
-                   (:D# . 3)  (:EB . 3)
-                   (:E  . 4)
-                   (:E# . 5)  (:F  . 5)
-                   (:F# . 6)  (:GB . 6)
-                   (:G  . 7)
-                   (:G# . 8)  (:AB . 8)
-                   (:A  . 9)
-                   (:A# . 10) (:BB . 10)
-                   (:B  . 11) (:CB . 11))))
+(defparameter *notes* (alexandria:alist-hash-table
+                       '((:C  . 0)  (:B# . 0)
+                         (:C# . 1)  (:DB . 1)
+                         (:D  . 2)
+                         (:D# . 3)  (:EB . 3)
+                         (:E  . 4)
+                         (:E# . 5)  (:F  . 5)
+                         (:F# . 6)  (:GB . 6)
+                         (:G  . 7)
+                         (:G# . 8)  (:AB . 8)
+                         (:A  . 9)
+                         (:A# . 10) (:BB . 10)
+                         (:B  . 11) (:CB . 11))))
 
 (defun notes (n)
   (if (keywordp n)
