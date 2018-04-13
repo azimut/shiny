@@ -15,6 +15,20 @@
                 ((> i (* dur l-notes)) (reverse l)))
             notes)))
 
+(defun play-note-mord (time pitch vol dur pc chan)
+  (play-midi-note time
+                  pitch
+                  (- vol 10)
+                  (/ dur 2)
+                  chan)
+  (play-midi-note (+ time #[1/4 b])
+                  (relative pitch 1 pc)
+                  (- vol 10)
+                  (/ dur 2)
+                  chan)
+  (play-midi-note (+ time #[1/4 b])
+                  pitch
+                  vol dur chan))
 
 (defun make-chord-random (&optional (upper 100))
   (let* ((n (random 12))
@@ -37,7 +51,6 @@
                   (list n tri fif))
           '<)))
  
-
 (defun make-chord-random-pc ()
   (let* ((n (random 12))
          (tri (+ n 3 (random 2)))
@@ -51,8 +64,6 @@
                              nn)))
                 pc)
         '<)))
-
-
 
 (defvar *m1* nil)
 (defvar *m2* nil)
@@ -170,18 +181,3 @@ func generateMelody(_ chord: [Int]) -> Int {
 
 (flush-pending)
 (off-with-the-notes *synth*)
-
-(defun play-note-mord (time pitch vol dur pc chan)
-  (play-midi-note time
-                  pitch
-                  (- vol 10)
-                  (/ dur 2)
-                  chan)
-  (play-midi-note (+ time #[1/4 b])
-                  (relative pitch 1 pc)
-                  (- vol 10)
-                  (/ dur 2)
-                  chan)
-  (play-midi-note (+ time #[1/4 b])
-                  pitch
-                  vol dur chan))
