@@ -256,6 +256,38 @@
 (defun degree (d)
   (gethash d *degree*))
 
+(defun degree->interval (degree scale)
+  "Converts the degree of a scale given as a roman numeral keyword and
+  converts it to the number of semitones from the tonic of
+  the specified scale.
+
+  (degree->interval :ii :major) ;=> 2
+
+  Trailing #, b, + - represent sharps, flats, octaves up and down
+  respectively.  An arbitrary number may be added in any order."
+  (cond ((null degree)   nil)
+        ((eql :_ degree) nil)
+        ((numberp degree) (nth-interval scale (1- degree)))
+        ((keywordp degree) (let* ((degree     (resolve-degree degree))
+                                  (interval   (nth-interval scale (1- (gethash :degree degree))))
+                                  (oct-shift  (* 12 (gethash :octave-shift degree)))
+                                  (semi-shift (gethash :semitone-shift degree)))
+                             (+ interval oct-shift semi-shift)))))
+
+(defun degrees->pitches (degrees scale root)
+  "Convert intervals to pitches in MIDI number format.  Supports
+  nested collections."
+  (let ((root (note root)))
+    (unless root
+      (error "invalid root"))
+    (mapcar (lambda (degree) (cond ((listp degree)
+                               (degrees->pitches degree scale root))
+                              ((null degree) nil)
+                              (t (let ((interval (degree->interval degree scale)))
+                                   (when interval
+                                     (+ root interval))))))
+            degrees)))
+
 (defun nth-interval (x &optional y)
   "Return the count of semitones for the nth degree from the start of
   the diatonic scale in the specific mode (or ionian/major by
@@ -289,6 +321,36 @@
       (to-keyword (concatenate 'string
                                (name (find-pitch-class-name note))
                                (write-to-string octave))))))
+
+(defun degree->int (degree)
+  (if (some (lambda (x) (degree x)) (alexandria:hash-table-keys *degree*))
+      (degree degree)
+      (error "wrong degree")))
+
+(defun resolve-degree (degree &optional octave-shift semitone-shift)
+  "returns a map representing the degree, and the octave semitone
+  shift (i.e. sharp flat)"
+  (if (and octave-shift semitone-shift)
+      (let* ((oct      (cl-user::string-to-octets (name degree)))
+             (len-oct  (1- (length oct)))
+             (last-oct (aref oct len-oct)))
+        (cond ((= 45 last-oct) (resolve-degree (to-keyword (name degree))
+                                               (1- octave-shift)
+                                               semitone-shift))
+              ((= 43 last-oct) (resolve-degree (to-keyword (name degree))
+                                               (1+ octave-shift)
+                                               semitone-shift))
+              ((= 98 last-oct) (resolve-degree (to-keyword (name degree))
+                                               octave-shift
+                                               (1- semitone-shift)))
+              ((= 35 last-oct) (resolve-degree (to-keyword (name degree))
+                                               octave-shift
+                                               (1+ semitone-shift)))
+              (t (let ((degree (degree->int degree)))
+                   (alexandria:alist-hash-table `((:degree . ,degree)
+                                                  (:octave-shift . ,octave-shift)
+                                                  (:semitone-shift . ,semitone-shift)))))))
+      (resolve-degree degree 0 0)))
 
 (defun resolve-degrees (degrees)
   "Either maps the degrees to integers if they're keywords using the map DEGREE
@@ -419,10 +481,6 @@
              (notes (mapcar (lambda (x) (+ x root)) chord)))
         (invert-chord notes inversion))
       (chord root chord-name 0)))
-
-;; NOTE: missing some validation
-(defun degree->int (degree)
-  (degree degree))
 
 (defun chord-degree (degree root mode &optional num-notes)
   "Returns the notes constructed by picking thirds in a given scale
