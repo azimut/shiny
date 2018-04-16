@@ -32,11 +32,13 @@
 (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 (fluid-test *synth*)
 
-(defun play-midi-note (time pitch velocity dur c)  
+(defun p (time pitch velocity dur c)
   (at time #'fluidsynth:noteon *synth* c pitch velocity)
   (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
-
+(defun play-midi-note (time pitch velocity dur c)
+  (at time #'fluidsynth:noteon *synth* c pitch velocity)
+  (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
 
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)

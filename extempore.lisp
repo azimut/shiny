@@ -452,15 +452,15 @@ example: c7
   "scheme<7099> (regex:matched \"F#1\" \"([abcdefgABCDEFG])([#b])?(-?[0-9])\") => (\"F#1\" \"F\" \"#\" \"1\")"
   (let ((result (multiple-value-bind (a b) (cl-ppcre:scan-to-strings "([abcdefgABCDEFG])([#b])?(-?[0-9])" name)
                   (append (list a) (coerce b 'list)))))
-        (if (null result)
-            nil
-            (let ((offset (+ 12 (* (parse-integer (cadddr result)) 12)))
-                  (pc    (case (mod (- (mod (char-code (coerce (cadr result) 'character)) 16) 3) 7)
-                                ((0) 0) ((1) 2) ((2) 4) ((3) 5) ((4) 7) ((5) 9) ((6) 11) (otherwise 0))))
-              (+ offset pc
-                 (cond ((string= (caddr result) "#")  1)
-                       ((string= (caddr result) "b") -1)
-                       (t 0)))))))
+    (if (null result)
+        nil
+        (let ((offset (+ 12 (* (parse-integer (cadddr result)) 12)))
+              (pc    (case (mod (- (mod (char-code (coerce (cadr result) 'character)) 16) 3) 7)
+                       ((0) 0) ((1) 2) ((2) 4) ((3) 5) ((4) 7) ((5) 9) ((6) 11) (otherwise 0))))
+          (+ offset pc
+             (cond ((string= (caddr result) "#")  1)
+                   ((string= (caddr result) "b") -1)
+                   (t 0)))))))
 
 ;;; ----------------------------
 ;; Extempore - Rhythm functions
@@ -546,8 +546,7 @@ you can call the metro with the following symbols
                               (* *sample-rate* g-tempo))))
                    (quantize (if (null args) 1.0 (car args))))
                (round (+ val (- quantize (mod val quantize))))))
-            (t 'bad-method-name)
-            ))))
+            (t 'bad-method-name)))))
 
 (defun make-metre (metre base)
   "creates a meter where metre is a list of numerators

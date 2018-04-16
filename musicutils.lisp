@@ -151,3 +151,12 @@ See also: `pbjorklund'"
 (defmacro setp (var values)
   `(when (null ,var)
      (setf ,var ,values)))
+
+;; from Fluxus Fluxa
+(defun zmod (number divisor)
+  "zero module - play every N, where number is samples
+  > (zmod (get-internal-real-time) 4)"
+  (zerop (mod number divisor)))
+
+(defun zmodt (divisor)
+  (zmod (get-universal-time) divisor))
