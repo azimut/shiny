@@ -4,13 +4,6 @@
 ;; (rt-start)
 (ql:quickload :incudine-fluidsynth)
 
-(defun off-with-the-notes (s)
-  (loop :for c :from 0 :upto 25 :do
-     (mapcar (lambda (x) (fluidsynth:noteoff s c x)) (range 120))))
-
-(defun all-piano (s &optional (instrument 0))
-  (dotimes (i 32) (fluidsynth:program-change s i instrument) ))
-
 (defvar *fluid-settings* (fluidsynth:new-settings
                           `(("synth.polyphony" 128)
                             ("synth.midi-channels" 32)
@@ -19,6 +12,21 @@
 
 
 (defvar *synth* (fluidsynth:new *fluid-settings*))
+
+(defun off-with-the-notes ()
+  (loop :for c :from 0 :upto 50 :do
+     (mapcar (lambda (x) (fluidsynth:noteoff *synth* c x))
+             (range 120))))
+
+(defun try-sounds (time chan sf &optional (beats 8))
+  "iterate over soundfonts to test sounds"
+  (print sf)
+  (fluidsynth:program-change *synth* chan (mod sf 100))
+  (aat (+ time #[beats b]) #'try-sounds it chan (1+ sf) beats))
+
+(defun all-piano (&optional (sf 0))
+  (dotimes (i 32)
+    (fluidsynth:program-change *synth* i sf) ))
 
 (dsp! fluid-test ((synth fluidsynth:synth))
   (with ((len   (block-size))
@@ -32,13 +40,60 @@
 (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
 (fluid-test *synth*)
 
-(defun p (time pitch velocity dur c)
-  (at time #'fluidsynth:noteon *synth* c pitch velocity)
-  (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+;; (defun p (time pitch velocity dur c)
+;;   (when (and pitch (> pitch 2))
+;;     (at time #'fluidsynth:noteon *synth* c pitch velocity)
+;;     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
+
+(defgeneric p (time pitch velocity duration channel)
+  (:method (time (pitch integer) velocity duration channel)
+    (at time #'fluidsynth:noteon *synth* channel pitch velocity)
+    (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch))
+  (:method (time (pitch symbol) velocity duration channel)
+    (unless (eql :_ pitch)
+      (at time #'fluidsynth:noteon
+          *synth* channel (note pitch) velocity)
+      (at (+ time #[duration b]) #'fluidsynth:noteoff
+          *synth* channel (note pitch)))))
+
+(defun pc (time notes velocity duration channel)
+  (mapcar (lambda (x) (p time x velocity duration channel))
+          notes))
+
+(defgeneric pa (time notes offset velocity &key channel dur)
+  (:method (time notes (offset number) (velocity integer)
+            &key (channel 1) (dur offset))
+    "Play arpeggio, with a constant offset and velocity"
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (x y) (p (+ time #[y b]) x velocity dur channel))
+              notes
+              offsets)))
+  (:method (time notes (offset number) (velocity list)
+            &key (channel 1) (dur offset))
+    "Play arpeggio, with a constant offset and provided velocities"
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (x y z) (p (+ time #[y b]) x z dur channel))
+              notes
+              offsets
+              velocity)))
+  (:method (time notes (offset list) (velocity integer) &key (channel 1) (dur 1))
+    "Play arpeggio, with provided offsets and constant velocity"
+    (mapcar (lambda (x y) (p (+ time #[y b]) x velocity dur channel))
+            notes
+            offset))
+  (:method (time notes (offset list) (velocity list) &key (channel 1) (dur 1))
+    "Play arpeggio, with provided offsets and velocities"
+    (mapcar (lambda (x y z) (p (+ time #[y b]) x z dur channel))
+            notes
+            offset
+            velocity)))
 
 (defun play-midi-note (time pitch velocity dur c)
-  (at time #'fluidsynth:noteon *synth* c pitch velocity)
-  (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+  (when (and pitch (> pitch 2))
+    (at time #'fluidsynth:noteon *synth* c pitch velocity)
+    (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
 
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
@@ -736,7 +791,7 @@ h half   x sixty-fourth
     (tempo-sync #[2.5 b])
 ;;    (funcall *metro* (funcall *metro* 'get-beat 2.5))
     (cm:new cm:cycle :of *chord*)
-    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4)))
 
 #|
 (flush-pending)
@@ -853,7 +908,7 @@ h half   x sixty-fourth
 (pw 2
     (tempo-sync #[1 b])
     (cm:new cm:cycle :of *chord*)
-    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4)))
 
 #|
 (flush-pending)
@@ -881,7 +936,7 @@ h half   x sixty-fourth
 
 (pw 2
     (tempo-sync #[1 b])
-    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4))))
+    (cm:new cm:cycle :of (rwgen mtrules '(1 0) 4)))
 
 
 
