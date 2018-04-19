@@ -25,12 +25,12 @@
 
 (fluidsynth:set-reverb *synth* 0.7d0 0.3d0 0.5d0 0.9d0)
 
-(defparameter *metro* (make-metro 30))
+(defparameter *metro* (make-metro 60))
  
 (defvar *beat-offset* nil)
 (setf *beat-offset* '(1/3 1 3/2 1 2 3))
 (setf *beat-offset* '(1/3 4 1 1.5))
-(setf (bpm *tempo*) 30)
+(setf (bpm *tempo*) 60)
   
 (flush-pending)
 
@@ -41,12 +41,13 @@
     (if (= 0.0 (mod beat 12))
         (progn (play-midi-note time (+ root 72) 90 4 3)
                (play-midi-note (+ time #[6 b])
-                               (pc-relative (+ root 72) (random-elt #(-1 -2 -3)) *scale*) 90 4 3))
+                               (pc-relative (+ root 72) (random-elt #(-1 -2 -3)) *scale*)
+                               90 4 4))
         (play-midi-note time (pc-quantize (+ root 67) *scale*) 90 2 2))
 ;;    (play-midi-note (+ time #[3 b]) 36 90 (* 3.0 dur) (+ 10 (random 10)))
-    (mapcar (lambda (x y) (aat (+ time #[y b]) #'play-midi-note it x 100 (* 2.0 dur) 0))
+    (mapcar (lambda (x y) (play-midi-note (+ time #[y b]) x 100 (* 2.0 dur) 0))
             (make-chord 40 (rcosr 75 10 1/32) 5
-                        (chord root (if (member root '(10 8))
+                        (pc-chord root (if (member root '(10 8))
                                         '^7
                                         '-7)))
             *beat-offset*)
