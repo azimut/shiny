@@ -68,11 +68,17 @@
 ;; functional-composition
 ;; https://github.com/ctford/functional-composition
 ;; ----------------------
-
 (defun midihz (midi)
-  (*
-   8.1757989156
-   (expt 2 (/ midi 12))))
+  (* 8.1757989156
+     (expt 2 (/ midi 12))))
+
+;; ---------------------
+;; https://en.wikipedia.org/wiki/Musical_note
+;; where 69 is the number of semitones between
+;; C|-1 (note 0) and A|4
+;; --------------------
+(defun hzmidi (hz)
+  (round (+ 69 (* 12 (log (/ hz 440) 2)))))
 
 ;; ---------------------
 ;; Euclidian composition
@@ -160,3 +166,5 @@ See also: `pbjorklund'"
 
 (defun zmodt (divisor)
   (zmod (get-universal-time) divisor))
+
+

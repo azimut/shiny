@@ -20,7 +20,7 @@
   :serial t
   :components ((:file "package")
                (:file "assets")
+               (:file "musicutils")
                (:file "nudruz")
                (:file "extempore")
-               (:file "overtone")
-               (:file "musicutils")))
+               (:file "overtone")))

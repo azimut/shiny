@@ -1,6 +1,17 @@
 (in-package #:somecepl)
 ;; ----------- Overtone / Clojure
 
+;; http://www.appservgrid.com/hyper/hyp/lisp#take
+;; SOMECEPL> (take 2 '(0 1 2 3 4 5))
+;; (0 1)
+
+(defun take (n l)
+  (cond ((< n 0) (error "index negative"))
+        ((= n 0) ())
+        ((null l) (error "index too large"))
+        (t (cons (car l) (take (- n 1) (cdr l))))))
+
+
 ;; https://github.com/tororo060608/danmachi/blob/master/src/util.lisp
 
 (defun take-nth (n seq)
@@ -69,7 +80,7 @@
   "Convert an octave and interval to a midi note."
   (+ (* octave 12) interval 12))
 
-(defparameter *notes* (alexandria:alist-hash-table
+(defvar +notes+ (alexandria:alist-hash-table
                        '((:C  . 0)  (:B# . 0)
                          (:C# . 1)  (:DB . 1)
                          (:D  . 2)
@@ -85,7 +96,7 @@
 
 (defun notes (n)
   (if (keywordp n)
-      (gethash n *notes*)
+      (gethash n +notes+)
       (error "not a keyword")))
 
 (defvar *reverse-notes* (alexandria:alist-hash-table
@@ -165,7 +176,7 @@
         (t (error "Bad argument."))))
 
 ;; NOTE: hack in 
-(defparameter *scale*
+(defvar +scale+
   (flet ((rotate (scale-sequence offset)
            (take (length scale-sequence)
                  (nthcdr offset (append scale-sequence scale-sequence)))))
@@ -247,14 +258,14 @@
                  (:lydian-minor      . (2 2 2 1 1 2 2))))))
       _)))
 
-(defparameter *degree*
+(defvar +degree+
   (let ((degrees '((:i   . 1) (:ii . 2) (:iii . 3)
                    (:iv  . 4) (:v  . 5) (:vi  . 6)
                    (:vii . 7) (:_  . nil))))
     (alexandria:alist-hash-table degrees)))
 
 (defun degree (d)
-  (gethash d *degree*))
+  (gethash d +degree+))
 
 (defun degree->interval (degree scale)
   "Converts the degree of a scale given as a roman numeral keyword and
@@ -297,7 +308,7 @@
        1 therefore the 4th degree is (+ 2 2 1 2) semitones from the
        start of the scale."
   (if y
-      (reduce #'+ (take y (repeat 64 (gethash x *scale*))))
+      (reduce #'+ (take y (repeat 64 (gethash x +scale+))))
       (nth-interval :diatonic x)))
 
 (defun find-pitch-class-name (note)
@@ -323,7 +334,7 @@
                                (write-to-string octave))))))
 
 (defun degree->int (degree)
-  (if (some (lambda (x) (degree x)) (alexandria:hash-table-keys *degree*))
+  (if (some (lambda (x) (degree x)) (alexandria:hash-table-keys +degree+))
       (degree degree)
       (error "wrong degree")))
 
@@ -370,7 +381,7 @@
         (cons root (mapcar (lambda (x) (+ root (nth-interval y x))) degrees)))
       (ov-scale x y (range 8 :min 1))))
 
-(defparameter *chord*
+(defvar +chord+
   (let ((major  '(0 4 7))
         (minor  '(0 3 7))
         (major7 '(0 4 7 11))
@@ -449,7 +460,7 @@
   simply returns it unnmodified. Allows users to specify a chord
   either with a set such as #{0 4 7} or by keyword such as :major"
   (if (keywordp chord)
-      (gethash chord *chord*)
+      (gethash chord +chord+)
       chord))
 
 (defun invert-chord (notes shift)
