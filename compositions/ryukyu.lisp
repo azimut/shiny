@@ -19,6 +19,8 @@
                 ((> i (* dur l-notes)) (reverse l)))
             notes)))
 
+(setf (bpm *tempo*) 90)
+
 (defvar *metro* nil)
 (defvar *metre* nil)
 (setf *metro* (make-metro 90))
@@ -78,23 +80,25 @@
       (dolist (x (make-chord 48
                              72
                              (random-elt #(2 3)) '(0 4 5 7 11)))
-        (play-midi-note time x 25 4 8)))
+        (p time x 25 4 8)))
     
     (when (funcall *metre* beat 1.0)
       (if (odds .9)
-          (let ((c (reverse (make-chord
+          (let ((c (sort (make-chord
                              60
                              84
-                             3 '(0 4 5 7 11)))))
+                             3 '(0 4 5 7 11))
+                         '<)))
             ;; ghost            
-            (play-midi-note time (+ 24 pitch) 30 65 (+ 23 (random 2)))
-            (play-midi-arpeggio time c 25 1 8))
-          (dolist (x (make-chord 48
-                                 72
-                                 (random-elt #(2 3)) '(0 4 5 7 11)))
-            (play-midi-note time x 25 4 7))))
+            (p time (+ 24 pitch) 30 65 (+ 23 (random 2)))
+            (pa time c .5 35 :channel 14))
+          (let ((x (make-chord 48
+                               72
+                               (random-elt #(2 3))
+                               '(0 4 5 7 11))))
+            (pc time x 25 4 7))))
 
-    (play-midi-note time pitch (odds .1 25 35) .3 1)
+    (p time pitch (odds .1 25 35) .3 1)
     (aat (funcall *metro* n-beat) #'newscale
          n-beat it
          (if (and (odds .4)
@@ -126,4 +130,4 @@
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") 1.)
 
 (flush-pending)
-(off-with-the-notes *synth*)
+(off-with-the-notes)

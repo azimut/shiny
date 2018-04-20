@@ -45,6 +45,11 @@
 ;;     (at time #'fluidsynth:noteon *synth* c pitch velocity)
 ;;     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
 
+(defun play-midi-note (time pitch velocity dur c)
+  (when (and pitch (> pitch 2))
+    (at time #'fluidsynth:noteon *synth* c pitch velocity)
+    (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
+
 (defgeneric p (time pitch velocity duration channel)
   (:method (time (pitch integer) velocity duration channel)
     (at time #'fluidsynth:noteon *synth* channel pitch velocity)
@@ -90,10 +95,22 @@
             offset
             velocity)))
 
-(defun play-midi-note (time pitch velocity dur c)
-  (when (and pitch (> pitch 2))
-    (at time #'fluidsynth:noteon *synth* c pitch velocity)
-    (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
+(defun loop-rhythm (time notes rhythms &optional (how 'cdr))
+  (let ((note   (car notes))
+        (rhythm (car rhythms)))
+    (p time note 60 rhythm 1)
+    (aat (+ time #[rhythm b]) #'loop-rhythm
+         it
+         (case how
+           (cdr     (cdr notes))
+           (rotate  (rotate notes 1))
+           (rrotate (rotate notes -1)))
+         (case how
+           (cdr     (cdr rhythms))
+           (rotate  (rotate rhythms 1))
+           (rrotate (rotate rhythms -1)))
+         how)))
+
 
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/samples/GeneralUser GS 1.471/GeneralUser GS v1.471.sf2" 1)
@@ -530,18 +547,18 @@ h half   x sixty-fourth
     (cm:new cm:cycle :of '(s e s. e. q)))
 
 (ppp 1
-    (funcall *metro* 'get-beat .25)
+    (funcall *metro* 'get-beat 4)
     (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
     (cm:new cm:cycle :of '(e s q e. s.)))
 
 (ppp 2
-    (funcall *metro* 'get-beat .75)
+    (funcall *metro* 'get-beat 4)
     (cm:new cm:cycle :of '(e4 gs4 b4 ds4))
     (cm:new cm:cycle :of '(s e s. e. q)))
 
 #|
 (flush-pending)
-(off-with-the-notes *synth*)
+(off-with-the-notes)
 |#
 
 (defun p (chan vel time keys rhythms amps &key (life nil))
@@ -641,7 +658,7 @@ h half   x sixty-fourth
 
 #|
 (flush-pending)
-(off-with-the-notes *synth*)
+(off-with-the-notes)
 |#
 
 ;; --------------------
@@ -686,7 +703,7 @@ h half   x sixty-fourth
   (let ((chord (cm:next chords))
         (vel   (round (cosr 35 5 .5))))
     (dolist (k chord)
-      (play-midi-note (now) (cm:keynum k) vel 1 1))
+      (p (now) (cm:keynum k) vel 1 (random 10)))
     (aat (+ time #[1 b]) #'m it chords)))
 
 (m (tempo-sync #[1 b])
@@ -723,9 +740,9 @@ h half   x sixty-fourth
 ;; 60 80 / 40 60
 (defun q (time rhythms)
   (let ((rhythm (cm:rhythm (cm:next rhythms) 30)))
-    (play-midi-note time (cm:between 50 70) 30 1 1)
-    (play-midi-note time (cm:between 50 70) 30 1 2)
-    (play-midi-note time (cm:between 50 70) 30 1 2)
+    (p time (cm:between 50 70) 30 1 10)
+    (p time (cm:between 50 70) 30 1 20)
+    (p time (cm:between 50 70) 30 1 30)
     (aat (tempo-sync #[rhythm b]) #'q it rhythms)))
 
 (q (tempo-sync #[1 b]) (cm:new cm:cycle :of '(e q s s q)))

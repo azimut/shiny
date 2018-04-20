@@ -20,17 +20,17 @@
     (,clickhat  (-1----)) ;; 6
     (,openhat   (--1-)))) ;; 4
 
-(setf (bpm *tempo*) 30)
+(setf (bpm *tempo*) 200)
 (all-piano)
 
-(defparameter pats
+(defparameter *pats*
   '((1  (1---))
     (2  (--1-))
     (3  (-1----))
     (4  (-1--------------))
     (5  (----1--1---1-1--))))
 
-(p (now) 60 100 1 0)
+(p (now) 60 80 1 0)
 
 (defun live-perc-sequencer (metro live-patterns &optional beat start-beat)
   (if (not beat)
@@ -65,16 +65,32 @@
 
 ;; qcosr
 (defun live-perc-sequencer (time &optional (beat 0))
-  (dolist (pattern pats)
-    (let ((inst  (car pattern))
-          (beats (coerce (write-to-string (caadr pattern)) 'list)))
+  (dolist (pattern *pats*)
+    (let* ((inst      (car pattern))
+           (raw-beats (caadr pattern))
+           (beats (if (integerp raw-beats)
+                      (write-to-string raw-beats)
+                      (symbol-name raw-beats)))
+           (beats     (coerce beats 'list)))
       (when (eql #\1 (nth (mod beat (length beats)) beats))
-        (p time (qcosr *phrygian* 65 10 1/2) 80 (pick 1 3/4) inst))))
-  ;;(when (odds .1) (fluidsynth:program-change *synth* (1+ (random 5)) (random 100)))
-  (aat (+ time #[.5 b]) #'live-perc-sequencer it (1+ beat)))
+        (p time (qcosr *phrygian* 65 10 1/2) 40 (pick 1 3/4) inst))))
+  ;;(when (odds .1)
+  ;;  (fluidsynth:program-change *synth* (1+ (random 5)) (random 100)))
+  (aat (+ time #[1 b]) #'live-perc-sequencer it (1+ beat)))
 
 (live-perc-sequencer (now))
 
+(defparameter *pats*
+  '((3  (1-1-))
+    (4  (----1---))))
+
+(defparameter *pats*
+  '((3  (01011101010111010))
+    (4  (01101100010010011))
+    (5  (00010010010010011))
+    (1  (00110110110010110))))
+
+(all-piano)
 (off-with-the-notes)
 (flush-pending)
 
@@ -84,7 +100,7 @@
 (fluidsynth:program-change *synth* 4 40)
 
 (fluidsynth:program-change *synth* 3 53)
-(fluidsynth:program-change *synth* 4 52)
+(fluidsynth:program-change *synth* 4 9)
 
 (fluidsynth:program-change *synth* 5 41)
 
@@ -168,7 +184,7 @@
 
 
 
-(setf (bpm *tempo*) 30)
+(setf (bpm *tempo*) 10)
 
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") .1)
 (fluidsynth:program-change *synth* 1 0)
