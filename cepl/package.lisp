@@ -1,10 +1,18 @@
 (uiop:define-package somecepl
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
+  (:shadowing-import-from #:cepl #:free)
   (:use #:cl 
+        #:cepl
+        #:vari
+        #:rtg-math
+        #:nineveh
         #:arrow-macros
+        #:temporal-functions
         #:cl-ppcre
-        #:incudine)
+        #:incudine
+        #:cepl.skitter
+        #:livesupport)
   (:import-from #:cm
                 #:pick
                 #:pickl
@@ -42,7 +50,7 @@
                 #:make-f32-array
                 #:phasor-loop
                 #:bpf
-                #:buffer-read
+              ;;  #:buffer-read
                 #:butter-lp
                 #:fractal-noise
                 #:out
