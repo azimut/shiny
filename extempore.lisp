@@ -291,14 +291,15 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
  based on root (0 for C etc.) maj/min ('- or '^) and degree (i-vii)
  ex: (pc:diatonic 0 '- 'i) => (0 3 7)"
   (if (typep degree 'integer)
-      (setf degree (cdr (assoc degree '((0 i)   (1 ii)   (2 ii)
-                                        (3 iii) (4 iii)  (5 iv)
-                                        (6 iv)  (7 v)    (8 vi)
-                                        (9 vi)  (10 vii) (11 vii))))))
+      (setf degree (cdr (assoc degree '((0 . i)   (1  . ii)   (2 . ii)
+                                        (3 . iii) (4  . iii)  (5 . iv)
+                                        (6 . iv)  (7  . v)    (8 . vi)
+                                        (9 . vi)  (10 . vii) (11 . vii))))))
   (let ((val (assoc degree (if (eq '^ maj-min)
                                *diatonic-major*
                                *diatonic-minor*))))
-    (pc-chord (mod (+ root (cadr val)) 12) (cddr val))))
+    (pc-chord (mod (+ root (cadr val)) 12)
+              (cddr val))))
 
 (defun cosr (centre amplitude period)
   "- the first argument is the \"centre\" to oscillate around
@@ -571,3 +572,11 @@ e.g. give the above define
         (if (null beat)
             b
             (if (= (car beat) b) t nil))))))
+
+;; extra - not on extempore
+
+(defun make-chord-alberti (lower upper pc)
+  (let ((mychord (make-chord lower upper 3 pc))
+        (indexes '(0 2 1 2)))
+    (loop :for x :in indexes
+       :collect (nth x mychord))))

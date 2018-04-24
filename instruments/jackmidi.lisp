@@ -7,23 +7,26 @@
 ;; Although...that will make the code not work with other compositions...
 ;; ... unless I have some mapping (?
 
+;; http://computermusicresource.com/MIDI.Commands.html
+(defun to-channel (code)
+  (+ code 143))
+
 (defun off-with-the-notes ()
-  (mapcar (lambda (x) (jackmidi:write-short *midiout* (jackmidi:message 128 x 0) 3))
-          (range 120)))
+  (loop :for c :in (range 20)
+     :do (mapcar (lambda (x) (jackmidi:write-short *midiout* (jackmidi:message (+ c 143) x 0) 3))
+                              (range 120))))
 
-(defun play-midi-note (time pitch velocity dur &optional c)
-  (declare (ignore c))
+(defun play-midi-note (time pitch velocity dur &optional (c 1))
   (at time #'jackmidi:write-short *midiout*
-      (jackmidi:message 144 pitch velocity) 3)
+      (jackmidi:message c pitch velocity) 3)
   (at (+ time #[dur b]) #'jackmidi:write-short *midiout*
-      (jackmidi:message 128 pitch 0) 3))
+      (jackmidi:message c pitch 0) 3))
 
-(defun play-midi-note-loop (time pitch velocity dur &optional c)
-  (declare (ignore c))
+(defun play-midi-note-loop (time pitch velocity dur &optional (c 1))
   (at time #'jackmidi:write-short *midiout*
-      (jackmidi:message 144 pitch velocity) 3)
+      (jackmidi:message c pitch velocity) 3)
   (at (+ time #[dur b]) #'jackmidi:write-short *midiout*
-      (jackmidi:message 128 pitch 0) 3))
+      (jackmidi:message c pitch 0) 3))
 
 (defgeneric p (time pitch velocity duration channel)
   (:method (time (pitch integer) velocity (duration number) channel)

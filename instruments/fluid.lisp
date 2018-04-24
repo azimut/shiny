@@ -53,14 +53,21 @@
     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
 
 (defgeneric p (time pitch velocity duration channel)
+  (:method (time (pitch list) velocity duration channel)
+    "Play chord of notes"
+    (mapcar (lambda (x) (p time x velocity duration channel))
+            pitch))
   (:method (time (pitch integer) velocity (duration number) channel)
+    "Play given numerical pitch"
     (at time #'fluidsynth:noteon *synth* channel pitch velocity)
     (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch))
   (:method (time (pitch integer) velocity (duration symbol) channel)
+    "Play given numerial pitch, at CM rythm"
     (let ((d (cm:rhythm duration)))
       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
       (at (+ time #[d b]) #'fluidsynth:noteoff *synth* channel pitch)))
   (:method (time (pitch symbol) velocity (duration symbol) channel)
+    "Play given note, at CM rhythm"
     (unless (eql :_ pitch)
       (let ((n (note pitch))
             (d (cm:rhythm duration)))
@@ -69,6 +76,7 @@
         (at (+ time #[d b]) #'fluidsynth:noteoff
             *synth* channel n))))
   (:method (time (pitch symbol) velocity duration channel)
+    "Play given note"
     (unless (eql :_ pitch)
       (let ((n (note pitch)))
         (at time #'fluidsynth:noteon
@@ -110,11 +118,11 @@
             offset
             velocity)))
 
-(defun loop-rhythm (time notes rhythms
+(defun loop-rhythm (time notes rhythms velocity
                     &optional (hownotes 'cdr) (howrhythms 'cdr))
   (let ((note   (if (eql hownotes 'next) (cm:next notes) (car notes)))
         (rhythm (if (eql howrhythms 'next) (cm:next rhythms) (car rhythms))))
-    (p time note 60 rhythm 1)
+    (p time note velocity rhythm 0)
     (aat (+ time #[rhythm b]) #'loop-rhythm
          it 
         (case hownotes
@@ -127,6 +135,7 @@
            (rotate  (rotate rhythms  1))
            (rrotate (rotate rhythms -1))
            (next    rhythms))
+         velocity
          hownotes howrhythms)))
 
 
