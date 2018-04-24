@@ -62,7 +62,7 @@ returned."
 ;; (defparameter *piano-map*
 ;;   (generate-lsample-map 
 ;;    '(("BOSEN_mf_A0_mn.wav"  36 33 121642 197454)
-;;      ("BOSEN_mf_D1_mn.wav"  43 38  93488 166611)
+;;      ("BOSEN_mf_D1_mn.wav"  43 38  93488 166611);
 ;;      ("BOSEN_mf_C2_mn.wav"  51 48  95464 151802)
 ;;      ("BOSEN_mf_F2_mn.wav"  58 53  77922 137052)
 ;;      ("BOSEN_mf_D#3_mn.wav" 68 63  82246 132839)

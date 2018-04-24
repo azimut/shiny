@@ -26,7 +26,7 @@
 
 (defvar *mtempos* nil)
 (setf *mtempos* nil)
-(setf (bpm *tempo*) 50)
+(setf (bpm *tempo*) 120)
 
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") 2.)
 
@@ -171,7 +171,7 @@ R is the midi channel used."
 (mbox (tempo-sync #[1 b]) 32 :C 8 14.5 -7 14 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :D 9 1.5 -14 14 (scale 0 'dorian))
 
-(mbox (tempo-sync #[1 b]) 32 :C 7 3 -7 14 (scale 0 'aeolian)) 
+(mbox (tempo-sync #[1 b]) 32 :C 7 3 -7 14 (scale 0 'aeolian))
 
 |#
 
@@ -184,6 +184,6 @@ R is the midi channel used."
 
 #|
 (flush-pending)
-(off-with-the-notes *synth*)
+(off-with-the-notes)
 |#
 

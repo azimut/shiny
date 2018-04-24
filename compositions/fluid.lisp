@@ -1,6 +1,7 @@
 (in-package :somecepl)
 
 ;; Run it on the repl
+(set-rt-block-size 64)
 ;; (rt-start)
 (ql:quickload :incudine-fluidsynth)
 
@@ -37,7 +38,8 @@
       (out (f32-ref left current-frame)
            (f32-ref right current-frame)))))
 
-(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+;;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+(fluidsynth:sfload *synth* "/home/sendai/samples/Touhou.sf2" 1)
 (fluid-test *synth*)
 
 ;; (defun p (time pitch velocity dur c)
@@ -51,15 +53,28 @@
     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch)))
 
 (defgeneric p (time pitch velocity duration channel)
-  (:method (time (pitch integer) velocity duration channel)
+  (:method (time (pitch integer) velocity (duration number) channel)
     (at time #'fluidsynth:noteon *synth* channel pitch velocity)
     (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch))
+  (:method (time (pitch integer) velocity (duration symbol) channel)
+    (let ((d (cm:rhythm duration)))
+      (at time #'fluidsynth:noteon *synth* channel pitch velocity)
+      (at (+ time #[d b]) #'fluidsynth:noteoff *synth* channel pitch)))
+  (:method (time (pitch symbol) velocity (duration symbol) channel)
+    (unless (eql :_ pitch)
+      (let ((n (note pitch))
+            (d (cm:rhythm duration)))
+        (at time #'fluidsynth:noteon
+            *synth* channel n velocity)
+        (at (+ time #[d b]) #'fluidsynth:noteoff
+            *synth* channel n))))
   (:method (time (pitch symbol) velocity duration channel)
     (unless (eql :_ pitch)
-      (at time #'fluidsynth:noteon
-          *synth* channel (note pitch) velocity)
-      (at (+ time #[duration b]) #'fluidsynth:noteoff
-          *synth* channel (note pitch)))))
+      (let ((n (note pitch)))
+        (at time #'fluidsynth:noteon
+            *synth* channel n velocity)
+        (at (+ time #[duration b]) #'fluidsynth:noteoff
+            *synth* channel n)))))
 
 (defun pc (time notes velocity duration channel)
   (mapcar (lambda (x) (p time x velocity duration channel))
@@ -95,21 +110,24 @@
             offset
             velocity)))
 
-(defun loop-rhythm (time notes rhythms &optional (how 'cdr))
-  (let ((note   (car notes))
-        (rhythm (car rhythms)))
+(defun loop-rhythm (time notes rhythms
+                    &optional (hownotes 'cdr) (howrhythms 'cdr))
+  (let ((note   (if (eql hownotes 'next) (cm:next notes) (car notes)))
+        (rhythm (if (eql howrhythms 'next) (cm:next rhythms) (car rhythms))))
     (p time note 60 rhythm 1)
     (aat (+ time #[rhythm b]) #'loop-rhythm
-         it
-         (case how
+         it 
+        (case hownotes
            (cdr     (cdr notes))
-           (rotate  (rotate notes 1))
-           (rrotate (rotate notes -1)))
-         (case how
+           (rotate  (rotate notes  1))
+           (rrotate (rotate notes -1))
+           (next    notes))
+         (case howrhythms
            (cdr     (cdr rhythms))
-           (rotate  (rotate rhythms 1))
-           (rrotate (rotate rhythms -1)))
-         how)))
+           (rotate  (rotate rhythms  1))
+           (rrotate (rotate rhythms -1))
+           (next    rhythms))
+         hownotes howrhythms)))
 
 
 ;(fluidsynth:sfload *synth* "/home/sendai/Downloads/fluid-soundfont-3.1/FluidR3_GM.sf2" 1)

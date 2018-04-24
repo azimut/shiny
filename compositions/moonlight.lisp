@@ -22,7 +22,7 @@
                   (/ dur 2)
                   chan)
   (play-midi-note (+ time #[1/4 b])
-                  (relative pitch 1 pc)
+                  (pc-relative pitch 1 pc)
                   (- vol 10)
                   (/ dur 2)
                   chan)
@@ -65,6 +65,7 @@
                 pc)
         '<)))
 
+(defvar *metro* (make-metro 90))
 (defvar *m1* nil)
 (defvar *m2* nil)
 (setf *m1* (make-metre '(2) 4))
@@ -180,4 +181,4 @@ func generateMelody(_ chord: [Int]) -> Int {
 
 
 (flush-pending)
-(off-with-the-notes *synth*)
+(off-with-the-notes)

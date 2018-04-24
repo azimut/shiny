@@ -14,15 +14,13 @@
 
 (defun loadpianosamples ()
   (unless *pianosamples*
-    (setf *pianosamples*
-    (make-array 122 :initial-element nil)))
-  (loop for x in
-       (directory (pathname "~/Downloads/samples/pianosample/SalamanderGrandPianoV2_44.1khz16bit/44.1khz16bit/*v10*.wav"))
-     collect
-       (let* ((filename  (uiop:unix-namestring x))
-              (note      (note-name-to-midi-number filename)))
-         (setf (aref *pianosamples* note) (buffer-load filename))
-         )))
+    (setf *pianosamples* (make-array 122 :initial-element nil)))
+  (loop :for x :in
+     (directory (pathname "~/Downloads/samples/pianosample/SalamanderGrandPianoV2_44.1khz16bit/44.1khz16bit/*v10*.wav"))
+     :collect
+     (let* ((filename  (uiop:unix-namestring x))
+            (note      (note-name-to-midi-number filename)))
+       (setf (aref *pianosamples* note) (buffer-load filename)))))
 
 (loadpianosamples)
 
