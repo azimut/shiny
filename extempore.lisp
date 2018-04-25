@@ -13,6 +13,14 @@
 (defun range (max &key (min 0) (step 1))
    (loop for n from min below max by step
       collect n))
+(defun remove-first (obj lst)
+  (if (member obj lst)
+      (labels ((f (new lstb)
+                 (if (equal (car lstb) obj)
+                     (append new (cdr lstb))
+                     (f (append new (list (car lstb))) (cdr lstb)))))
+        (f '() lst))
+      lst))
 
 (defvar *phrygian* '(0 1 3 5 7 8 10))
 
@@ -485,7 +493,7 @@ example: c7
 ;;
 
 (defun note-name-to-midi-number (name)
-  "scheme<7099> (regex:matched \"F#1\" \"([abcdefgABCDEFG])([#b])?(-?[0-9])\") => (\"F#1\" \"F\" \"#\" \"1\")"
+  "> (regex:matched \"F#1\" \"([abcdefgABCDEFG])([#b])?(-?[0-9])\") => (\"F#1\" \"F\" \"#\" \"1\")"
   (let ((result (multiple-value-bind (a b) (cl-ppcre:scan-to-strings "([abcdefgABCDEFG])([#b])?(-?[0-9])" name)
                   (append (list a) (coerce b 'list)))))
     (if (null result)
@@ -497,6 +505,64 @@ example: c7
              (cond ((string= (caddr result) "#")  1)
                    ((string= (caddr result) "b") -1)
                    (t 0)))))))
+
+(defun pc-from-steps (pitch steps pc)
+  "returns a pc-set based on:
+- a list of steps
+- a beginning pitch class
+- and a pc-set"
+  (labels ((f (slst plst)
+             (if (null slst)
+                 (reverse plst)
+                 (f (cdr slst)
+                    (cons (mod (pc-relative (car plst) (car slst) pc) 7)
+                          plst)))))
+    (f steps (list pitch))))
+
+(defun pc-distance (pitch pc)
+  "distance between pitch and pc"
+  (when (atom pc)
+    (setf pc (list pc)))
+  (let ((p (mod pitch 12)))
+    (car (sort (mapcar (lambda (class)
+                         (let ((val (abs (- p class))))
+                           (abs (if (< val (- 12 val)) val (- 12 val)))))
+                       pc)
+               #'<))))
+
+(defun pc-closest-pc (pitch pc)
+  "find the pc that is closest to given pitch
+   useful for finding next step for a pitch given a chord"
+  (cdar (sort (mapcar (lambda (class) (cons (pc-distance pitch class) class))
+                      pc)
+              (lambda (a b) (< (car a) (car b))))))
+
+(defun pc-closest-pitch (pc pitches)
+  (cdar (sort (mapcar (lambda (p) (cons (pc-distance p pc) p))
+                      pitches)
+              (lambda (a b) (< (car a) (car b))))))
+
+(defun pc-find-closest (plst pc)
+  "returns the pitch in plst that is closest to the pc set
+   if multiple pitches in plst ar the closes return the first"
+  (cdar (sort (mapcar (lambda (p) (cons (pc-distance p pc) p))
+                      plst)
+              (lambda (a b) (if (< (car a) (car b)) T nil)))))
+
+(defun pc-move-chord (chord pc)
+  "find shortest part movement from a chord to pc"
+  (labels ((f (pci chda chdb)
+             (when (null pci) (setf pci pc))
+             (if (null chda)
+                 (sort chdb #'<)
+                 (let* ((match (pc-find-closest chda pci))
+                        (new-pitch (if (> (random 1.0) .5)
+                                       (pc-quantize-low match pci)
+                                       (pc-quantize match pci))))
+                   (f (remove-first (mod new-pitch 12) pci)
+                      (remove-first match chda)
+                      (cons new-pitch chdb))))))
+    (f pc chord '())))
 
 ;;; ----------------------------
 ;; Extempore - Rhythm functions
@@ -648,3 +714,23 @@ e.g. give the above define
     (list (subseq mychord 0 3)
           (+ (nth 3 mychord) offset))))
 
+;; https://github.com/DavidM1088/Composer
+
+(defun make-chord-alternate (lower upper pc)
+  "write a sequence of bass note, chord, bass note, chord"
+  (let* ((mychord (make-chord lower upper 3 pc))
+         (bass-note (first mychord)))
+    (list (- bass-note 12) mychord
+          (+ 7 (- bass-note 12)) mychord)))
+
+(defun make-chord-alternate1 (lower upper pc &optional (bass 12))
+  "write a sequence of bass note, chord, bass note, chord"
+  (let* ((mychord (make-chord lower upper 3 pc))
+         (bass-note (- (first mychord) bass)))
+    (list bass-note mychord
+          bass-note mychord)))
+
+(defun make-chord-waltz (lower upper pc &optional (bass 12))
+  (let* ((mychord (make-chord lower upper 3 pc))
+         (bass-note (first mychord)))
+    (list (- bass-note bass) mychord mychord)))

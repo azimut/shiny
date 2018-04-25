@@ -1,8 +1,11 @@
 (in-package :somecepl)
 
 ;; Run it on the repl
-(set-rt-block-size 64)
 ;; (rt-start)
+
+;; OPTIONAL
+;;(set-rt-block-size 64)
+
 (ql:quickload :incudine-fluidsynth)
 
 (defvar *fluid-settings* (fluidsynth:new-settings
@@ -16,6 +19,11 @@
 (defun fp (channel program)
   "short-hand to set the fluidsynth channel to program"
   (fluidsynth:program-change *synth* channel program))
+
+(defun fg (gain)
+  (declare (type float gain))
+  (setf (fluidsynth:setting *fluid-settings* "synth.gain")
+        gain))
 
 (defun off-with-the-notes ()
   "turn off all the notes"
