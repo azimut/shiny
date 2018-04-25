@@ -6,12 +6,23 @@
         #:cl-ppcre
         #:incudine)
   (:import-from #:cm
+                ;; random boolean
+                #:odds
+                ;; random picker
                 #:pick
                 #:pickl
+                ;; random walker
                 #:drunk
+                ;; random distribution helper
                 #:ran
                 #:between
-                #:odds)
+                ;; patterns
+                #:next
+                #:new
+                #:weighting
+                #:cycle
+                #:palindrome
+                #:heap)
   (:import-from #:incudine.vug
                 #:define-vug
                 #:define-ugen

@@ -576,7 +576,16 @@ e.g. give the above define
 ;; extra - not on extempore
 
 (defun make-chord-alberti (lower upper pc)
+  "creates 4 notes, from a 3 note chord sorted a'la alberti"
   (let ((mychord (make-chord lower upper 3 pc))
         (indexes '(0 2 1 2)))
     (loop :for x :in indexes
        :collect (nth x mychord))))
+
+;; TODO: pc-relative
+(defun make-chord-company (lower upper pc &optional (offset 0))
+  "creates 2 groups of notes, from a 4 notes chord
+  > (make-chord-company 60 80 '(0 1 3 5 7 8 10)) => ((61 67 72) 75)"
+  (let ((mychord (make-chord lower upper 4 pc)))
+    (list (subseq mychord 0 3)
+          (+ (nth 3 mychord) offset))))
