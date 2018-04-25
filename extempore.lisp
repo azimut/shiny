@@ -255,6 +255,38 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
                   ((2) dim7)
                   ((7) (append dom7 dim7)))))))
 
+(defun make-chord-fixed (fix-point number pc &rest args)
+  "make a chord that is fixed at either the 'top or the 'bottom
+   where fixed is as close as the chord allows to fix-point
+   defaults to bottom
+   (pc:make-chord-fixed 60 3 '(0 3 7))      => (60 63 67)
+   (pc:make-chord-fixed 60 3 '(0 3 7) 'top) => (51 55 60)"
+  (if (< number 1)
+      '()
+      (let* ((fixd      (mod fix-point 12))
+             (place     (if (null args) 'bottom (car args)))
+             (bass      (- fix-point fixd))
+             (chord     (if (eql place 'bottom) pc (reverse pc)))
+             (v (mapcar (lambda (pc) (abs (- fixd pc))) chord))
+             (minim     (apply #'min v))
+             (start     (- (length v) (length (member minim v)))))
+        (labels ((ff (i new-lst bb lst)
+                   (if (< i number)
+                       (ff (+ i 1)
+                           (cons (+ bb (car lst)) new-lst)
+                           (if (null (cdr lst))
+                               (funcall (if (null args) '+ '-)
+                                        bb
+                                        12)
+                               bb)
+                           (if (null (cdr lst))
+                               chord
+                               (cdr lst)))
+                       (if (eql place 'bottom)
+                           (sort (reverse new-lst) #'<)
+                           (sort new-lst #'<)))))
+          (ff 0 '() bass (nthcdr start chord))))))
+
 (defun pc-relative (pitch i pc)
   "select pitch from pitch class relative to a given pitch
  1st: bass pitch
@@ -446,6 +478,7 @@ example: c7
                             pc))))))
       (f (round lower) (round upper) number pc))))
 
+
 ;;;
 ;; From extempore - Scheme - instruments_ext-scm.xtm
 ;;;
@@ -573,6 +606,31 @@ e.g. give the above define
             b
             (if (= (car beat) b) t nil))))))
 
+(defun pc-melody-by-step (starting-pitch steps pc &rest args)
+  "generate a melody from a list of steps in a (pc) pitch class
+   (pc-melody-by-step 60 '(2 4 6) *phrygian*) => (60 63 70 80)"
+  (if (null steps)
+      (reverse (car args))
+      (if (null args)
+          (pc-melody-by-step starting-pitch steps pc (cons starting-pitch args))
+          (pc-melody-by-step (pc-relative starting-pitch (car steps) pc)
+                             (cdr steps)
+                             pc
+                             (cons (pc-relative starting-pitch (car steps) pc)
+                                   (car args))))))
+
+(defun ivl-melody-by-ivl (starting-pitch ivls &rest args)
+  "generate a melody from a list of intervals
+   (ivl-melody-by-ivl 60 '(2 4 6)) => (60 62 66 72)"
+  (if (null ivls)
+      (reverse (car args))
+      (if (null args)
+          (ivl-melody-by-ivl starting-pitch ivls (cons starting-pitch args))
+          (ivl-melody-by-ivl (+ starting-pitch (car ivls))
+                             (cdr ivls)
+                             (cons (+ starting-pitch (car ivls))
+                                   (car args))))))
+
 ;; extra - not on extempore
 
 (defun make-chord-alberti (lower upper pc)
@@ -589,3 +647,4 @@ e.g. give the above define
   (let ((mychord (make-chord lower upper 4 pc)))
     (list (subseq mychord 0 3)
           (+ (nth 3 mychord) offset))))
+

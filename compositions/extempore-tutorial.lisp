@@ -35,7 +35,7 @@
 
 (setf (bpm *tempo*) 60)
 
-(defun exte (chan time notes rhythms))
+(defun exte (chan time notes rhythms)
   (play-midi-note time (car notes) 40 (car rhythms) 1)
   (aat (+ time #[(car rhythms) b]) #'exte chan it
        (if (null (cdr notes))

@@ -14,6 +14,7 @@
 (defvar *synth* (fluidsynth:new *fluid-settings*))
 
 (defun fp (channel program)
+  "short-hand to set the fluidsynth channel to program"
   (fluidsynth:program-change *synth* channel program))
 
 (defun off-with-the-notes ()

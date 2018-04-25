@@ -20,6 +20,7 @@
                 #:next
                 #:new
                 #:weighting
+                #:markov ;; higher order explicit transition, than nesting patterns
                 #:cycle
                 #:palindrome
                 #:heap)
