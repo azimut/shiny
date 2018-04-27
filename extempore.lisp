@@ -734,3 +734,7 @@ e.g. give the above define
   (let* ((mychord (make-chord lower upper 3 pc))
          (bass-note (first mychord)))
     (list (- bass-note bass) mychord mychord)))
+
+(defun make-chord-fade (lower upper pc)
+  (let* ((mychord (make-chord lower upper 3 pc)))
+    (list mychord (subseq mychord 0 2) (last mychord))))

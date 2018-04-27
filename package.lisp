@@ -6,6 +6,7 @@
         #:cl-ppcre
         #:incudine)
   (:import-from #:cm
+                #:rhythm
                 ;; random boolean
                 #:odds
                 ;; random picker

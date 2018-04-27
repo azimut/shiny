@@ -3,15 +3,40 @@
 ;; lesson 3 - basic progresssions
 
 ;; I IV V I - familiar
-(let ((i (new cycle :of '(i vi ii v))))
+(let ((i (new cycle :of '(i vi ii v i)))
+      (r (new cycle :of '(2 2 2 2 1.5))))
   (defun f (time)
-    (p (now)
-       (make-chord 50 70 3 (pc-diatonic 0 'major (next i)))
-       50 2 3)
-    (aat (+ time #[2 b]) #'f it)))
+    (let ((mychord (make-chord 50 70 3 (pc-diatonic 0 'major (next i))))
+          (rr (next r)))
+      (pa time mychord .5 90 1)
+      (p time mychord 60 rr 4)
+      (aat (+ time #[rr b]) #'f it))))
+
 (f (now))
 
-(fp 3 44) ;; tremolo!
+;; harpsichord (esque) on 0
+(fpitch 1 15000)
+(fsens 1 20)
+
+;; nice with 52
+(fpitch 1 10000)
+(fsens 1 20)
+
+(setf (bpm *tempo*) 90)
+
+(flush-pending)
+(off-with-the-notes)
+
+(progn
+  (fpress 1 0)
+  (fpress 4 0))
+
+(fpitch 3 12700)
+
+(fp 1 52)
+(fp 4 44) ;; tremolo!
+(fp 4 49) ;; 42 cello
+(fpress 4 127)
 ;; I IV V I
 (let ((i (new cycle :of '(i iv v))))
   (defun f (time)
@@ -122,23 +147,39 @@ IV - vii - iii - vi - IV - V   - I - * (ANY)
 ;; Lesson 4 - voice leading
 ;;;
 
+;; Common tones - approach
 ;; In classical era music, one often "tries" to keep the
 ;;   common tones between two chords when voice leading.
+;; So in, I IV or I V there are common notes/tones between them
 
-(let ((i (new cycle :of '(i iv))))
+(fg .8)
+(fp 3 52)
+(let ((i (new cycle :of '(i v i)))
+      (r (new cycle :of '(1 1 2))))
   (defun f (time)
-    (p (now)
-       (make-chord 50 70 3 (pc-diatonic 0 'major (next i)))
-       50 2 3)
-    (aat (+ time #[2 b]) #'f it)))
+    (let ((b (next r)))
+      (p (now)
+         (make-chord 50 70 3 (pc-diatonic 0 'major (next i)))
+         60 b 3)
+      (aat (+ time #[b b]) #'f it))))
 (f (now))
+(flush-pending)
+(off-with-the-notes)
 
+;;; Week 3 - Circle of fifths
 
-;;;
-;; overtone / extemp_piano.clj
-;;;
-;; (def chord-prog
-;;   [#{[2 :minor7] [7 :minor7] [10 :major7]}
-;;    #{[0 :minor7] [8 :major7]}])
+(let ((d '((i   ii iii iv v vi vii)
+           (ii  v vii)
+           (iii vi iv ii)
+           (iv  v vii)
+           (v   i)
+           (vi  iv ii)
+           (vii iii i)))))
 
+(let ((d (new cycle :of '(i iv vii° iii vi ii v i))))
+  (defun f (time)
+    (p time (make-chord 50 70 3 (pc-diatonic 0 'maj (next d)))
+       60 1 3)
+    (aat (+ time #[1 b]) #'f it)))
 
+(f (now))
