@@ -1,12 +1,13 @@
 (in-package :somecepl)
 
+;; OPTIONAL
+;;(set-rt-block-size 64)
+(ql:quickload :incudine-fluidsynth)
+
 ;; Run it on the repl
 ;; (rt-start)
 
-;; OPTIONAL
-;;(set-rt-block-size 64)
-
-(ql:quickload :incudine-fluidsynth)
+;; C-c C-k
 
 (defvar *fluid-settings* (fluidsynth:new-settings
                           `(("synth.polyphony" 128)
@@ -59,6 +60,10 @@
                   (damp 0.0d0 damp-set)
                   (width 0.5d0 width-set)
                   (level 0.9d0 level-set))
+  (assert (and (<= 0d0 roomsize 1d0)
+               (<= 0d0 damp 1d0)
+               (<= 0d0 width 100d0)
+               (<= 0d0 level 1d0)))
   (when (or roomsize-set damp-set width-set level-set)
     (fluidsynth:set-reverb *synth*
                            roomsize damp
@@ -221,11 +226,11 @@
             velocity
             channel)))
 
-(defun loop-rhythm (time notes rhythms velocity
+(defun loop-rhythm (time notes rhythms velocity channel
                     &optional (hownotes 'cdr) (howrhythms 'cdr))
   (let ((note   (if (eql hownotes 'next) (cm:next notes) (car notes)))
         (rhythm (if (eql howrhythms 'next) (cm:next rhythms) (car rhythms))))
-    (p time note velocity rhythm 0)
+    (p time note velocity rhythm channel)
     (aat (+ time #[rhythm b]) #'loop-rhythm
          it 
         (case hownotes
@@ -239,6 +244,7 @@
            (rrotate (rotate rhythms -1))
            (next    rhythms))
          velocity
+         channel
          hownotes howrhythms)))
 
 #|
