@@ -10,7 +10,7 @@
       (let ((val (funcall fn x))) 
         (if val (push val ace)))) 
     (nreverse ace))) 
-(defun range (max &key (min 0) (step 1))
+(defun myrange (max &key (min 0) (step 1))
    (loop for n from min below max by step
       collect n))
 (defun remove-first (obj lst)
@@ -218,7 +218,7 @@ returns -1 if no valid pitch is possible"
   (if (not pc)
       -1
       (let ((choices (filter (lambda (x) (if (ispitch x pc) x))
-                             (range upper :min lower))))
+                             (myrange upper :min lower))))
         (if (not choices)
             -1
             (random-list choices)))))
@@ -348,7 +348,7 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
    Ex: (cosr 5 3 1/2)"
   (+ centre
      (* amplitude
-        (cos (* TWOPI (float (/ (incudine.util:sample->int (now)) 36000)) period)))))
+        (cos (* TWOPI (float (/ (get-internal-real-time) 36000)) period)))))
         ;;(cos (* TWOPI (now) period)))))
 
 (defun rcosr (centre amplitude period)
