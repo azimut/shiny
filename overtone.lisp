@@ -380,7 +380,7 @@
         (cons root
               (mapcar (lambda (x) (+ root (nth-interval y x)))
                       degrees)))
-      (ov-scale x y (range 8 :min 1))))
+      (ov-scale x y (myrange 8 :min 1))))
 
 (defvar +chord+
   (let ((major  '(0 4 7))
@@ -506,7 +506,7 @@
       (let* ((d-int       (degree->int degree))
              (num-degrees (1- (+ d-int (* num-notes 2)))))
         (take-nth 2 (nthcdr (degree->int degree)
-                            (ov-scale root mode (range num-degrees)))))
+                            (ov-scale root mode (myrange num-degrees)))))
       (chord-degree degree root mode 4)))
 
 (defun rand-chord (root chord-name
@@ -518,7 +518,7 @@
   (let* ((chord     (chord root chord-name))
          (root      (note root))
          (max-pitch (+ pitch-range root))
-         (roots     (range max-pitch :step 12))
+         (roots     (myrange max-pitch :step 12))
          (notes     0))))
 
 #|
