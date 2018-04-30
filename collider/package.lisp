@@ -24,3 +24,7 @@
                 #:cycle
                 #:palindrome
                 #:heap))
+
+;; define var, provided originally by incudine
+(in-package :somecepl)
+(defvar *sample-rate* 44100d0)
