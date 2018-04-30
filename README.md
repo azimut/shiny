@@ -53,7 +53,7 @@ Currently only a volume feedback from incudine can be send to cepl (see examples
 * Package fluidsynth use a separate asdf(?) package
 * Add non fluidsynth package (loading wav files)
 * Add instruments
-* Add [cl-collider](https://github.com/byulparan/cl-collider)
+* ~~Add [cl-collider](https://github.com/byulparan/cl-collider)~~
 * Integrate ideas from Tidal/Overtone/Supercollider code
 * Add https://github.com/vydd/sketch
 * Datasets visualizations
