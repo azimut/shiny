@@ -717,24 +717,32 @@ e.g. give the above define
 ;; https://github.com/DavidM1088/Composer
 
 (defun make-chord-alternate (lower upper pc)
-  "write a sequence of bass note, chord, bass note, chord"
+  "write a sequence of bass note, chord, bass note, chord
+   > (make-chord-alternate 60 80 '(0 1 3 5 7 8 10)) => 
+     (53 (65 68 75) 60 (65 68 75))"
   (let* ((mychord (make-chord lower upper 3 pc))
          (bass-note (first mychord)))
     (list (- bass-note 12) mychord
           (+ 7 (- bass-note 12)) mychord)))
 
 (defun make-chord-alternate1 (lower upper pc &optional (bass 12))
-  "write a sequence of bass note, chord, bass note, chord"
+  "write a sequence of bass note, chord, bass note, chord
+   > (make-chord-alternate1 60 80 '(0 1 3 5 7 8 10))
+   (51 (63 72 79) 51 (63 72 79))"
   (let* ((mychord (make-chord lower upper 3 pc))
          (bass-note (- (first mychord) bass)))
     (list bass-note mychord
           bass-note mychord)))
 
 (defun make-chord-waltz (lower upper pc &optional (bass 12))
+  "> (make-chord-waltz 60 80 '(0 1 3 5 7 8 10))
+     (48 (60 68 73) (60 68 73))"
   (let* ((mychord (make-chord lower upper 3 pc))
          (bass-note (first mychord)))
     (list (- bass-note bass) mychord mychord)))
 
 (defun make-chord-fade (lower upper pc)
+  "> (make-chord-fade 60 80 '(0 1 3 5 7 8 10))
+     ((60 70 75) (60 70) (75))"
   (let* ((mychord (make-chord lower upper 3 pc)))
     (list mychord (subseq mychord 0 2) (last mychord))))
