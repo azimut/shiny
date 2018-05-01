@@ -782,3 +782,7 @@ e.g. give the above define
      ((60 70 75) (60 70) (75))"
   (let* ((mychord (make-chord lower upper 3 pc)))
     (list mychord (subseq mychord 0 2) (last mychord))))
+
+(defun make-chord-5 (lower upper pc)
+  (let ((mychord (make-chord lower upper 5 pc)))
+    (list (first mychord) (subseq mychord 1 5))))
