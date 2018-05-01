@@ -14,6 +14,7 @@
   (fluidsynth:system-reset *synth*))
 
 ;; ---------------------------------------------------
+
 ;; http://midi.teragonaudio.com/tech/midispec/pressure.htm
 (defun fpress (channel pressure)
   "Set the MIDI channel pressure controllre value.
@@ -34,19 +35,37 @@
   (fluidsynth:pitch-bend *synth* channel bend))
 
 ;; ---------------------------------------------------
-(defun fchorus (&key (nr 3 nr-set)
+
+(defun fchorus-toggle (toggle)
+  (case toggle
+    (0 (fluidsynth:set-chorus-on 0))
+    (1 (fluidsynth:set-chorus-on 1))
+    (t (format nil "set 0 or 1 dummy!"))))
+
+(defun fchorus (&key
+                  (nr        3 nr-set)
                   (level 2.0d0 level-set)
                   (speed 0.3d0 speed-set)
                   (depth 8.0d0 depth-set)
-                  (mode 0 mode-set))
-  (assert (and (<= 0 nr 99) (<= 0d0 level 10d0)
-               (<= 0.29d0 speed 5.0d0) (<= 0.0d0 depth 21.0d0)
+                  (mode      0 mode-set))
+  (assert (and (<= 0 nr 99)
+               (<= 0d0 level 10d0)
+               (<= 0.29d0 speed 5.0d0)
+               (<= 0.0d0 depth 21.0d0)
                (or (= mode 0) (= mode 1))))
   (when (or nr-set level-set speed-set
             depth-set mode-set)
     (fluidsynth:set-chorus *synth*
                            nr level speed
                            depth mode)))
+
+;;--------------------------------------------------
+
+(defun freverb-toggle (toggle)
+  (case toggle
+    (0 (fluidsynth:set-reverb-on *synth* 0))
+    (1 (fluidsynth:set-reverb-on *synth* 1))
+    (t (format nil "set 1 to enable or 0 disable"))))
 
 (defun freverb (&key (roomsize 0.2d0 roomsize-set)
                   (damp 0.0d0 damp-set)
@@ -60,7 +79,19 @@
     (fluidsynth:set-reverb *synth*
                            roomsize damp
                            width level)))
-;; ---------------------------------------------------
+
+;; fluid_synth.c
+(defun freverb-preset (preset)
+  (case preset
+    (1 (freverb :roomsize 0.2d0 :damp 0.0d0 :width 0.5d0 :level 0.9d0))
+    (2 (freverb :roomsize 0.4d0 :damp 0.2d0 :width 0.5d0 :level 0.8d0))
+    (3 (freverb :roomsize 0.6d0 :damp 0.4d0 :width 0.5d0 :level 0.7d0))
+    (4 (freverb :roomsize 0.8d0 :damp 0.7d0 :width 0.5d0 :level 0.6d0))
+    (5 (freverb :roomsize 0.8d0 :damp 1.0d0 :width 0.5d0 :level 0.5d0))
+    (6 (freverb :roomsize 0.6d0 :damp 0.1d0 :width 0.9d0 :level 5d0))
+    (t (format nil "choose a value between 1-6 dummy"))))
+
+;;--------------------------------------------------
 
 (defun fp (channel program &optional (bank 0 bank-set))
   "short-hand to set the fluidsynth channel to program"
@@ -72,7 +103,7 @@
 (defun fg (gain)
   "short-hand to set the gain on fluidsynth"
   (declare (type float gain))
-  (setf (fluidsynth:setting *fluid-settings* "synth.gain")
+  (setf (fluidsynth:setting *settings* "synth.gain")
         gain))
 
 (defun off-with-the-notes (&optional (max-channels 50))
@@ -150,68 +181,112 @@
         (callback (+ time duration) #'fluidsynth:noteoff
                   *synth* channel n)))))
 
-(defgeneric pa (time notes offset velocity channel &key dur)
-  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel integer)
-            &key (dur offset))
-    "Play arpeggio, with a constant offset and velocity"
+;; --------------------------------------------------
+
+(defgeneric pa (time notes offset velocity channel duration)
+  (:documentation "Play the given notes as an arpeggio")
+  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel integer) (duration number))
     (let* ((lnotes  (length notes))
            (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
-      (mapcar (lambda (x y) (p (+ time y) x velocity dur channel))
+      (mapcar (lambda (n o) (p (+ time o) n velocity duration channel))
               notes
               offsets)))
-  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel list)
-            &key (dur offset))
-    "Play arpeggio, with a constant offset and velocity"
+  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel list) (duration number))
     (let* ((lnotes  (length notes))
            (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
-      (mapcar (lambda (x y z) (p (+ time y) x velocity dur z))
+      (mapcar (lambda (n o c) (p (+ time o) n velocity duration c))
               notes
               offsets
               channel)))
-  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel integer)
-            &key (dur offset))
-    "Play arpeggio, with a constant offset and provided velocities"
+  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel integer) (duration number))
     (let* ((lnotes  (length notes))
            (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
-      (mapcar (lambda (x y z) (p (+ time y) x z dur channel))
+      (mapcar (lambda (n o v) (p (+ time o) n v duration channel))
               notes
               offsets
               velocity)))
-  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel list)
-            &key (dur offset))
-    "Play arpeggio, with a constant offset and provided velocities"
+  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel list) (duration number))
     (let* ((lnotes  (length notes))
            (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
-      (mapcar (lambda (x y z a) (p (+ time y) x z dur a))
+      (mapcar (lambda (n o v c) (p (+ time o) n v duration c))
               notes
               offsets
               velocity
               channel)))
-  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel integer)
-            &key (dur 1))
-    "Play arpeggio, with provided offsets and constant velocity"
-    (mapcar (lambda (x y) (p (+ time y) x velocity dur channel))
+  
+  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel integer) (duration list))
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (n o d) (p (+ time o) n velocity d channel))
+              notes
+              offsets
+              duration)))
+  (:method ((time double-float) (notes list) (offset number) (velocity integer) (channel list) (duration list))
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (n o c d) (p (+ time o) n velocity d c))
+              notes
+              offsets
+              channel
+              duration)))
+  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel integer) (duration list))
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (n o v d) (p (+ time o) n v d channel))
+              notes
+              offsets
+              velocity
+              duration)))
+  (:method ((time double-float) (notes list) (offset number) (velocity list) (channel list) (duration list))
+    (let* ((lnotes  (length notes))
+           (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+      (mapcar (lambda (n o v c d) (p (+ time o) n v d c))
+              notes
+              offsets
+              velocity
+              channel
+              duration)))
+  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel integer) (duration number))
+    (mapcar (lambda (n o) (p (+ time o) n velocity duration channel))
             notes
             offset))
-  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel list)
-            &key (dur 1))
-    "Play arpeggio, with provided offsets and constant velocity"
-    (mapcar (lambda (x y z) (p (+ time y) x velocity dur z))
+  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel list) (duration number))
+    (mapcar (lambda (n o c) (p (+ time o) n velocity duration c))
             notes
             offset
             channel))
-  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel integer)
-            &key (dur 1))
-    "Play arpeggio, with provided offsets and velocities"
-    (mapcar (lambda (x y z) (p (+ time y) x z dur channel))
+  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel integer) (duration number))
+    (mapcar (lambda (n o v) (p (+ time o) n v duration channel))
             notes
             offset
             velocity))
-  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel list)
-            &key (dur 1))
-    "Play arpeggio, with provided offsets and velocities"
-    (mapcar (lambda (x y z a) (p (+ time y) x z dur a))
+  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel list) (duration number))
+    (mapcar (lambda (n o v c) (p (+ time o) n v duration c))
             notes
             offset
             velocity
-            channel)))
+            channel))
+  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel integer) (duration list))
+    (mapcar (lambda (n o d) (p (+ time o) n velocity d channel))
+            notes
+            offset
+            duration))
+  (:method ((time double-float) (notes list) (offset list) (velocity integer) (channel list) (duration list))
+    (mapcar (lambda (n o c d) (p (+ time o) n velocity d c))
+            notes
+            offset
+            channel
+            duration))
+  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel integer) (duration list))
+    (mapcar (lambda (n o v d) (p (+ time o) n v d channel))
+            notes
+            offset
+            velocity
+            duration))
+  (:method ((time double-float) (notes list) (offset list) (velocity list) (channel list) (duration list))
+    (mapcar (lambda (n o v c d) (p (+ time o) n v d c))
+            notes
+            offset
+            velocity
+            channel
+            duration)))
