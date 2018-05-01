@@ -4,12 +4,6 @@
 ;; https://www.youtube.com/watch?v=Ql_dEdMEjl4
 ;; https://musescore.com/skyfox125/scores/3871256
 
-;; Incudine like macro, using callback instead (less clutter)
-(defmacro aat (time function &rest arguments)
-  (let ((it (intern "IT")))
-    `(let ((,it ,time))
-       (callback ,it ,function ,@arguments))))
-
 (let ((o (new cycle :of '(1.5 1.25 1 1.25))))
   (defun f (time)
      (let ((offset (next o))
@@ -43,17 +37,3 @@
 (pa (now) '(60 62 64) .5 60 0)
 
 (off-with-the-notes)
-
-
-(buffer-read "/home/sendai/Downloads/lluvia.wav")
-
-(defsynth :sample ((bufnum 0) (rate 1) (start 0) (amp .5) (out 0))
-  (let ((sig (play-buf.ar 2 bufnum (* rate (buf-rate-scale.ir bufnum))
-                          :start-pos (* start (buf-frames.ir bufnum))
-                          :act :free
-                          :loop 1)))
-    (out.ar out (* amp sig))))
-
-(defparameter *some* (synth 'sample :bufnum 0))
-(ctrl *some* :rate .5)
-(free *some*)
