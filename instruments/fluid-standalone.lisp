@@ -90,6 +90,12 @@
 (defvar *audio-driver* (fluidsynth:new-audio-driver *settings* *synth*))
 (defvar *player* (fluidsynth:new-player *synth*))
 
+;; Incudine like macro, using callback instead (less clutter)
+(defmacro aat (time function &rest arguments)
+  (let ((it (intern "IT")))
+    `(let ((,it ,time))
+       (callback ,it ,function ,@arguments))))
+
 ;;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GS.sf2" 1)
 ;;(fluidsynth:sfload *synth* "/home/sendai/samples/Touhou.sf2" 1)
 ;;(fluidsynth:delete *synth*)
