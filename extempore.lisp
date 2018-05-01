@@ -346,13 +346,47 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
    - the second argument is the \"amplitude\" of the oscillation
    - the third argument is the \"period\" of the oscillation. 
    Ex: (cosr 5 3 1/2)"
-  (+ centre
-     (* amplitude
-        (cos (* TWOPI (float (/ (get-internal-real-time) 36000)) period)))))
+  (let ((beat (float (/ (get-internal-real-time) 36000) 1f0)))
+    (+ centre
+       (* amplitude
+          (cos (* TWOPI
+                  beat
+                  period))))))
         ;;(cos (* TWOPI (now) period)))))
 
-(defun rcosr (centre amplitude period)
-  (round (cosr centre amplitude period)))
+(defmacro rcosr (centre amplitude period)
+  `(round (cosr ,centre ,amplitude ,period)))
+
+(defmacro qcosr (pc center amplitude period)
+  `(pc-quantize (cosr ,center ,amplitude ,period) ,pc))
+
+(defun sinr (centre amplitude period)
+  (let ((beat (float (/ (get-internal-real-time) 36000) 1f0)))
+    (+ centre
+       (* amplitude
+          (sin (* TWOPI
+                  beat
+                  period))))))
+
+(defmacro rsinr (centre amplitude period)
+  `(round (sinr ,centre ,amplitude ,period)))
+
+(defmacro qsinr (pc centre amplitude period)
+  `(pc-quantize (sinr ,centre ,amplitude ,period) ,pc))
+
+(defun tanr (centre period amplitude)
+  (let ((beat (float (/ (get-internal-real-time) 36000) 1f0)))
+    (+ centre
+       (* amplitude
+          (tan (* TWOPI
+                  beat
+                  period))))))
+
+(defmacro rtanr (centre period amplitude)
+  `(round (tanr ,centre ,period ,amplitude)))
+
+(defmacro qtanr (pc centre period amplitude)
+  `(pc-quantize (tanr ,centre ,period ,amplitude) ,pc))
 
 (defun ispitch (pitch pc)
   "A predicate for calculating if pitch is in pc
@@ -422,12 +456,6 @@ retuns true or false"
   (scale (mod (+ (cadr (assoc type *pc-chord->scale*)) root) 12)
          (cddr (assoc type *pc-chord->scale*))))
 
-;; ;; cosr with pc
-;; (define-macro (qcosr pc . args)
-;;   `(pc:quantize (cosr ,@args) ,pc))
-
-(defun qcosr (pc center amplitude period)
-  (pc-quantize (cosr center amplitude period) pc))
 
 (defun scale (root type)
   "scheme<7099> (pc:scale 0 'aeolian)
@@ -725,11 +753,11 @@ e.g. give the above define
     (list (- bass-note 12) mychord
           (+ 7 (- bass-note 12)) mychord)))
 
-(defun make-chord-alternate1 (lower upper pc &optional (bass 12))
+(defun make-chord-alternate1 (lower upper pc &optional (bass 12) (nr 3))
   "write a sequence of bass note, chord, bass note, chord
    > (make-chord-alternate1 60 80 '(0 1 3 5 7 8 10))
    (51 (63 72 79) 51 (63 72 79))"
-  (let* ((mychord (make-chord lower upper 3 pc))
+  (let* ((mychord (make-chord lower upper nr pc))
          (bass-note (- (first mychord) bass)))
     (list bass-note mychord
           bass-note mychord)))
@@ -740,6 +768,14 @@ e.g. give the above define
   (let* ((mychord (make-chord lower upper 3 pc))
          (bass-note (first mychord)))
     (list (- bass-note bass) mychord mychord)))
+
+(defun make-chord-waltz1 (lower upper pc &optional (bass 12) (nr 3))
+  "> (make-chord-waltz 60 80 '(0 1 3 5 7 8 10))
+     (48 (60 68 73) (60 68 73))"
+  (let* ((mychord (make-chord lower upper nr pc))
+         (bass-note (first mychord)))
+    (list (- bass-note bass) mychord)))
+
 
 (defun make-chord-fade (lower upper pc)
   "> (make-chord-fade 60 80 '(0 1 3 5 7 8 10))
