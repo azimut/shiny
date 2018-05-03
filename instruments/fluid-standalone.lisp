@@ -38,8 +38,8 @@
 
 (defun fchorus-toggle (toggle)
   (case toggle
-    (0 (fluidsynth:set-chorus-on 0))
-    (1 (fluidsynth:set-chorus-on 1))
+    (0 (fluidsynth:set-chorus-on *synth* 0))
+    (1 (fluidsynth:set-chorus-on *synth* 1))
     (t (format nil "set 0 or 1 dummy!"))))
 
 (defun fchorus (&key
@@ -88,7 +88,7 @@
     (3 (freverb :roomsize 0.6d0 :damp 0.4d0 :width 0.5d0 :level 0.7d0))
     (4 (freverb :roomsize 0.8d0 :damp 0.7d0 :width 0.5d0 :level 0.6d0))
     (5 (freverb :roomsize 0.8d0 :damp 1.0d0 :width 0.5d0 :level 0.5d0))
-    (6 (freverb :roomsize 0.6d0 :damp 0.1d0 :width 0.9d0 :level 5d0))
+    (6 (freverb :roomsize 0.6d0 :damp 0.1d0 :width 0.9d0 :level 1d0))
     (t (format nil "choose a value between 1-6 dummy"))))
 
 ;;--------------------------------------------------
@@ -127,8 +127,16 @@
     `(let ((,it ,time))
        (callback ,it ,function ,@arguments))))
 
+(defun try-sounds (time chan sf &optional (beats 8))
+  "iterate over soundfonts to test sounds"
+  (print sf)
+  (fluidsynth:program-change *synth* chan (mod sf 100))
+  (aat (+ time beats) #'try-sounds it chan (1+ sf) beats))
+
+
 ;;(fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GS.sf2" 1)
 ;;(fluidsynth:sfload *synth* "/home/sendai/samples/Touhou.sf2" 1)
+(fluidsynth:sfload *synth* "/home/sendai/Touhou.sf2.sf2" 1)
 ;;(fluidsynth:delete *synth*)
 
 #|
@@ -145,36 +153,42 @@
 |#
 
 (defgeneric p (time pitch velocity duration channel)
-  (:method ((time double-float) (pitch list) velocity duration channel)
+  (:method ((time double-float) (pitch list) (velocity integer) (duration number) (channel integer))
     "Play chord of notes"
     (mapcar (lambda (x) (p time x velocity duration channel))
             pitch))
-  (:method ((time double-float) (pitch list) velocity duration (channel list))
+  (:method ((time double-float) (pitch list) (velocity integer) (duration number) (channel list))
     "Play chord of notes, on provided channels"
     (mapcar (lambda (x y) (p time x velocity duration y))
             pitch
             channel))
   (:method ((time double-float) (pitch integer) (velocity integer) (duration number) (channel integer))
-    "Play given numerical pitch"
-    (callback time #'fluidsynth:noteon *synth* channel pitch velocity)
-    (callback (+ time duration) #'fluidsynth:noteoff *synth* channel pitch))
-  (:method ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer))
-    "Play given numerial pitch, at CM rythm"
-    (let ((d (cm:rhythm duration)))
+    "Play given pitch"
+    (when (and (> pitch 0)
+               (< pitch 127)
+               (> duration 0))
       (callback time #'fluidsynth:noteon *synth* channel pitch velocity)
-      (callback (+ time d) #'fluidsynth:noteoff *synth* channel pitch)))
+      (callback (+ time duration) #'fluidsynth:noteoff *synth* channel pitch)))
+  (:method ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer))
+    "Play given pitch, at CM rythm"
+    (let ((d (cm:rhythm duration)))
+      (when (> d 0)
+        (callback time #'fluidsynth:noteon *synth* channel pitch velocity)
+        (callback (+ time d) #'fluidsynth:noteoff *synth* channel pitch))))
   (:method ((time double-float) (pitch symbol) (velocity integer) (duration symbol) (channel integer))
-    "Play given note, at CM rhythm"
+    "Play given note on american notation, at CM rhythm"
     (unless (eql :_ pitch)
       (let ((n (note pitch))
             (d (cm:rhythm duration)))
-        (callback time #'fluidsynth:noteon
-            *synth* channel n velocity)
-        (callback (+ time d) #'fluidsynth:noteoff
-                  *synth* channel n))))
+        (when (> d 0)
+          (callback time #'fluidsynth:noteon
+                    *synth* channel n velocity)
+          (callback (+ time d) #'fluidsynth:noteoff
+                    *synth* channel n)))))
   (:method ((time double-float) (pitch symbol) (velocity integer) (duration number) (channel integer))
-    "Play given note"
-    (unless (eql :_ pitch)
+    "Play given note on american notation"
+    (when (and (> duration 0)
+               (not (eql :_ pitch)))
       (let ((n (note pitch)))
         (callback time #'fluidsynth:noteon
                   *synth* channel n velocity)
