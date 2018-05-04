@@ -1,10 +1,16 @@
 (in-package :somecepl)
 
+(defun mynow ()
+  ;; Just some number that increases over time that we use
+  ;; in a bunch of places
+  (/ (get-internal-real-time)
+     1000f0))
+
 (defvar *gpu-verts-arr* nil)
 (defvar *gpu-index-arr* nil)
 (defvar *vert-stream* nil)
 ;; --------------------------------------------------
-(defvar *cube-stream* nil)
+;;(defvar *cube-stream* nil)
 (defvar *cam-pos* (v! 0 0 0))
 (defvar *scott-tex* nil)
 ;; --------------------------------------------------
@@ -26,13 +32,27 @@
                (resolution :vec2)
                (sam :sampler-2d)
                (cam-pos :vec3))
-  (let* ((color (texture sam
-                         (v! (+ (* (mod time 8)
-                                   .125)
-                                (/ (x uv)
-                                   8))
-                             (/ (* -1 (y uv))
-                                2)))))
+  ;; 8 = width size
+  ;; time ...mod does not matter...
+  ;; .125 = 1/8
+  ;; -1 ...flip vertically
+  ;; /2 ... pick one row of the two
+  (let* ((frames 8)
+         (rows 2)
+         (time (* 15 time))
+         (mtime (floor (mod time frames)))
+         (vx (+ (* (* -1 mtime)
+                   .125)
+                (/ (x uv)
+                   frames)))
+         (vy (/ (* -1 (y uv))
+                rows))
+;;         (vx (* (cos time) vx))
+;;         (vy (* (cos time) vy))
+         ;;; wibble
+         (color (texture sam
+                         (v! vx
+                             vy))))
     color))
 ;; --------------------------------------------------
 (defpipeline-g mario ()
