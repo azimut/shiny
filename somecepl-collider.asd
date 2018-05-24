@@ -2,13 +2,14 @@
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
   :license "Specify license here"
+  :serial t
   :depends-on (
                ;; ???
                #:swank
                ;; collider
                #:sc
                ;; midi-constrol
-               #:local-time
+;;               #:local-time
                #:cl-alsaseq
                ;; fluid
                #:fluidsynth
@@ -18,7 +19,6 @@
                ;; needed on extempore.lisp
                #:cl-ppcre
                )
-  :serial t
   :components ((:file "collider/package")
                (:file "musicutils")
                (:file "nudruz")

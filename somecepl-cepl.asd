@@ -1,6 +1,4 @@
-(in-package :asdf-user)
-
-(defsystem "somecepl-cepl"
+(asdf:defsystem "somecepl-cepl"
   :author "someone"
   :description "+ cepl"
   :license "GNU"
