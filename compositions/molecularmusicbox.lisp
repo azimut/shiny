@@ -21,29 +21,22 @@
 ;; https://github.com/igorski/molecular-music-generator
 ;; --------------------------------------------------------------------
 
-(defvar *metro* nil)
-(setf *metro* (make-metro 90))
-
 (defvar *mtempos* nil)
 (setf *mtempos* nil)
-(setf (bpm *tempo*) 120)
-
-(setf (fluidsynth:setting *fluid-settings* "synth.gain") 2.)
 
 ;; Specially needed the first "off" on ptterns
 ;; might be a reason to drop midi :S
 (defun play-midi-note-loop (time pitch velocity dur c)
 ;;     (at (- time #[2 b]) #'fluidsynth:noteoff *synth* c pitch)
      (fluidsynth:noteoff *synth* c pitch)
-     (at time #'fluidsynth:noteon *synth* c pitch velocity)
-     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
+     (callback time #'fluidsynth:noteon *synth* c pitch velocity)
+     (callback (+ time dur) #'fluidsynth:noteoff *synth* c pitch))
 
 
 (defun play-midi-note (time pitch velocity dur c)
 ;;     (at (- time 10) #'fluidsynth:noteoff *synth* c pitch)
-     (at time #'fluidsynth:noteon *synth* c pitch velocity)
-     (at (+ time #[dur b]) #'fluidsynth:noteoff *synth* c pitch))
-
+     (callback time #'fluidsynth:noteon *synth* c pitch velocity)
+     (callback (+ time dur) #'fluidsynth:noteoff *synth* c pitch))
 
 (defun spattern (time notes pattern lengths r)
   "Repeats the given pattern infinitly. You might want to comment the push to *mtempos* once the pattern are all done. Also you can play around by adding a probabily to NOT play the pattern. Instead of just fade away.
@@ -57,7 +50,7 @@ R is the midi channel used."
   (print r)
   (print pattern)
   (let* ((lpattern   (length pattern))
-         (t-lpattern (+ time #[(/ lpattern 2) b]))
+         (t-lpattern (+ time (/ lpattern 2)))
          (pbeat      (remove nil
                              (loop
                                 :for beat :in pattern
@@ -67,12 +60,12 @@ R is the midi channel used."
     ;; Take the list of beats where a note is played
     ;; pbeat '(0 4 8 32) and schedule it
     (loop :for cbeat :in pbeat :do
-       (let ((note   (cm:next notes))
-             (length (cm:next lengths)))
+       (let ((note   (next notes))
+             (length (next lengths)))
          (push cbeat *mtempos*)
          (if (= cbeat 0)
              (play-midi-note-loop time note 25 length r)
-             (play-midi-note-loop (+ time #[(/ cbeat 2) b]) note 25 length r))))
+             (play-midi-note-loop (+ time (/ cbeat 2)) note 25 length r))))
     (aat t-lpattern #'spattern it notes pattern lengths r)))
 
 ;; I need to use (mod) to get the next beat where there is a note
@@ -91,7 +84,7 @@ R is the midi channel used."
             (nibeat  (+  1 ibeat))
             (nchan   (if (= 9 (+ 1 chan)) (+ 2 chan) (+ 1 chan)))
             (npchan  (mod (+ pchan 1) 2))
-            (t-nbeat (+ time #[.5 b]))
+            (t-nbeat (+ time .5))
             (note    (first notes)))
         ;; play now
         (if (or (eq play 'yes)
@@ -111,9 +104,9 @@ R is the midi channel used."
             (progn
               (print "endpattern")
               (aat t-nbeat #'spattern it
-                   (cm:new cm:cycle :of (reverse accumnotes))
+                   (new cycle :of (reverse accumnotes))
                    (reverse accumbeats)
-                   (cm:new cm:cycle :of (reverse accumlengths))
+                   (new cycle :of (reverse accumlengths))
                    chan)
               ;; This works to match agains the prev NOT the global
               (if (and (= 1 (first accumbeats))
@@ -161,17 +154,16 @@ R is the midi channel used."
     (ppattern time lpattern notes length1 length2 :play 'yes)))
 
 #|
-
 (mbox (funcall *metro* (funcall *metro* 'get-beat 4))
       32 :E 4 3 -7 7 (scale 1 'dorian))
  
 (mbox (tempo-sync #[1 b]) 32 :C 9 14.5 -14 14 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :G 10 3.5 -14 14 (scale 0 'dorian))
-
 (mbox (tempo-sync #[1 b]) 32 :C 8 14.5 -7 14 (scale 0 'dorian))
 (mbox (tempo-sync #[1 b]) 32 :D 9 1.5 -14 14 (scale 0 'dorian))
-
 (mbox (tempo-sync #[1 b]) 32 :C 7 3 -7 14 (scale 0 'aeolian))
+
+(mbox (quant 4) 32 :C 7 3 -7 14 (scale 0 'ryukyu))
 
 |#
 
