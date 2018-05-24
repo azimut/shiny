@@ -634,20 +634,20 @@ you can call the metro with the following symbols
     (lambda (sym &rest args)
       (cond ((numberp sym)
              (+ (funcall samp-env sym) loffset))
-            ((equal sym 'get-mark)
+            ((eq sym 'get-mark)
              (cons mark total-beats))
-            ((equal sym 'get-time)
+            ((eq sym 'get-time)
              (+ (funcall samp-env (car args)) loffset))
-            ((equal sym 'get-cycle) cycle)
-            ((equal sym 'get-cycle-mark) cycle-beats)
-            ((equal sym 'set-cycle)
+            ((eq sym 'get-cycle) cycle)
+            ((eq sym 'get-cycle-mark) cycle-beats)
+            ((eq sym 'set-cycle)
              (setf cycle-beats (cadr args))
              (setf cycle (car args)))
-            ((equal sym 'pos)
+            ((eq sym 'pos)
              (mod (- (car args) cycle-beats) cycle))
-            ((equal sym 'beat-at-time)
+            ((eq sym 'beat-at-time)
              (funcall beat-env (car args))) ;; FIXME
-            ((equal sym 'set-tempo)
+            ((eq sym 'set-tempo)
              (let ((time (if (null (cdr args)) (round (now)) (cadr args))))
                (if (or (null (cdr args))
                        (null (cddr args)))
@@ -666,11 +666,11 @@ you can call the metro with the following symbols
                                        (+ mark (* g-tempo *sample-rate*))
                                        (+ total-beats 1)))
                (car args)))
-            ((equal sym 'get-tempo) (* (/ 1 g-tempo) 60))
-            ((equal sym 'dur) (* *sample-rate* g-tempo (car args)))
-            ((equal sym 'push) (setf loffset (+ loffset 256)))
-            ((equal sym 'pull) (setf loffset (- loffset 256)))
-            ((equal sym 'get-beat)
+            ((eq sym 'get-tempo) (* (/ 1 g-tempo) 60))
+            ((eq sym 'dur) (* *sample-rate* g-tempo (car args)))
+            ((eq sym 'push) (setf loffset (+ loffset 256)))
+            ((eq sym 'pull) (setf loffset (- loffset 256)))
+            ((eq sym 'get-beat)
              (let ((val (+ total-beats
                            (/ (- (round (now)) mark)
                               (* *sample-rate* g-tempo))))
@@ -762,6 +762,8 @@ e.g. give the above define
     (list bass-note mychord
           bass-note mychord)))
 
+;; --------------------------------------------------
+
 (defun make-chord-waltz (lower upper pc &optional (bass 12))
   "> (make-chord-waltz 60 80 '(0 1 3 5 7 8 10))
      (48 (60 68 73) (60 68 73))"
@@ -770,19 +772,56 @@ e.g. give the above define
     (list (- bass-note bass) mychord mychord)))
 
 (defun make-chord-waltz1 (lower upper pc &optional (bass 12) (nr 3))
-  "> (make-chord-waltz 60 80 '(0 1 3 5 7 8 10))
-     (48 (60 68 73) (60 68 73))"
+  "> (make-chord-waltz1 60 80 '(0 1 3 5 7 8 10))
+     (48 (60 68 73))"
   (let* ((mychord (make-chord lower upper nr pc))
          (bass-note (first mychord)))
     (list (- bass-note bass) mychord)))
 
-
-(defun make-chord-fade (lower upper pc)
-  "> (make-chord-fade 60 80 '(0 1 3 5 7 8 10))
-     ((60 70 75) (60 70) (75))"
-  (let* ((mychord (make-chord lower upper 3 pc)))
-    (list mychord (subseq mychord 0 2) (last mychord))))
-
 (defun make-chord-5 (lower upper pc)
   (let ((mychord (make-chord lower upper 5 pc)))
     (list (first mychord) (subseq mychord 1 5))))
+
+;; --------------------------------------------------
+
+(defun make-chord-fade (lower upper pc
+                        &optional (nr-notes 3) (direction 'u))
+  "> (make-chord-fade 60 80 '(0 1 3 5 7 8 10))
+     ((60 70 75) (60 70) (75))"
+  (let ((mychord (make-chord lower upper nr-notes pc)))
+    (case direction
+      (u (loop :for c :from nr-notes :downto 1
+            :collect (subseq mychord 0 c)))
+      (d (loop :for c :from 0 :to (1- nr-notes)
+            :collect (subseq mychord c nr-notes))))))
+
+(defun make-chord-appear (lower upper pc
+                          &optional (nr-notes 3) (direction 'u))
+  (let ((mychord (make-chord lower upper nr-notes pc)))
+    (loop :for c :from 1 :upto nr-notes
+       :collect (subseq mychord 0 c))))
+
+;; --------------------------------------------------
+;; igorii/GeneticSonata
+;; --------------------------------------------------
+(defvar scale-triads
+  '((-13 . d) (-12 . ^) (-10 . m) (-8 . m) (-7 . ^) (-5 . ^) (-3 . m) (-1 . d)
+     (0  . ^) (2 . m) (4 . m) (5 . ^) (7 . ^) (9 . m) (11 . d) (12 . ^) (14 . m)))
+(defun make-major-chord (root)
+  (list root (+ root 4) (+ root 7)))
+(defun make-minor-chord (root)
+  (list root (+ root 3) (+ root 7)))
+(defun make-augmented-chord (root)
+  (list root (+ root 4) (+ root 8)))
+(defun make-diminished-chord (root)
+  (list root (+ root 3) (+ root 6)))
+
+;; ??
+(defun make-chord-sym (root)
+  (let ((r (cdr (assoc (- (+ root 12) 60) scale-triads))))
+    (case r
+      (^ (make-major-chord root))
+      (m (make-minor-chord root))
+      (a (make-augmented-chord root))
+      (d (make-diminished-chord root))
+      (t (format nil "wrong!")))))
