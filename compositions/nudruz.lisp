@@ -4,6 +4,8 @@
 (fluidsynth:program-change *synth* 1 40)
 (fluidsynth:program-change *synth* 1 74)
 
+(all-piano 1)
+
 ;; expwarp test
 ;; Try:
 ;; - Modify the dur and aat
@@ -15,7 +17,8 @@
                     (expwarp x n))))
   (let ((chord (car chords)))
     (dolist (k chord)
-      (play-midi-note time k (rcosr 40 10 3/4) (random-elt #(2 1.5 3)) 1))
-    (aat (+ time #[4 b]) #'ew it (cdr chords))))
+      (p time k (rcosr 40 10 3/4) 2 1))
+    (aat (+ time 2) #'ew it (cdr chords))))
 
-(ew (now))
+(ew (quant 4))
+(defun ew ())

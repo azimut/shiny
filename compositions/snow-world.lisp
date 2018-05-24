@@ -13,12 +13,6 @@
 (fp 3 20 0)
 (fp 4 20 0)
 
-
-
-(fp 0 80)
-(fp 10 80)
-(fp 20 80)
-
 (fp 22 0)
 
 (defparameter *triggered* (trigger-once))
@@ -32,7 +26,7 @@
          )
     (when (zmodt 1)
      ;; (p time bass 50 1 22)
-     ;; (pa time c .333 '(60 50 50 50) '(0 10 20 10) .1)
+      (pa time c .333 '(60 50 50 50) '(0 10 20 10) (pick .4 .4 .1 .3 .5))
       )
     )
   (let ((c (+ 1 (random 4))))
@@ -48,4 +42,3 @@
 
 (ff (quant 4))
 (defun ff ())
-

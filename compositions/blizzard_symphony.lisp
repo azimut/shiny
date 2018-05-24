@@ -76,7 +76,7 @@
         (p time (qcosr *phrygian* 65 10 1/2) 40 (pick 1 3/4) inst))))
   ;;(when (odds .1)
   ;;  (fluidsynth:program-change *synth* (1+ (random 5)) (random 100)))
-  (aat (+ time #[1 b]) #'live-perc-sequencer it (1+ beat)))
+  (aat (+ time 1) #'live-perc-sequencer it (1+ beat)))
 
 (live-perc-sequencer (now))
 

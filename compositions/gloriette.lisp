@@ -36,7 +36,7 @@
      vel
      (* dur (- mul 3) )
      chan))
-  (aat (tempo-sync #[(* mul dur) b]) #'bird it offset vel chan p q i w)))
+  (aat (tempo-sync #[(* mul dur) b]) #'bird it offset vel chan p q i w))
 
 (defun cage (offset vel chan)
   (let* ((d (cm:pval *c0*))

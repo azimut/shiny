@@ -1,7 +1,12 @@
+(in-package :sc)
+
+(setf *s* (sc:make-external-server "localhost" :port 4444))
+(sc:server-boot *s*)
+(sc:server-quit *s*)
+
 (in-package :somecepl)
 
-(setf *s* (make-external-server "localhost" :port 4444))
-(server-boot *s*)
+(defparameter *synth* (play (sin-osc.ar 300 0 .2)))
 
 (defsynth rhodey ((freq 440) (out 0) (gate 1) (pan 0) (amp 0.1)
                   (vel .8) (mod-index .2) (mix .2)

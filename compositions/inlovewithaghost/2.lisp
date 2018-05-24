@@ -81,4 +81,5 @@
            ,nbeats ,velocity ,channel ,nbeats))))
 
 ;; ?
-(drumthis (quant 4) 60 '(1/4 2/4 5/8 3/4) 60 3)
+(fp 7 115)
+(drumthis (quant 4) 60 '(1/4 2/4 5/8 3/4) 20 7)

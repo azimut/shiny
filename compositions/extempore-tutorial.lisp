@@ -339,8 +339,9 @@
        (cm:pick 1/3 1/2 1/4) ))
   
 (drum-loop (now) 1/4)
+
 (defvar *metro* nil)
-(setf *metro* (make-metro 60))
+(setf *metro* (make-metro 120))
 
 ;; (funcall *metro* 'get-beat 4)
 ;; 88 -- BEAT
@@ -351,27 +352,30 @@
 ;; (funcall *metro* 'dur 1)
 ;; 57600 -- N SAMPLES
 (defun drum-loop (time duration pitch pc)
-  (play-midi-note (funcall *metro* time)
-                  (round (qcosr pc pitch 5 .9))
-                  40
-                  (funcall *metro* 'dur duration)
-                  1)
+  (p (funcall *metro* time)
+     (round (qcosr pc pitch 5 .9))
+     40
+     (funcall *metro* 'dur duration)
+     1)
   (aat (funcall *metro* (+ time duration)) #'drum-loop
        (+ time duration)
        duration
        pitch
        pc))
 
+(p (quant 4) 60 60 1 1)
+(defun drum-loop ())
 (drum-loop (funcall *metro* 'get-beat 4) 1   40 '(0 4 7)) 
 (drum-loop (funcall *metro* 'get-beat 4) .75 50 '(0 4 7 9))
 
 (defun tempo-shift (time)
-  (funcall *defmash* 'set-tempo (+ 60 (* 40 (cos (* .25 3.141592 time)))))
-  (aat (funcall *defmash* (+ time .25)) #'tempo-shift (+ time .25)))
+  (funcall *metro* 'set-tempo (+ 60 (* 40 (cos (* .25 3.141592 time)))))
+;;  (aat (funcall *metro* (+ time .25)) #'tempo-shift (+ time .25))
+  )
 
-(tempo-shift (funcall *defmash* 'get-beat 1.0))
+(tempo-shift (funcall *metro* 'get-beat 1.0))
 
-(funcall *metro* 'set-tempo 40)
+(funcall *metro* 'set-tempo 100)
 
 ;; --
 
@@ -380,8 +384,9 @@
 
 (defun metre-test (time)
   (if (funcall *metre* time 1.0)
-      (play-midi-note (funcall *metro* time) 60 30 .4 5))
-  (aat (funcall *metro* (+ time .5)) #'metre-test (+ time .5) ))
+      (p (funcall *metro* time) 60 30 .4 5))
+;;  (aat (funcall *metro* (+ time .5)) #'metre-test (+ time .5) )
+  )
 
 (metre-test (funcall *metro* 'get-beat 1.0))
 
@@ -392,11 +397,12 @@
 (setf *metre1* (make-metre '(3) .5)) ;; 3/8
 (setf *metre2* (make-metre '(2) .5)) ;; 2/8
 
+(defun metre-test ())
 (defun metre-test (time)
   (if (funcall *metre1* time 1.0)
-      (play-midi-note (funcall *metro* time) 50 30 1 1))
+      (p (funcall *metro* time) 50 30 1 1))
   (if (funcall *metre2* time 1.0)
-      (play-midi-note (funcall *metro* time) 60 35 1 2))
+      (p (funcall *metro* time) 60 35 1 2))
   (at (funcall *metro* (+ time .5)) #'metre-test (+ time .5)))
 
 (metre-test (funcall *metro* 'get-beat 1.0))
@@ -405,18 +411,19 @@
 (setf *metre2* (make-metre '(3 5 7 5 3) .5))
 
 (defvar *p1* nil)
-(setf *p1* (cm:new cm:weighting :of `((,*gm-closed-hi-hat* :weight .8) (,*gm-open-hi-hat* :weight .2))))
+(setf *p1* (cm:new cm:weighting :of '((70 :weight .8) (60 :weight .2))))
 
 
 (defun metre-test (time)
-  (play-midi-note (funcall *metro* time) (cm:next *p1*) 30 1 1)
+  (p (funcall *metro* time) (cm:next *p1*) 30 1 3)
   (if (funcall *metre1* time 1.0)
-      (play-midi-note (funcall *metro* time) 53 40 1 2))
-  (if (funcall *metre2* time 1.0)
-      (play-midi-note (funcall *metro* time) 70 30 1 3))
-  (at (funcall *metro* (+ time .25)) #'metre-test (+ time .25) ))
+      (p (funcall *metro* time) 53 40 1 2))
+  (if (funcall *metre2* time 2.0)
+      (p (funcall *metro* time) 70 30 1 2))
+;;  (aat (funcall *metro* (+ time .25)) #'metre-test (+ time .25) )
+  )
 
-(metre-test (funcall *metro* 'get-beat 1.0))
+(metre-test (funcall *metro* 'get-beat 4))
 
 (defun metre-test (time)
   (play-midi-note (funcall *metro* time)

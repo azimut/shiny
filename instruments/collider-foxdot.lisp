@@ -7,6 +7,7 @@
 (defsynth ambi ((amp 1) (sus 1) (pan 0) (freq 1)
                 (fmod 0) (rate 0) (bus 0))
   (let* (;;(freq (+ fmod (in.kr bus 1)))
+         (freq [freq (+ fmod freq)])
          (freq (+ freq (* (x-line.kr (* freq rate) (+ freq (lf-noise2.ar 4 1 sus)))
                           (sin-osc.ar (+ freq (lf-noise2.ar 4 2)))) ))
          (osc  (sin-osc.ar (+ freq (rand.ir .99 1.01)) (rand.ir 0 2)))
@@ -37,3 +38,6 @@
 
 (defparameter *some* (synth 'soprano :freq 430 :sus 2 :fmod .1 :amp .5 :rate 0))
 (free *some*)
+
+
+

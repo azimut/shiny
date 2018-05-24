@@ -2,17 +2,23 @@
 
 ;; lesson 3 - basic progresssions
 
+(freverb-toggle 1)
+(freverb-preset 3)
+
 ;; I IV V I - familiar
-(let ((i (new cycle :of '(i vi ii v i)))
-      (r (new cycle :of '(2 2 2 2 1.5))))
+(defun f ())
+(let ((i (new cycle :of '(i vi ii v)))
+      (r (new cycle :of '(2  2  2 2))))
   (defun f (time)
     (let ((mychord (make-chord 50 70 3 (pc-diatonic 0 'major (next i))))
           (rr (next r)))
-      (pa time mychord .5 90 1)
+      (pa time mychord .5 90 1 .5)
       (p time mychord 60 rr 4)
-      (aat (+ time #[rr b]) #'f it))))
+      (aat (+ time rr) #'f it))))
 
 (f (now))
+
+(fpitch 1 1000)
 
 ;; harpsichord (esque) on 0
 (fpitch 1 15000)

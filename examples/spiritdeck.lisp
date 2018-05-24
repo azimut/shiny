@@ -129,12 +129,15 @@
 ;;     color += stroke(st.x, .5, .15);
 ;;     gl_FragColor = vec4(color,1.);
 ;; }
-(defun-g draw-verts-frag-stage (&uniform (resolution :vec2))
+(defun-g draw-verts-frag-stage (&uniform (resolution :vec2)
+                                         (step :float)
+                                         (other :float)
+                                         (time :float))
   (let* ((st    (v! (/ (x gl-frag-coord) (x resolution))
                     (/ (y gl-frag-coord) (y resolution))))
-         (color (v! (gstroke (x st) .5 .15)
-                    (gstroke (x st) .5 .15)
-                    (gstroke (x st) .5 .15))))
+         (color (v! (gstroke (x st) step .15)
+                    (gstroke (x st) (sin (+ step time)) .1)
+                    (gstroke (x st) (cos other) .1))))
     (v! color 1.0)
   ))
 
@@ -143,16 +146,22 @@
   :fragment (draw-verts-frag-stage))
 
 (defun now ()
-  (get-internal-real-time))
+  (* .001 (get-internal-real-time)))
 
 (defun draw! ()
    (step-host)
    (setf (resolution (current-viewport))
-         (surface-resolution (current-surface *cepl-context*)))
+         (surface-resolution (current-surface (cepl-context))))
    (clear)
    (map-g #'draw-verts-pipeline *vert-stream*
+          :step (cm:interp *current-note* 30 0.0 90 1.0)
+          :other (cm:interp *other-note* 30  0.0 90 1.0)
+          :time (now)
           :resolution (viewport-resolution (current-viewport)))
    (swap))
+
+(defparameter *current-note* 40)
+(defparameter *other-note* 40)
 
 (defun init ()
 

@@ -15,7 +15,7 @@
           (+ (v2! 0.5) (* vert 0.5))))
 
 (defun-g draw-verts-frag-stage ((uv :vec2) &uniform (resolution :vec2)
-                                                    (time :float)
+                                (time :float)
                                 (sam :sampler-2d)
                                 (offset :vec2))
   (let* ((st    (/ (s~ gl-frag-coord :xy)

@@ -7,22 +7,22 @@
 
 (defvar *metro* nil)
 (setf *metro* (make-metro 90))
-
 (setf (bpm *tempo*) 60)
 
 (defun eu (beat time vel chan r rhythm notes)
   (let ((n-beat (+ beat r))
         (note   (first notes)))
     (when (= (first rhythm) 1)
-      (play-midi-note
+      (p
        time
        note
        (rcosr vel 3 1/2)
        (cosr 1 .6 3/4)
-       chan)
-      (setf notes (alexandria:rotate notes -1)))
+       chan))
     (aat (funcall *metro* n-beat) #'eu
-         n-beat it vel chan r (alexandria:rotate rhythm -1) notes)))
+         n-beat it vel chan r
+         (alexandria:rotate rhythm -1)
+         (alexandria:rotate notes -1))))
 
 (eu (funcall *metro* 'get-beat 4)
     (funcall *metro* (funcall *metro* 'get-beat 4))

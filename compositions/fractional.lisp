@@ -248,23 +248,23 @@
              (map-interpolate (aref x i) min max 0.0 1.0 )))
     output))
 
-(defun compose ()
-  (let ((l-pitches (length *pitches*))
-        (position 0)
-        (pitch 0)
-        (mypitches '()))
-    (set-pitches-based-on-scale-and-octaves)
-    (setf *pitches-noises* (get-fractional-noise-sequence 300))
-    (loop :for i :from 0 :below l-pitches :do
-       (setf position (map-value (aref *pitches-noises* i)
-                                 0 (1- l-pitches))
-             pitch    (aref *pitches-array* position))
-       (when (< pitch min-pitch)
-         (setf pitch min-pitch))
-       (when (> pitch max-pitch)
-         (setf pitch max-pitch))
-       (push pitch mypitches))
-    mypitches))
+;; (defun compose ()
+;;   (let ((l-pitches (length *pitches*))
+;;         (position 0)
+;;         (pitch 0)
+;;         (mypitches '()))
+;;     (set-pitches-based-on-scale-and-octaves)
+;;     (setf *pitches-noises* (get-fractional-noise-sequence 300))
+;;     (loop :for i :from 0 :below l-pitches :do
+;;        (setf position (map-value (aref *pitches-noises* i)
+;;                                  0 (1- l-pitches))
+;;              pitch    (aref *pitches-array* position))
+;;        (when (< pitch min-pitch)
+;;          (setf pitch min-pitch))
+;;        (when (> pitch max-pitch)
+;;          (setf pitch max-pitch))
+;;        (push pitch mypitches))
+;;     mypitches))
 
 (defun compose ()
   (let ((l-pitches (length *pitches*))
@@ -292,28 +292,32 @@
        (push duration mydurations))
     (values mypitches mydurations)))
 
-
+#|
 (fluidsynth:program-change *synth* 1 60)
 (setf (fluidsynth:setting *fluid-settings* "synth.gain") .5)
 
 ;; 46 harp
-(all-piano *synth* 46)
+(all-piano 46)
 
 (defun playthis (time notes)
   (unless notes
     (setf notes (compose)))
-  (play-midi-note time (car notes) 50 2 (random 4))
-  (aat (+ time #[1 b])
-       #'playthis it (cdr notes)))
+  (p time (car notes) 50 1 (random 4))
+;;  (aat (+ time .5) #'playthis it (cdr notes))
+  )
 
 (playthis (now) (compose))
 
+(pa (quant 4) '(76 62 64 55 62 62 69 50 36 48 57 60 50 38 62 62 52 60 69) .5 50 1 .5)
+
 (defun playthis (time notes dur)
-  (play-midi-note time (car notes) 60 (car dur) 1)
-  (aat (+ time #[(car dur) b])
+  (p time (car notes) 60 (car dur) 1)
+  (aat (+ time (car dur))
        #'playthis it (cdr notes) (cdr dur)))
 
 (multiple-value-bind (notes duration)
     (compose) (playthis (now) notes duration))
 
 (flush-pending)
+
+|#

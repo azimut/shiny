@@ -10,5 +10,5 @@
     (out.ar out (* amp sig))))
 
 (defparameter *some* (synth 'sample :bufnum 0))
-(ctrl *some* :rate .5)
+(ctrl *some* :rate .1)
 (free *some*)
