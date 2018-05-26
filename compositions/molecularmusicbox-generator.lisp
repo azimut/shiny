@@ -25,6 +25,12 @@
 (defvar *p* '())
 (defvar *n* nil)
 
+(defun mbox-show ()
+  (loop :for i :in (reverse *p*)
+     :for ii :below 100
+     :do (destructuring-bind (n d c b) i
+           (print (format nil "~5A~10A~10A~10A~A" ii n d c b)))))
+
 (defun spattern ())
 (defun ppattern ())
 
@@ -68,9 +74,9 @@ R is the midi channel used."
         (if (or (eq play 'yes)
                 (= pbeat ibeat))
             (progn
-              (setf notes        (cdr notes)
-                    pbeat        (mod (+ ibeat (* length1 2))
-                                      lpattern))
+              (setf notes   (cdr notes)
+                    pbeat   (mod (+ ibeat (* length1 2))
+                                 lpattern))
               (push note    accumnotes)
               (push 1       accumbeats)
               (push length1 accumlengths))
@@ -79,7 +85,7 @@ R is the midi channel used."
         ;; if not is business as usual and we stick with this pattern
         (if (= lpattern nibeat)
             (progn
-;;              (print "endpattern")
+              (print "endpattern")
               (spattern time
                    (new cycle :of (reverse accumnotes) :repeat 1)
                    (reverse accumbeats)
@@ -101,7 +107,7 @@ R is the midi channel used."
             (if (and (= pbeat (mod nibeat lpattern))
                      (find pbeat *mtempos*))
                 (progn
-;;                  (print "middle swap")
+                  (print "middle swap")
                   (ppattern time lpattern notes length2 length1
                             :accumnotes accumnotes
                             :accumbeats accumbeats
@@ -136,41 +142,164 @@ R is the midi channel used."
 ;;--------------------------------------------------
 
 (mbox 4 32 :C 9 14.5 -14 14 (scale 0 'ryukyu))
+;; V: 1 2 , 3 , 12 13
+(mbox 4 8 :C 3 7 -7 14 (scale 0 'ryukyu))
 
-(mbox 4 32 :C 4 7 -14 14 (scale 0 'ryukyu))
 
-(destructuring-bind (notes durations channel beats) (first (reverse *p*))
-  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 2 (make-cycle beats)))
+(mbox 4 8 :C 3 7 -7 14 (ov-pc-scale :scriabin))
+(mbox 4 8 :C 3 7 -7 14 (ov-pc-scale :hirajoshi))
 
-(destructuring-bind (notes durations channel beats) (second (reverse *p*))
-  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 3 (make-cycle beats)))
 
-(destructuring-bind (notes durations channel beats) (nth 5 (reverse *p*))
-  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 4 (make-cycle beats)))
+(all-piano 4)
 
-(destructuring-bind (notes durations channel beats) (nth 6 (reverse *p*))
-  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 5 (make-cycle beats)))
+(fg .3)
 
-(destructuring-bind (notes durations channel beats) (nth 4 (reverse *p*))
-  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 6 (make-cycle beats)))
+(fpitch 10 10000)
+(fpitch 11 5000)
+
+(mplay-1)
+(mplay-2)
+(mplay-0)
+
+(mbox-play 0 40  .2 .1 1)
+(mbox-play 1 40  .2 .2 1)
+(mbox-play 2 40  .2 .2 1)
+(mbox-play 3 60  .4 1 1)
+(mbox-play 10 60 .2 1 10)
+(mbox-play 11 60 .1 .09 11)
+
+(defun %mplay-11 ())
+(mplay-1)
+(mplay-10)
+(mplay-11)
+(mplay-3)
+
+(fp 30 68)
+(defun strin ())
+(defun strin (time)
+  (let ((r (pick  2 1 1 .5 .25)))
+    (and (odds .6)
+         (p time (qcosr (ov-pc-scale :hirajoshi) 75 5 5) 30 r 30))
+    (aat (+ time r) #'strin it)))
+(strin (quant 4))
+
+
+(mbox-play 0 40  .2 .1 1
+ (p time note p-volume (* duration p-note-duration-mul) p-channel))
+
+(defmacro mbox-play (index volume beat-duration note-duration-mul channel)
+  (let ((fname (intern (format nil "~A-~A" 'mplay index)))
+        (fname-loop (intern (format nil "%~A-~A" 'mplay index))))
+    `(let ((p-volume ,volume)
+           (p-note-duration-mul ,note-duration-mul)
+           (p-beat-duration ,beat-duration)
+           (index ,index)
+           (p-channel ,channel)
+           (p-durations nil))
+       (defun ,fname-loop (time
+                           notes beats durations raw-durations)
+         (let ((beat (next beats)))
+           (when (= 1 beat)
+             (let ((note     (next notes))
+                   (duration (next durations)))
+               (p time note p-volume (* duration p-note-duration-mul) p-channel))))
+         (aat (+ time p-beat-duration) #',fname-loop
+              it
+              notes beats durations raw-durations))
+       (defun ,fname ()
+         (destructuring-bind (notes durations channel beats) (nth index (reverse *p*))
+           (declare (ignore channel))
+           (setf p-durations durations)
+           (,fname-loop (quant 4)
+                        (make-cycle notes) (make-cycle beats)
+                        (make-cycle durations) durations))))))
+
+;; vel, dur
+(defmacro mbox-play (index volume beat-duration note-duration-mul channel)
+  (let ((fname (intern (format nil "~A-~A" 'mplay index)))
+        (fname-loop (intern (format nil "%~A-~A" 'mplay index))))
+    `(let ((p-volume ,volume)
+           (p-note-duration-mul ,note-duration-mul)
+           (p-beat-duration ,beat-duration)
+           (index ,index)
+           (p-channel ,channel)
+           (p-durations nil))
+       (defun ,fname-loop (time
+                           notes beats durations raw-durations)
+         (let ((beat (next beats)))
+           (when (= 1 beat)
+             (let ((note     (next notes))
+                   (duration (next durations)))
+               (p time note p-volume (* duration p-note-duration-mul) p-channel))))
+         (aat (+ time p-beat-duration) #',fname-loop
+              it
+              notes beats durations raw-durations))
+       (defun ,fname ()
+         (destructuring-bind (notes durations channel beats) (nth index (reverse *p*))
+           (declare (ignore channel))
+           (setf p-durations durations)
+           (,fname-loop (quant 4)
+                        (make-cycle notes) (make-cycle beats)
+                        (make-cycle durations) durations))))))
 
 (defun mplay ())
-(defun mplay (time notes durations channel beats)
+(destructuring-bind (notes durations channel beats) (nth 11 (reverse *p*))
+  (declare (ignore channel))
+  (mplay (quant 4) (make-cycle notes)
+         (make-cycle durations)
+         2
+         (make-cycle beats) 60))
+
+(destructuring-bind (notes durations channel beats) (nth 2 (reverse *p*))
+  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 3 (make-cycle beats)))
+
+(destructuring-bind (notes durations channel beats) (nth 3 (reverse *p*))
+  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 4 (make-cycle beats)))
+
+(fp 5 25)
+(freverb-toggle 1)
+(freverb-preset 2)
+
+(destructuring-bind (notes durations channel beats) (nth 14 (reverse *p*))
+  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 5 (make-cycle beats)))
+
+(destructuring-bind (notes durations channel beats) (nth 8 (reverse *p*))
+  (mplay (quant 4) (make-cycle notes) (make-cycle durations) 6 (make-cycle beats)))
+
+(defparameter *metro* (make-metro 120))
+(defun mplay ())
+(defun mplay (time notes durations channel beats &optional (vol 60))
   (let ((beat (next beats)))
     (when (= 1 beat)
       (let ((note (next notes))
             (duration (next durations)))
-          (p time note 60 duration channel))))
-  (aat (+ time .5) #'mplay it notes durations channel beats))
+        (p time note vol (/ duration 7) channel))))
+  (aat (+ time .2) #'mplay it notes durations channel beats))
 
 (freverb-toggle 1)
 (freverb-preset 2)
-(fp 2 40)
+(fp 2 4)
 (fp 3 58)
 (fp 4 58)
-(fp 5 58)
+(fp 5 72)
 (fp 6 58)
 (fg .4)
+
+
+(defun mm ())
+
+(let ((rhythms (make-cycle '(1 2 1))))
+  (defun mm (time)
+    (let ((c (make-chord 70 85 3 (scale 0 'ryukyu)))
+          (rhythm (next rhythms)))
+      (if (odds .7)
+          (pa time c (/ rhythm 3) 60 6 rhythm)
+          (p time c 50 rhythm 6))
+      (aat (+ time rhythm) #'mm it))))
+
+(mm (quant 4))
+
+
 #|
 
 (mbox (funcall *metro* (funcall *metro* 'get-beat 4))
