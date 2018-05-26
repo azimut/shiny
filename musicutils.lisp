@@ -228,3 +228,19 @@ See also: `pbjorklund'"
        (callback ,t-trigger #'funcall ,trigger 'bulletproof)
        (callback (+ ,t-trigger ,dur) #'funcall ,trigger 'curse)
        ,@body)))
+
+
+;;; CM helpers
+
+(defun make-cycle (elements &optional (for-elements 1 for-elements-p))
+  (if for-elements-p
+      (new cycle :of elements :for for-elements)
+      (new cycle :of elements)))
+(defun make-heap (elements &optional (for-elements 1 for-elements-p))
+  (if for-elements-p
+      (new heap :of elements :for for-elements)
+      (new heap :of elements)))
+(defun make-weighting (elements &optional (for-elements 1 for-elements-p))
+  (if for-elements-p
+      (new weighting :of elements :for for-elements)
+      (new weighting :of elements)))
