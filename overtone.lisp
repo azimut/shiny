@@ -521,6 +521,15 @@
          (roots     (myrange max-pitch :step 12))
          (notes     0))))
 
+;;; Extra
+(defun ov-pc-scale (scale-name-key)
+  "> (ov-pc-scale :todi)
+  (0 1 3 6 7 8 11)"
+  (declare (type keyword scale-name-key))
+  (butlast
+   (loop :for i :in (append '(0) (cdr (assoc scale-name-key +scale+)))
+      :with n = 0 :collect (incf n i))))
+
 #|
 Scales can be quickly generated using the scale function, which takes a root note and the type of scale as arguments.
 
