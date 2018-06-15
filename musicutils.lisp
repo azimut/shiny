@@ -10,6 +10,10 @@
 ;; | sed 's/^/(defvar /g'
 ;; | sed 's/$/)/g'
 
+(defun cumsum (list)
+  (loop for x in list with z = 0
+     :collect (incf z x)))
+
 (setf *random-state* (make-random-state t))
 
 ;; https://stackoverflow.com/questions/6158990/generating-randoms-numbers-in-a-certain-range-for-common-lisp
@@ -241,6 +245,72 @@ See also: `pbjorklund'"
       (new heap :of elements :for for-elements)
       (new heap :of elements)))
 (defun make-weighting (elements &optional (for-elements 1 for-elements-p))
-  (if for-elements-p
-      (new weighting :of elements :for for-elements)
-      (new weighting :of elements)))
+  ;; try to add :weight keyword if only provided 2 elements
+  ;; we push since order doesn't really matter...
+  (let ((sane-elements '()))
+    (loop for e in elements do
+         (if (and (listp e) (= 3 (length e)))
+             (push e sane-elements))
+         (if (not (listp e))
+             (push e sane-elements))
+         (if (and (listp e) (= 2 (length e)))
+             (push (list (first e)
+                         :weight
+                         (first (last e)))
+                   sane-elements)))
+    (if for-elements-p
+        (new weighting :of sane-elements :for for-elements)
+        (new weighting :of sane-elements))))
+(defun make-palindrome (elements)
+  (new palindrome :of elements :elide t))
+;; appeared on jazz.cm
+(defun rancyc (data prob)
+  (list (make-cycle data) :weight prob))
+
+
+;; <3
+;; Might be I can generalize the pick and pickl of CM too.
+(defun pick-random-list (list &optional (max 0 max-set))
+  "pick a random number of elements from a list, up to max elements,
+   useful if you have a 4note chord that you want to avoid"
+  (let* ((l (if max-set max (length list)))
+         (n (- l (random l))))
+    (loop :for x :in list :collect x :repeat n)))
+
+;; Apparently same idea of nudruz.lisp
+(defun nths (l lnth)
+  "get nth elements from lnth list"
+  (remove nil (loop :for i :in lnth :collect (nth i l))))
+
+;; from overtone , choose-n, like take but shuffle
+(defun pickn (n l)
+  "get n random elements from list"
+  (subseq (shuffle l)
+          0 (min (length l) n)))
+
+;; from overtone, who know if I will use it...
+(defun sputter (list &optional (prob .25) (max 100) (result '()))
+  "Returns a list where some elements may have been repeated.
+
+   Repetition is based on probabilty (defaulting to 0.25), therefore,
+   for each element in the original list, there's a chance that it will
+   be repeated. (The repetitions themselves are also subject to further
+   repetiton). The size of the resulting list can be constrained to max
+   elements (defaulting to 100).
+
+  (sputter [1 2 3 4])        ;=> [1 1 2 3 3 4]
+  (sputter [1 2 3 4] 0.7 5)  ;=> [1 1 1 2 3]
+  (sputter [1 2 3 4] 0.8 10) ;=> [1 2 2 2 2 2 2 2 3 3]
+  (sputter [1 2 3 4] 1 10)   ;=> [1 1 1 1 1 1 1 1 1 1]
+  "
+  (let ((head (first list))
+        (tail (rest  list)))
+    (if (and head (< (length result) max))
+        (if (< (random 1.0) prob)
+            (sputter (cons head tail)
+                     prob max
+                     (cons head result))
+            (sputter tail
+                     prob max
+                     (cons head result)))
+        (reverse result))))
