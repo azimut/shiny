@@ -5,16 +5,22 @@
         #:cl-ppcre
         #:sc)
   (:import-from #:cm
+                #:eop?
                 #:rhythm
+                ;; modify a list, like a chord
+                #:invert
+                #:transpose
+                #:shuffle
+                ;; lazy evaluation, can be next'd
+                #:pval
                 ;; random boolean
                 #:odds
-                ;; random picker
+                ;; random "single element" picker, still you can use lists of lists
                 #:pick
                 #:pickl
-                ;; random walker
-                #:drunk
                 ;; random distribution helper
                 #:ran
+                #:drunk ;; brownian noise
                 #:between
                 ;; patterns
                 #:next
@@ -27,4 +33,4 @@
 
 ;; define var, provided originally by incudine
 (in-package :somecepl)
-(defvar *sample-rate* 44100d0)
+(defvar *sample-rate* 1d0)

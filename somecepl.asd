@@ -12,6 +12,6 @@
   :serial t
   :components ((:file "package")
                (:file "musicutils")
-               (:file "nudruz")
+;;               (:file "nudruz")
                (:file "extempore")
                (:file "overtone")))

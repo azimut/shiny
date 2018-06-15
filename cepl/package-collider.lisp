@@ -17,18 +17,44 @@
         #:cepl.sdl2-image
         #:cepl.skitter
         #:livesupport)
+  (:import-from #:pixel-spirit-deck
+                #:defcard
+                #:stroke
+                #:g-fill
+                #:circle-sdf
+                #:cross-sdf
+                #:flower-sdf
+                #:heart-sdf
+                #:hex-sdf
+                #:poly-sdf
+                #:rays-sdf
+                #:rect-sdf
+                #:rhomb-sdf
+                #:spiral-sdf
+                #:star-sdf
+                #:tri-sdf
+                #:vesica-sdf)
   (:import-from #:sc #:*s* #:callback #:at #:quant)
+  (:import-from #:the-book-of-shaders
+                #:g-random
+                #:g-rand)
   (:import-from #:cm
+                #:eop?
                 #:rhythm
+                ;; modify a list, like a chord
+                #:invert
+;;                #:transpose ;; glsl-symbols
+                #:shuffle
+                ;; lazy evaluation, can be next'd
+                #:pval
                 ;; random boolean
                 #:odds
-                ;; random picker
+                ;; random "single element" picker, still you can use lists of lists
                 #:pick
                 #:pickl
-                ;; random walker
-                #:drunk
                 ;; random distribution helper
                 #:ran
+                #:drunk ;; brownian noise
                 #:between
                 ;; patterns
                 #:next
@@ -41,4 +67,4 @@
 
 ;; define var, provided originally by incudine
 (in-package :somecepl)
-(defvar *sample-rate* 44100d0)
+(defvar *sample-rate* 1d0)

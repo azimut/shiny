@@ -33,9 +33,12 @@
                #:dendrite
                #:nineveh
                #:with-setf
+               ;; ??
+               #:pixel-spirit-deck
+               #:the-book-of-shaders
                )
   :components ((:file "cepl/package-collider")
                (:file "musicutils")
-               (:file "nudruz")
+;;               (:file "nudruz")
                (:file "extempore")
                (:file "overtone")))
