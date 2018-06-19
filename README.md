@@ -3,11 +3,9 @@
 Personal space to keep my experiments with music composition in lisp with some ocassional interaction with opengl (CEPL).
 
 ## Demo(s)
-There is a demo of the compositions/molecularmusic.lisp at:
-https://www.youtube.com/watch?v=ubgOlfUOztU
-
-One of some of compositions/snow_world.lisp + some cepl/opengl interactions at:
-https://www.youtube.com/watch?v=vUjnlnctdDI
+* compositions/[molecularmusic.lisp](https://www.youtube.com/watch?v=ubgOlfUOztU)
+* compositions/[snow_world.lisp](https://www.youtube.com/watch?v=vUjnlnctdDI)
+* compositions/[notalent.lisp](https://www.youtube.com/watch?v=Unc9Hx3KdGU)
 
 ## Goals
 I found both libraries really interesting and the only sane way to learn these topics.
@@ -21,6 +19,7 @@ My goal is learn enough of both topics by taking popular and forgotten topics of
 WIP
 
 ## Usage
+
 WIP
 
 ## TODO(s)
