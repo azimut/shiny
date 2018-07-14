@@ -17,6 +17,16 @@ My goal is learn enough of both topics by taking popular and forgotten topics of
 
 ## Installation
 
+### Libraries not on main Quicklisp
+You don't need to have all these, but some .asd files or examples will require them.
+* https://github.com/patterkyle/cl-fluidsynth (conflicts with incudine)
+* https://github.com/byulparan/common-cv
+* https://github.com/byulparan/scheduler
+* https://github.com/byulparan/cl-collider
+* https://github.com/azimut/pixel-spirit-deck/
+* https://github.com/titola/incudine
+* https://github.com/ormf/cm/
+
 WIP
 
 ## Usage
