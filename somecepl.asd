@@ -1,7 +1,7 @@
 (asdf:defsystem "somecepl"
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
-  :license "Specify license here"
+  :license "GPL-3.0"
   :depends-on (
                #:swank
                #:cm

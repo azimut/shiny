@@ -1,7 +1,7 @@
 (asdf:defsystem "somecepl-cepl"
   :author "someone"
   :description "+ cepl"
-  :license "GNU"
+  :license "GPL-3.0"
   :version "0.1"
   :serial t
   :depends-on (

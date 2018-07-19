@@ -1,7 +1,7 @@
 (asdf:defsystem "somecepl-collider-cepl"
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
-  :license "Specify license here"
+  :license "GPL-3.0"
   :serial t
   :depends-on (
                ;; ???
