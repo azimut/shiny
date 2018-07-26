@@ -1,25 +1,27 @@
 (in-package :somecepl)
 
+(defparameter *phrase*
+  (make-cycle '("don't" "you" "ever" "let" "me" "go")))
+
 (defun render
     (frame1 frame2 mat)
-  (let* ((base 100))
+  (let ((mysize (cv:size 200 200)))
     (if (= (cv:wait-key 30) 27)
         'done
         (cv:with-ipl-images
-            ((small (cv:size base base) cv:+ipl-depth-8u+ 3)
-             (big   (cv:size (* 3 base) (* 3 base)) cv:+ipl-depth-8u+ 3)
-             (big2  (cv:size (* 3 base) (* 3 base)) cv:+ipl-depth-8u+ 3)
-             (big3  (cv:size (* 3 base) (* 3 base)) cv:+ipl-depth-8u+ 3)
-             )
-          ;; grid
-          (cv:resize frame1 small)
-          (cv:repeat small big)
-          ;; center
-          (2d-rotate mat 200 200 0f0 .4f0)
-          (cv:resize frame2 big2)
-          (cv:warp-affine big2 big2 mat)
-          (cv:add big big2 big3)
-          (cv:show-image "multi" big3)))))
+            ((img1 mysize cv:+ipl-depth-8u+ 3)
+             (img2 mysize cv:+ipl-depth-8u+ 3)
+             (img3 mysize cv:+ipl-depth-8u+ 3)
+             (cimg mysize cv:+ipl-depth-8u+ 1))
+          (cv:resize frame1 img1)
+          (cv:resize frame2 img2)
+          (2d-rotate mat 30 90 0d0 .5d0)
+          (cv:warp-affine img1 img1 mat)
+          (2d-rotate mat 70 120 0d0 .5d0)
+          (cv:warp-affine img2 img2 mat)
+          (cv:add-weighted img1 .8 img2 (- 1 .5) 0f0 img3)          
+          (cv:show-image "multi" img3))
+        )))
 
 (defun show-videos ()
   "Show the video in FILENAME in a window."
