@@ -1,12 +1,13 @@
 (in-package :somecepl)
 
-
+(defvar *factor* 2)
+(defvar *single* 50)
 ;; made a separate function instead of directly on the loop to be able to recompile on the fly. Using an infinite recursive function doesn't work either as a SBCL stack get's eventually overflow on these type of funtions.
 (defun render (frame filename mat)
   (let* ((mysize (cv:size 100 100))
-        (factor 2)
-        (single 50)
-        (doble  (* single factor)))
+         (factor *factor*)
+         (single *single*)
+         (doble  (* single factor)))
     (if (= (cv:wait-key 30) 27)
         'done
         (cv:with-ipl-images
@@ -44,4 +45,4 @@
                  (when (eq 'done (render frame filename mat))
                    (return))
                  ;; repeat video ad-infinitum
-                 (skip-to capture 0))))))))
+                 (skip-to capture 10))))))))

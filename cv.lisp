@@ -1,25 +1,5 @@
 (in-package :somecepl)
 
-(cffi:define-foreign-type point-2f ()
-  ((garbage-collect :reader garbage-collect
-                    :initform nil
-                    :initarg :garbage-collect))
-  (:actual-type :pointer)
-  (:simple-parser point-2f))
-
-(cffi:define-foreign-type mat ()
-  ((garbage-collect :reader garbage-collect
-                    :initform nil
-                    :initarg :garbage-collect))
-  (:actual-type :pointer)
-  (:simple-parser mat))
-
-(cffi:defcfun ("cv_getRotationMatrix2D" get-rotation-matrix-2d) mat
-  "Calculates an affine matrix of 2D rotation."
-  (center point-2f)
-  (angle :double)  
-  (scale :double))
-
 (defconstant +window-freeratio+ #x00000100)
 (defconstant +window-gui-normal+ #x00000010)
 
@@ -62,13 +42,17 @@
 (defun skip-to (capture seconds)
   "skip video capture to seconds"
   (declare (type integer seconds))
-  (let ((fps (cv:get-capture-property
-                   capture
-                   cv:+cap-prop-fps+)))
-    (cv:set-capture-property
-     capture
-     cv:+cap-prop-pos-frame+
-     (round (* fps seconds)))))
+  (cv:set-capture-property
+   capture
+   cv:+cap-prop-pos-msec+
+   (round (* 1000 seconds))))
+
+(defun current-pos (capture)
+  "current pos in seconds"
+  (* 1000f0
+     (cv:get-capture-property
+      capture
+      cv:+cap-prop-pos-msec+)))
 
 (defun make-point (l)
   "cv:point wrapper from l"
