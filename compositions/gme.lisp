@@ -9,7 +9,6 @@
 ;;     (cout (* attenuation
 ;;              (incudine.vug:buffer-play buf rate start-pos loop-p #'stop)))))
 
-
 (define-vug rms (in hp)
   (:defaults 0 60)
   (with-samples ((b   (- 2 (cos (* hp *twopi-div-sr*))))
@@ -31,8 +30,8 @@
                       buf rate start-pos loop-p #'stop))
                  (inn (* in attenuation))
                  (inn (+ inn
-;;                        (incudine.vug:lpf inn 500 2)
-                        (incudine.vug:hpf inn 100 2)
+;;                        (incudine.vug:lpf inn cfreq 1)
+                         (incudine.vug:hpf inn cfreq 2)
 ;;                        (incudine.vug:butter-hp inn 10)
                          )))    
     (out inn
@@ -51,13 +50,14 @@
 (defparameter *old* (make-hash-table :test #'equal))
 (defparameter *new* (make-hash-table :test #'equal))
 
-(defun gme-clean ()
+(defun gmeclean ()
   (loop for key in (alexandria:hash-table-keys *new*)
-       :do (incudine:free (gethash key *new*)))
+     :do (incudine:free (gethash key *new*)))
+  (setf *new* (make-hash-table :test #'equal))
+  
   (loop for key in (alexandria:hash-table-keys *old*)
-       :do (incudine:free (gethash key *old*))))
-
-(gme-clean)
+     :do (incudine:free (gethash key *old*)))
+  (setf *old* (make-hash-table :test #'equal)))
 
 (defun gmebuffer (filename &key (len 1) (track-number 0)
                              (rate 44100) (offset 0)
@@ -79,7 +79,9 @@
 (defun gmeplay (filename node track-number
                 &key (attenuation .00001) (rate 1f0) (start-pos 0)
                   (fade-curve 3) (fade-time 0f0)
-                  (length 1) (offset 0) (voices '()))
+                  (length 1) (offset 0) (voices '())
+                  (load-only nil))
+  "LOAD-ONLY just puts the buffer in the hash"
   (declare (type integer node track-number length offset))
   (let ((alive   (node-id (node node)))
         (hashkey (concatenate 'string filename (write-to-string node))))
@@ -94,47 +96,90 @@
                       :track-number track-number
                       :len length
                       :offset offset)))
-    (if alive
-        (set-controls
-         node
-         :buf (gethash hashkey *old*)
-         :rate rate
-         :fade-curve fade-curve
-         :fade-time fade-time
-         :attenuation attenuation)
-        (bplay (gethash hashkey *old*) rate 0 t
-               :id node
-               :fade-curve fade-curve
-               :fade-time fade-time
-               :attenuation attenuation))
+    (unless load-only
+      (if alive
+          (set-controls
+           node
+           :buf (gethash hashkey *old*)
+           :rate rate
+           :fade-curve fade-curve
+           :fade-time fade-time
+           :attenuation attenuation)
+          (bplay (gethash hashkey *old*) rate 0 t
+                 :id node
+                 :fade-curve fade-curve
+                 :fade-time fade-time
+                 :attenuation attenuation)))
     (rotatef (gethash hashkey *old*)
              (gethash hashkey *new*))
     (incudine:free (gethash hashkey *old*))))
 
-(gmeplay "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc" 2 0
-         :length 40
+(gmeplay "/home/sendai/Downloads/sf2/ff3.nsf" 2 15
+         :attenuation .000001
+         :length 20
          :offset 10
-         :rate .7
-         :voices '(1 2 0 3)
+         :voices '(0 1)
+         :rate .5
          :fade-time 20f0
-         :fade-curve 2)
+         :fade-curve 5)
 
-(gmeplay "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc" 3 0
-         :length 30
-         :offset 43
+(gmeplay "/home/sendai/Downloads/chrono/108 A Strange Happening.spc" 3 0
+         :length 18
+         :offset 89
+         :rate .7
+         :attenuation .00004
+         :voices '(0 7 5)
+         :fade-time 10
+         :fade-curve 2
+         :load-only t)
+
+(gmeplay "/home/sendai/Downloads/chrono/108 A Strange Happening.spc" 5 0
+         :length 9
+         :offset 30
          :rate 1
-         :voices '(7 5 4 6 0)
+         :attenuation .00001
+         :voices '(1 0 7)
          :fade-time 20f0
-         :fade-curve 2)
+         :fade-curve 2
+         :load-only t)
 
 (set-control 2 :cfreq 100)
 (set-control 4 :attenuation .00001)
-(set-control 2 :rate .7)
+(set-control 2 :rate .2)
 (set-control 2 :fade-curve 2)
 
-(gme-clean)
-(incudine:free (node 3))
+(gmeclean)
+(incudine:free (node 0))
 
+(let ((upper (make-cycle '(t nil)))
+      (pan   (make-cycle '(0 127)))
+      (pro   (make-cycle '(i iv v))))
+  (defun bf (time)
+    (let* ((buf (gethash
+                 "/home/sendai/Downloads/chrono/108 A Strange Happening.spc3"
+                 *new*))
+           (tem (/ (buffer-frames buf) #[6 b])))
+      (bplay buf tem 3 nil)
+      (p time 48 80 3 2)
+      (p (+ #[3 b] time) 48 80 3 2)
+      ;; ?
+      (pa time (nths (pick '(0) '(0 1) '(0 0))
+                (make-chord 60 70 3 (pc-diatonic 0 'minor (next pro))))
+          3
+          (rcosr 62 2 5) 1 3)
+      (at (+ time #[6 b])
+          #'bf (+ time #[6 b])))))
+
+(fg 1f0)
+(fp 0 20)
+(fp 2 20)
+(fp 1 20)
+(freverb-toggle 1)
+(freverb-preset 6)
+
+(defun bf ())
+(bf (tempo-sync #[1 b]))
+(flush-pending)
 ;;--------------------------------------------------
 
 (defvar *status* nil)
