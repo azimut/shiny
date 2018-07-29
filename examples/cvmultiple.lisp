@@ -1,15 +1,19 @@
 (in-package :somecepl)
 
-(defvar *factor* 2)
-(defvar *single* 50)
-(defvar *hsv* nil)
+(defparameter *factor* 1)
+(defparameter *single* 50)
+(defparameter *hsv* nil)
+(defparameter *size* .01)
+(defparameter *stop* nil)
+
 
 ;; Simple show grid of 1st video
 (defun render
     (frame1 frame2 capture1 capture2 mat)
   (let* ((single *single*)
          (factor *factor*)         
-         (doble  (* single factor)))
+         (doble  (* single factor))
+         )
     (if (= (cv:wait-key 30) 27)
         'done
         (cv:with-ipl-images
@@ -35,15 +39,20 @@
              (big3  (cv:size doble doble) cv:+ipl-depth-8u+ 3))
           ;; grid
           (cv:resize frame1 small)
+          (and *hsv* (cv:cvt-color small small cv:+bgr-2-hsv+))
           (cv:repeat small big)
           ;; center
-          (2d-rotate mat 50 50 0f0 .4f0)
+          (2d-rotate mat 50 50 0f0 *size*)
           (cv:resize frame2 big2)
           (cv:warp-affine big2 big2 mat)
-          (cv:add-weighted big .1 big2 1f0 .1 big3)
+          (cv:add-weighted big .7 big2 1 1 big3)
+          (when *stop*
+            (skip-to capture2 0)
+            (skip-to capture1 0))
+;;          (cv:add-weighted big .1 big2 .1 .2 big3)
+
+;;          (cv:add-weighted big .1 big2 1f0 .1 big3)
           (cv:show-image "multi" big3)))))
-
-
 
 (defun show-videos ()
   "Show the video in FILENAME in a window."
@@ -51,7 +60,7 @@
                                     +window-gui-normal+))
     (with-captured-files
         ((capture1 "/home/sendai/abyss.mkv")
-         (capture2 "/home/sendai/abyss.mkv"))
+         (capture2 "/home/sendai/chelsea.mp4"))
       (let ((mat (cv:create-mat 2 3 5)))
         (skip-to capture2 30)
         (loop
