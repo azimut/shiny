@@ -7,6 +7,8 @@ Personal space to keep my experiments with music composition in lisp with some o
 * compositions/[snow_world.lisp](https://www.youtube.com/watch?v=vUjnlnctdDI) - game sprite based animation
 * compositions/[notalent.lisp](https://www.youtube.com/watch?v=Unc9Hx3KdGU) - 2d sdf functions based on the pixelshader cards
 * compositions/[mondaycv.lisp](https://www.youtube.com/watch?v=Ltb_nNCyqoI) - opencv video sequencing
+* compositions/[gme.lisp](https://www.youtube.com/watch?v=DasB0di7iAw) - opencv multi video sequencing, with live nsf (nintento sound format) sequencing
+* compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
 
 ## Goals
 I found both libraries really interesting and the only sane way to learn these topics.
