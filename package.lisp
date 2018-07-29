@@ -51,7 +51,8 @@
                 #:midi-note-on-p
                 #:midi-note-off-p
                 #:midi-program-p
-;;                #:mouse-button
+                ;;                #:mouse-button
+                #:with-control-period
                 #:white-noise
                 #:samphold
                 #:pole
@@ -61,12 +62,18 @@
                 #:make-f32-array
                 #:phasor-loop
                 #:bpf
+                #:lpf
+                #:hpf
                 #:buffer-read
                 #:butter-lp
                 #:fractal-noise
                 #:out
                 #:~
+                #:rand
                 #:sine
+                #:pulse
+                #:line
+                #:pink-noise
                 #:dsp!)
   (:import-from #:incudine.util
                 #:with-samples
