@@ -9,9 +9,9 @@
                ;; nudruz
                #:screamer
                ;; collider
-               #:sc
+               #:cl-collider
                ;; midi-constrol
-;;               #:local-time
+               ;;#:local-time
                #:cl-alsaseq
                ;; fluid
                #:fluidsynth

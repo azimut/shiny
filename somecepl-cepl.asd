@@ -23,6 +23,6 @@
                )
   :components ((:file "cepl/package")
                (:file "musicutils")
-               (:file "nudruz")
+;;               (:file "nudruz")
                (:file "extempore")
                (:file "overtone")))

@@ -38,6 +38,7 @@
                 #:frame-ref
                 #:delay1
                 #:cout
+                #:vuglet
                 #:current-frame
               ;;  #:buffer-play
                 #:foreach-channel
@@ -79,6 +80,7 @@
                 #:with-samples
                 #:f32-ref
                 #:db->lin
+                #:+twopi+
                 #:rt-eval
               ;  #:barrier
                 #:return-value-p
