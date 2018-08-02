@@ -24,6 +24,7 @@
 ;; TODO:
 ;;  - right now it uses (at) to stop (word-play),
 ;;    might be buffer-play can support other thing
+;;  - Make it quickload-able
 
 (defvar *buffers* (make-hash-table :test #'equal))
 (defvar *sample-words* (make-hash-table :test #'equal))
@@ -61,7 +62,8 @@
                      :dur dur)))
 
 (defun word-play (phrase rate
-                  &key (loop-p nil) (attenuation 1f0) (id 2))
+                  &key (loop-p nil) (attenuation 1f0)
+                    (id 2))
   "bplay wrapper to play the phrase provided
   (word-play \"time\" 1)"
   (when phrase
@@ -77,14 +79,6 @@
              :id id)
       ;; kill voice
       (at (+ (now) #[dur b]) #'free (node id)))))
-
-#|
-(bbuffer-load "/home/sendai/Downloads/sample/EM0903.wav")
-(bplay-beat (gethash "EM0903.wav" *buffers*) 8 nil)
-(put-phrase "nuisance" "EM0903.wav" 20 2)
-(word-play "nuisance" .8)
-(word-play-beat "nuisance" 3)
-|#
 
 (defun word-play-beat (phrase beat-length
                        &key (loop-p nil) (attenuation 1f0)
@@ -114,6 +108,24 @@
              :id id)
       ;; kill phrase
       (at (+ (now) #[beat-length b]) #'free (node id)))))
+
+;; (bbuffer-load "/home/sendai/Downloads/sample/EM0903.wav")
+;; (bplay-beat (gethash "EM0903.wav" *buffers*) 2 nil)
+;; (bplay (gethash "EM0903.wav" *buffers*) 2 0 nil
+;;        :attenuation 1)
+
+;; (put-phrase "nuisance" "EM0903.wav" 21 1)
+;; (put-phrase "why" "EM0903.wav" 8.4 2)
+;; (put-phrase "feel" "EM0903.wav" 10.5 3)
+
+;; (word-play (pick "why" "nuisance" "feel")
+;;            (pick 1 2 1.5)
+;;            :id (1+ (random 30)))
+
+;; (word-play "nuisance" 1.4 :id nil) 
+;; (word-play-beat "nuisance" 2)
+
+;; (incudine:free (node 2))
 
 ;;::::::::::::::::::::::::::::::::::::::::::::::::::
 ;; Game-Music-Emu - cl-gme - helpers
