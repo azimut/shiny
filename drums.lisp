@@ -1,6 +1,6 @@
 (in-package :somecepl)
 
-(defparameter *drums* (make-hash-table))
+(defparameter *patterns* (make-hash-table))
 
 ;; TODO: track the beat progression to skip ahead on redefinition
 ;;       add metro?
@@ -64,6 +64,9 @@
        (defun ,name ()
          (,i-name (quant 4) l-beats beats notes onotes)))))
 
+;;--------------------------------------------------
+
+;; https://en.wikipedia.org/wiki/Drum_tablature
 ;; https://stackoverflow.com/questions/5457346/lisp-function-to-concatenate-a-list-of-strings
 (defun concat (&rest list)
   "A non-recursive function that concatenates a list of strings."
@@ -75,57 +78,208 @@
         result)))
 
 (defclass drum-pattern ()
-  ((kick :initform nil :initarg :kick :accessor kick-of)
-   (snare :initform nil :initarg :snare :accessor snare-of)
-   (chat :initform nil :initarg :chat :accessor chat-of)))
+  ((name :initarg :name :reader pattern-name)
+   (bd   :initarg :bd :reader bd)
+   (ch   :initarg :ch :reader ch)
+   (oh   :initarg :oh :reader oh)
+   (sn   :initarg :sn :reader sn)))
 
-(defmethod kick-of ((pattern drum-pattern))
-  (slot-value pattern 'kick))
-(defmethod snare-of ((pattern drum-pattern))
-  (slot-value pattern 'snare))
-(defmethod chat-of ((pattern drum-pattern))
-  (slot-value pattern 'chat))
+(defmethod print-object ((obj drum-pattern) out)
+  (print-unreadable-object (obj out :type t)
+    (format out "~s" (pattern-name obj))))
 
-(defun pattern-of (name element)
-  (let ((pattern (gethash name *drums*)))
-    (case element
-      (:kick (kick-of pattern))
-      (:snare (snare-of pattern))
-      (:chat (chat-of pattern))
-      (t (error "not valid element")))))
+(defun make-pattern (name short-name &key bd ch oh sn)
+  (declare (string name) (symbol short-name))
+  (flet ((f (s)
+             (when (stringp s)
+               (loop
+                  :for c
+                  :across (string-downcase s)
+                  :when (or (eq c #\x) (eq c #\0)
+                            (eq c #\~) (eq c #\-))
+                  :collect
+                  (if (or (eq c #\x)
+                          (eq c #\0))
+                      t
+                      nil)))))
+    (setf (gethash short-name *patterns*)
+          (make-instance 'drum-pattern
+                         :name name
+                         :bd (f bd) :ch (f ch)
+                         :oh (f oh) :sn (f sn)))))
 
-(setf (gethash :moses *drums*)
-      (make-instance
-       'drum-pattern
-       :kick (concat  "x---" "x---" "x--x" "----")
-       :snare (concat "----" "x---" "----" "x---")
-       :chat (concat  "----" "---x" "----" "---x")))
+(defun list-patterns ()
+  (alexandria:hash-table-keys *patterns*))
 
-(setf (gethash :amen *drums*)
-      (make-instance
-       'drum-pattern
-       :kick (concat "x-x-" "----" "--xx" "----"
-                     "x-x-" "----" "--xx" "----"
-                     "x-x-" "----" "--xx" "----"
-                     "--xx" "----" "--x-" "----")
-       :snare (concat "----" "x--x" "-x--" "x--x"
-                      "----" "x--x" "-x--" "x--x"
-                      "----" "x--x" "-x--" "--x-"
-                      "-x--" "x--x" "-x--" "--x-")
-       :chat (concat "x-x-")))
+(defun get-pattern (name)
+  (declare (symbol name))
+  (gethash name *patterns*))
 
-(setf (gethash :funky *drums*)
-      (make-instance
-       'drum-pattern
-       :kick (concat "x-x-" "--x-" "--x-" "-x--")
-       :snare (concat "----" "x--x" "-x-x" "x--x")
-       :chat (concat "xxxxxxx-" "xxxxx-xx")))
+(make-pattern
+ "Synthetic Substitution"
+ 'ssub
+ :bd "[0 ~ 0 ~][~ ~ ~ 0][~ 0 0 0][~ ~ ~ 0]"
+ :sn "[~ ~ ~ ~][~ 0 ~ ~][~ ~ ~ ~][~ 0 ~ ~]"
+ :ch (concat
+      "[0 ~ 0 ~][0 ~ 0 ~][0 ~ 0 ~][0 ~ 0 ~]"
+      "[0 ~ ~ ~][0 ~ 0 ~][0 ~ 0 ~][0 ~ 0 ~]")
+ :oh "[~ ~ 0/2 ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~]")
 
+(make-pattern
+ "Get Up"
+ 'getup
+ :bd "[0 ~ ~ ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ 0 ~]"
+ :sn "[~ ~ ~ ~][0 ~ 0 0][~ 0 ~ ~][0 ~ ~ 0]"
+ :ch "[0 ~ ~ ~][0 ~ 0 0][0 ~ ~ ~][0 ~ 0 0]"
+ :oh "[~ ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]")
+
+(make-pattern
+ "Superstition"
+ 'superstition
+ :bd "[0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~]"
+ :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
+ :ch "[0 ~ 0 ~][0 ~ 0 0][0 0 0 ~][0 ~ 0 0]")
+
+(make-pattern
+ "Rock Steady"
+ 'rsteady
+ :bd (concat "[~ ~ 0 ~][0 ~ ~ 0][~ ~ 0 ~][0 ~ ~ ~]")
+ :sn (concat "[~ 0 ~ ~][0 0 ~ 0][~ 0 ~ ~][0 0 ~ 0]")
+ :ch (concat "[~ 0 ~ ~][0 ~ 0 ~][0 ~ ~ ~][0 ~ 0 ~]"
+             "[0 ~ ~ ~][0 ~ 0 0][0 ~ ~ ~][0 ~ 0 0]")
+ :oh (concat "[~ ~ 0 ~][~ ~ ~ 0][~ ~ 0 ~][~ ~ ~ 0]"
+             "[~ 0 ~ ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"))
+
+(make-pattern
+ "Haitian Divorce"
+ 'haitian
+ :bd "[~ ~ 0 ~][0 ~ ~ ~][~ ~ 0 ~][0 ~ ~ ~]"
+ :sn "[~ 0 ~ ~][0 ~ 0 0][~ 0 ~ ~][0 ~ 0 0]"
+ :ch "[0 0 ~ ~][0 0 0 0][0 0 ~ ~][0 0 0 0]"
+ :oh "[~ ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]")
+
+(make-pattern
+ "The Fez"
+ 'fez
+ :bd (concat "[0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~]"
+             "[0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ 0][0 ~ ~ ~]")
+ :sn (concat "[~ 0 ~ 0][0 0 ~ 0][~ 0 ~ 0][0 0 ~ 0]")
+ :ch (concat "[~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~]"))
+
+(make-pattern
+ "Pop tech 2010"
+ 'pop
+ :bd (concat "[0 ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~]"
+             "[~ 0 ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ 0 0 0]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]")
+ :ch (concat "[~ ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~]"
+             "[0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~]")
+ :oh (concat "[0 ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~]"
+             "[~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~]"))
+
+(make-pattern
+ "Kissing My Love"
+ 'kml
+ :bd (concat "[0 ~ ~ 0][~ ~ ~ ~][~ ~ ~ 0][~ ~ 0 ~]"
+             "[0 ~ ~ ~][~ ~ ~ ~][~ ~ ~ 0][~ 0 ~ ~]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ ~][~ 0 ~ ~][0 ~ ~ ~]"
+             "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ ~][0 ~ ~ ~]")
+ :ch (concat "[0 0 0 0][0 0 0 0][0 0 0 0][0 0 ~ ~]")
+ :oh (concat "[~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ 0 ~]"))
+
+(make-pattern
+ "Chug Chug Chug Chug A Lug"
+ 'chug
+ :bd "[0 ~ ~ 0][~ 0 ~ 0][~ 0 ~ 0][~ ~ 0 ~]"
+ :sn "[~ 0 0 ~][0 ~ ~ 0][~ 0 0 ~][0 ~ ~ ~]"
+ :ch "[0 ~ 0 ~][0 0 0 ~][0 0 0 ~][0 ~ ~ ~]"
+ :oh "[~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ 0 ~]")
+
+(make-pattern
+ "Cold Sweat"
+ 'cold
+ :bd (concat "[0 ~ ~ ~] [~ ~ ~ ~] [0 ~ 0 ~] [~ ~ ~ ~]")
+ :sn (concat "[~ ~ ~ ~] [0 ~ ~ 0] [~ ~ ~ ~] [~ ~ 0 ~]"
+             "[~ 0 ~ ~] [0 ~ ~ 0] [~ 0 ~ ~] [0 ~ ~ ~]")
+ :ch (concat "[0 ~ ~ ~] [0 ~ 0 ~] [0 ~ ~ ~] [0 ~ 0 ~]")
+ :oh (concat "[~ ~ 0 ~] [~ ~ ~ ~] [~ ~ 0 ~] [~ ~ ~ ~]"))
+
+(make-pattern
+ "Amen"
+ 'amen
+ :bd (concat "[0 ~ 0 ~] [~ ~ ~ ~] [~ ~ 0 0] [~ ~ ~ ~]"
+             "[0 ~ 0 ~] [~ ~ ~ ~] [~ ~ 0 0] [~ ~ ~ ~]"
+             "[0 ~ 0 ~] [~ ~ ~ ~] [~ ~ 0 ~] [~ ~ ~ ~]"
+             "[~ ~ 0 0] [~ ~ ~ ~] [~ ~ 0 ~] [~ ~ ~ ~]")
+ :sn (concat "[~ ~ ~ ~] [0 ~ ~ 0] [~ 0 ~ ~] [0 ~ ~ 0]"
+             "[~ ~ ~ ~] [0 ~ ~ 0] [~ 0 ~ ~] [0 ~ ~ 0]"
+             "[~ ~ ~ ~] [0 ~ ~ 0] [~ 0 ~ ~] [~ ~ 0 ~]"
+             "[~ 0 ~ ~] [0 ~ ~ 0] [~ 0 ~ ~] [~ ~ 0 ~]")
+ :ch (concat "[0 ~ 0 ~] [0 ~ 0 ~] [0 ~ 0 ~] [0 ~ 0 ~]")
+ :oh (concat "[~ ~ ~ ~] [~ ~ ~ ~] [~ ~ 0 ~] [~ ~ ~ ~]"))
+
+(make-pattern
+ "OOH Child"
+ 'oohchild
+ :bd (concat "[0 ~ 0 ~][~ ~ ~ ~][0 ~ 0 0][~ ~ ~ ~]"
+             "[0 ~ 0 0][~ ~ ~ ~][0 ~ 0 0][~ ~ ~ ~]")
+ :sn (concat "[~ 0 ~ 0][0 0 ~ 0][~ 0 ~ 0][0 0 ~ 0]"
+             "[~ 0 ~ 0][0 0 ~ 0][~ 0 ~ ~][0 ~ 0 ~]")
+ :ch (concat "[0 0 ~ ~][0 0 ~ ~][0 0 ~ ~][0 0 ~ ~]")
+ :oh (concat "[~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~]"))
+
+(make-pattern
+ "Use Me"
+ 'useme
+ :bd (concat "[0 ~ 0 ~][~ 0 ~ 0][0 ~ 0 0][~ 0 ~ 0]"
+             "[0 ~ 0 ~][~ 0 ~ ~][0 0 ~ 0][~ 0 ~ 0]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ ~][0 ~ ~ 0]"
+             "[~ ~ ~ ~][0 ~ ~ 0][~ ~ ~ ~][~ ~ ~ 0]")
+ :ch (concat "[0 0 0 0][0 0 0 0][0 0 0 0][0 0 0 0]"
+             "[0 0 0 0][0 0 0 0][0 ~ ~ ~][~ ~ ~ 0]")
+ :oh (concat "[~ ~ ~ ~][~ ~ ~ ~][~ 0 ~ 0][~ 0 ~ ~]"))
+
+(make-pattern
+ "Use Me"
+ 'useme2
+ :bd (concat "[0 ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
+             "[~ ~ ~ ~][0 ~ ~ 0][~ ~ 0 ~][0 ~ ~ ~]")
+ :sn (concat "[~ ~ 0 ~][0 ~ 0 0][~ 0 0 ~][0 ~ 0 0]"
+             "[~ 0 0 ~][0 ~ 0 0][~ 0 0 ~][0 ~ 0 0]")
+ :ch (concat "[0 ~ ~ ~][0 0 0 0][0 0 ~ ~][0 0 0 0]"
+             "[0 0 ~ ~][0 0 0 0][0 0 ~ ~][0 0 0 0]")
+ :oh (concat "[~ ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"
+             "[~ ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"))
+
+(make-pattern
+ "The Same Blood"
+ 'blood
+ :bd "[0 0 ~ ~][~ ~ ~ ~][0 0 ~ ~][~ ~ ~ ~]"
+ :sn "[~ ~ ~ 0][~ 0 0 ~][~ ~ ~ ~][0 0 0 ~]"
+ :ch "[0 ~ 0 ~][0 ~ 0 0][0 ~ 0 0][0 ~ 0 0]")
+
+(make-pattern
+ "Lady"
+ 'lady
+ :bd (concat "[0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ 0][~ ~ 0 ~]"
+             "[0 ~ ~ ~][~ ~ ~ ~][~ ~ ~ 0][~ ~ 0 ~]")
+ :sn (concat "[~ ~ ~ ~][0 0 ~ ~][~ ~ ~ ~][~ ~ ~ ~]"
+             "[~ ~ ~ ~][0 0 ~ ~][0 ~ ~ ~][~ ~ ~ ~]")
+ :ch (concat "[~ ~ 0 ~][~ ~ 0 ~][~ ~ ~ ~][~ ~ ~ ~]")
+ :oh (concat "[~ ~ 0 ~][~ ~ 0 ~][~ ~ ~ ~][~ ~ ~ ~]"))
+
+(make-pattern
+ "Funky President"
+ 'funkyp
+ :bd "[0 ~ ~ 0][~ ~ ~ 0][~ 0 0 ~][~ ~ ~ ~]"
+ :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
+ :ch "[0 ~ 0 ~][0 ~ 0 ~][0 ~ ~ ~][0 ~ 0 ~]"
+ :oh "[~ ~ ~ ~][0 ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]")
 
 ;; http://hiphoptranscriptions.com/post/159995606528
-(setf (gethash :galactic *drums*)
-      (make-instance
-       'drum-pattern
-       :kick  (concat "xx--" "x-x-" "xx--" "-x--")
-       :snare "--x-"
-       :chat  "xxxx"))
+(make-pattern
+ "Galactic"
+ 'galactic
+ :bd "xx-- x-x- xx-- -x--"
+ :sn "--x-"
+ :ch "xxxx")
