@@ -14,12 +14,32 @@
         #:cepl.skitter
         #:livesupport)
   (:import-from #:cm
+                #:eop?
+                #:rhythm
+                ;; modify a list, like a chord
+                #:invert
+                ;; CEPL?!??
+;;                #:transpose
+                #:shuffle
+                ;; lazy evaluation, can be next'd
+                #:pval
+                ;; random boolean
+                #:odds
+                ;; random "single element" picker, still you can use lists of lists
                 #:pick
                 #:pickl
-                #:drunk
+                ;; random distribution helper
                 #:ran
+                #:drunk ;; brownian noise
                 #:between
-                #:odds)
+                ;; patterns
+                #:next
+                #:new
+                #:weighting
+                #:markov ;; higher order explicit transition, than nesting patterns
+                #:cycle
+                #:palindrome
+                #:heap)
   (:import-from #:incudine.vug
                 #:define-vug
                 #:define-ugen
@@ -27,6 +47,7 @@
                 #:frame-ref
                 #:delay1
                 #:cout
+                #:vuglet
                 #:current-frame
               ;;  #:buffer-play
                 #:foreach-channel
@@ -40,7 +61,8 @@
                 #:midi-note-on-p
                 #:midi-note-off-p
                 #:midi-program-p
-;;                #:mouse-button
+                ;;                #:mouse-button
+                #:with-control-period
                 #:white-noise
                 #:samphold
                 #:pole
@@ -50,23 +72,32 @@
                 #:make-f32-array
                 #:phasor-loop
                 #:bpf
-              ;;  #:buffer-read
+                #:lpf
+                #:hpf
+                #:buffer-read
                 #:butter-lp
                 #:fractal-noise
                 #:out
                 #:~
+                ;; nieveh!!!!
+                ;; #:rand
                 #:sine
+                #:pulse
+                #:line
+                #:pink-noise
                 #:dsp!)
   (:import-from #:incudine.util
                 #:with-samples
                 #:f32-ref
                 #:db->lin
+                #:+twopi+
                 #:rt-eval
               ;  #:barrier
                 #:return-value-p
                 #:sample->fixnum
                 #:non-negative-sample
                 #:lin->db
+                #:SAMPLE
                 #:*SAMPLE-DURATION*
                 #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
