@@ -34,3 +34,12 @@
 ;; define var, provided originally by incudine
 (in-package :somecepl)
 (defvar *sample-rate* 1d0)
+
+;; incudine-like macro
+(defmacro aat (time function &rest arguments)
+  (let* ((it    (intern "IT"))
+         (delta (caddr time))
+         (real  (cadr time))
+         (next  `(+ ,real ,delta)))
+    `(let ((,it ,next))
+       (callback ,it ,function ,@arguments))))
