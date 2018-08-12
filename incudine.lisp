@@ -50,6 +50,12 @@
 (defvar *buffers* (make-hash-table :test #'equal))
 (defvar *sample-words* (make-hash-table :test #'equal))
 
+(defun list-buffers ()
+  (alexandria:hash-table-keys *buffers*))
+
+(defun list-words ()
+  (alexandria:hash-table-keys *sample-words*))
+
 (defun corrupt-node
     (time id &key (center 1f0) (radius .1) (period 1) (life 3))
   (declare (sample time) (integer id))
@@ -72,7 +78,7 @@
 (defun beat-to-ratio (beat-length sample-rate dur)
   (declare (sample sample-rate) (number beat-length dur))
   "given a BEAT-LENGTH and DURation in seconds returns a rate"
-  (let* ((samples-to-play (* dur sample-rate))
+  (let* ((samples-to-play  (* dur sample-rate))
          (samples-per-beat (/ samples-to-play beat-length))
          (rate (/ samples-per-beat sample-rate)))
     rate))
@@ -92,40 +98,35 @@
 ;;--------------------------------------------------
 ;; Single buffer play
 
-(defun bbplay (buf &key (rate 1 rate-p) (rpitch 0 rpitch-p)
-                     (beat-length 4 beat-length-p)
-                     (start-pos 0)
-                     (loop-p nil) (attenuation 2) (id 2 id-p))
+(defun bbplay
+    (buf &key (rate 1d0 rate-p) (rpitch 0 rpitch-p) (beat-length 1f0 beat-length-p)
+           (start-pos 0d0) (loop-p nil) (attenuation 2d0) (id 2 id-p))
   (declare (buffer buf) (integer rpitch id) (boolean loop-p))
   "plays the provided buffer either by
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
    BEAT-LENGTH stretch the whole buffer to play for N beats"
-  ;; big check so we can send nil without crashing
-  (when (or (and rate-p rate)
-            (and beat-length-p beat-length)
-            (and rpitch-p rpitch))
-    (let ((sample-rate (buffer-sample-rate buf))
-          (size   (buffer-size buf))
-          (frames (buffer-frames buf)))
-      (when rpitch-p
-        (setf rate (pitch-to-ratio rpitch)))
-      (when beat-length-p
-        ;; need to calculate the total duration in sec
-        ;; to provide it to (beat-to-ratio
-        (let ((dur (/ size sample-rate)))
-          (setf rate (beat-to-ratio beat-length
-                                    sample-rate
-                                    dur))))
-      ;; fix to work with buffer-play vug
-      (when (< rate 0)
-        (setf start-pos (- frames (/ frames 20))))
-      (if id-p
-          (bplay buf rate start-pos loop-p
-                 :attenuation attenuation
-                 :id id)
-          (bplay buf rate start-pos loop-p
-                 :attenuation attenuation)))))
+  ;; TODO: big check so we can send nil to beat-length without crashing
+  (let ((sample-rate (buffer-sample-rate buf))
+        (frames (buffer-frames buf)))
+    (when rpitch-p
+      (setf rate (pitch-to-ratio rpitch)))
+    (when beat-length-p
+      ;; need to calculate the total duration in sec
+      ;; to provide it to (beat-to-ratio
+      (let ((dur (/ frames sample-rate)))
+        (setf rate (beat-to-ratio beat-length
+                                  sample-rate
+                                  dur))))
+    ;; "hack" to work with buffer-play vug
+    (when (< rate 0)
+      (setf start-pos (- frames (/ frames 20))))
+    (if id-p
+        (bplay buf rate start-pos loop-p
+               :attenuation attenuation
+               :id id)
+        (bplay buf rate start-pos loop-p
+               :attenuation attenuation))))
 
 ;;------------------------------------------------------
 ;; Slice of a single buffer, dedicated to words or phrases
@@ -145,15 +146,14 @@
                      :start-at start-at
                      :dur dur)))
 
-(defun word-play (phrase
-                  &key (loop-p nil) (attenuation 1f0)
-                    (rate 1) (rpitch 1 rpitch-p)
-                    (beat-length 1 beat-length-p) (id 2)
-                    corrupt
-                    (corrupt-center 1f0)
-                    (corrupt-radius .1)
-                    (corrupt-period 1))
-  (declare (integer rpitch id) (string phrase) (boolean loop-p))
+(defun word-play
+    (phrase &key (rate 1) (rpitch 1 rpitch-p) (beat-length 1 beat-length-p)
+              (loop-p nil) (attenuation 1f0) (id 2)
+              corrupt
+              (corrupt-center 1f0)
+              (corrupt-radius .1)
+              (corrupt-period 1))
+  (declare (integer rpitch id) (boolean loop-p))
   "bplay wrapper to play the phrase provided
   (word-play \"time\")
   (word-play \"time\" :rate 2)
@@ -164,7 +164,8 @@
            (dur (phrase-dur obj))
            (buf (gethash (phrase-filename obj)
                          *buffers*))
-           (start-pos (* (buffer-sample-rate buf)
+           (sample-rate (buffer-sample-rate buf))
+           (start-pos (* sample-rate
                          (phrase-start-at obj))))
       ;; pitch to ratio - from sonic-pi
       (if rpitch-p
@@ -172,8 +173,11 @@
       ;; play for beat-length
       (if beat-length-p
           (setf rate (beat-to-ratio beat-length
-                                    (buffer-sample-rate buf)
+                                    sample-rate
                                     dur)))
+      ;; change where to start when played backwards
+      (when (< rate 0)
+        (incf start-pos (* dur sample-rate)))
       ;; start voice
       (bplay buf rate start-pos loop-p
              :attenuation attenuation
@@ -260,8 +264,9 @@
                                :loopstart loopstart
                                :loopend loopend)))))))
 
-(defun play-instrument (name keynum
-                        &optional (dur 1) (amp 1) (rate 1))
+(defun play-instrument
+    (name keynum &key (dur 1) (amp 1) (rate 1))
+  (declare (symbol name) (integer keynum) (number dur amp rate))
   (with-slots (keys) (gethash name *instruments*)
     (with-slots (filename loopend loopstart) (aref keys keynum)
       (let ((buf (gethash filename *buffers*)))
