@@ -39,6 +39,7 @@
   (print-unreadable-object (obj out :type t)
     (format out "~s" (pattern-name obj))))
 
+
 (defun parse-pattern (s)
   (when s
     (loop
@@ -75,13 +76,6 @@
   (declare (symbol name))
   "returns a list of the pattern"
   (gethash name *patterns*))
-
-(defun get-patternc (name)
-  (declare (symbol name))
-  "returns a CM cycle of the pattern"
-  (let ((p (gethash name *patterns*)))
-    (when p
-      (make-cycle p))))
 
 (make-pattern
  "Mother Popcorn"
@@ -449,62 +443,64 @@
 
 ;; TODO: track the beat progression to skip ahead on redefinition
 ;;       add metro?
-(defmacro defbeat (name duration beats &body body)
-  "(defbeat kick .15 \"x---x-----------\"
-      (synth 'atari :dur (- d .05) :tone0 15 :freq0 30))"
-  (let ((i-name (intern (format nil "%~a" name)))
-        (d (intern "D")))
-    `(let ((l-beats (coerce ,beats 'list))
-           (beats ,beats)
-           (,d    ,duration))
-       (defun ,i-name (time lbeats bbeats)
-         (when (not (equal ,beats bbeats))
-           (setf bbeats beats
-                 lbeats (coerce bbeats 'list)))
-         (cond ((or (eq #\1 (first lbeats))
-                    (eq #\x (first lbeats)))
-                ,@body)
-               ((eq #\X (first lbeats))
-                (let ((,d (* 2 ,d)))
-                  ,@body)))
-         (callback (+ time ,duration) #',i-name
-                   (+ time ,duration)
-                   (alexandria:rotate lbeats -1)
-                   bbeats))
-       (defun ,name ()
-         (,i-name (quant 4) l-beats beats)))))
 
-(defmacro defbeats (name duration beats notes &body body)
-  (let ((i-name (intern (format nil "%~a" name)))
-        (d (intern "D")))
-    `(let* ((l-beats (coerce ,beats 'list))
-            (l-beats (substitute #\x #\1 l-beats))
-            (n-on-beats (loop :for b :in l-beats :count (eq #\x b)))
-            (onotes  ,notes)
-            (notes   ,notes)
-            (notes   (subseq notes 0 (min n-on-beats (length notes))))
-            (beats   ,beats)
-            (,d      ,duration))
-       (defun ,i-name (time lbeats bbeats lnotes lonotes)
-         (when (not (equal onotes lonotes))
-           (setf lnotes onotes
-                 lonotes onotes))
-         (when (not (equal ,beats bbeats))
-           (setf bbeats beats
-                 lbeats (coerce bbeats 'list)))
-         (cond ((or (eq #\1 (first lbeats))
-                    (eq #\x (first lbeats)))
-                (let ((note (first lnotes)))
-                  ,@body
-                  (setf lnotes (alexandria:rotate lnotes -1))))
-               ((eq #\X (first lbeats))
-                (let ((,d (* 2 ,d)))
-                  ,@body)))
-         (callback (+ time ,duration) #',i-name
-                   (+ time ,duration)
-                   (alexandria:rotate lbeats -1)
-                   bbeats
-                   lnotes
-                   lonotes))
-       (defun ,name ()
-         (,i-name (quant 4) l-beats beats notes onotes)))))
+(defmacro defpattern (name (pattern dur) &body body)
+  `(let ((bdp (make-cycle (bd ,pattern)))
+         (snp (make-cycle (sn ,pattern)))
+         (chp (make-cycle (ch ,pattern)))
+         (ohp (make-cycle (oh ,pattern))))
+     (defun ,name (time)
+       (when (next bdp)
+         ,(first body))
+       (when (next snp)
+         ,(second body))
+       (when (next chp)
+         ,(third body))
+       (when (next ohp)
+         ,(fourth body))
+       (aat (+ time (* *sample-rate* ,dur)) #',name it))))
+
+(defmacro defbeat (name (pattern dur) &body body)
+  `(let ((ppattern
+          (cond ((stringp ,pattern)
+                 (parse-patternc ,pattern))
+                ((listp ,pattern) (make-cycle ,pattern)))))
+     (defun ,name (time)
+       (when (next ppattern)
+         ,@body)
+       (aat (+ time (* *sample-rate* ,dur)) #',name it))))
+
+;; (defmacro defbeats (name duration beats notes &body body)
+;;   (let ((i-name (intern (format nil "%~a" name)))
+;;         (d (intern "D")))
+;;     `(let* ((l-beats (coerce ,beats 'list))
+;;             (l-beats (substitute #\x #\1 l-beats))
+;;             (n-on-beats (loop :for b :in l-beats :count (eq #\x b)))
+;;             (onotes  ,notes)
+;;             (notes   ,notes)
+;;             (notes   (subseq notes 0 (min n-on-beats (length notes))))
+;;             (beats   ,beats)
+;;             (,d      ,duration))
+;;        (defun ,i-name (time lbeats bbeats lnotes lonotes)
+;;          (when (not (equal onotes lonotes))
+;;            (setf lnotes onotes
+;;                  lonotes onotes))
+;;          (when (not (equal ,beats bbeats))
+;;            (setf bbeats beats
+;;                  lbeats (coerce bbeats 'list)))
+;;          (cond ((or (eq #\1 (first lbeats))
+;;                     (eq #\x (first lbeats)))
+;;                 (let ((note (first lnotes)))
+;;                   ,@body
+;;                   (setf lnotes (alexandria:rotate lnotes -1))))
+;;                ((eq #\X (first lbeats))
+;;                 (let ((,d (* 2 ,d)))
+;;                   ,@body)))
+;;          (callback (+ time ,duration) #',i-name
+;;                    (+ time ,duration)
+;;                    (alexandria:rotate lbeats -1)
+;;                    bbeats
+;;                    lnotes
+;;                    lonotes))
+;;        (defun ,name ()
+;;          (,i-name (quant 4) l-beats beats notes onotes)))))
