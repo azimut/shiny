@@ -2,70 +2,6 @@
 
 (defparameter *patterns* (make-hash-table))
 
-;; TODO: track the beat progression to skip ahead on redefinition
-;;       add metro?
-(defmacro defbeat (name duration beats &body body)
-  "(defbeat kick .15 \"x---x-----------\"
-      (synth 'atari :dur (- d .05) :tone0 15 :freq0 30))"
-  (let ((i-name (intern (format nil "%~a" name)))
-        (d (intern "D")))
-    `(let ((l-beats (coerce ,beats 'list))
-           (beats ,beats)
-           (,d    ,duration))
-       (defun ,i-name (time lbeats bbeats)
-         (when (not (equal ,beats bbeats))
-           (setf bbeats beats
-                 lbeats (coerce bbeats 'list)))
-         (cond ((or (eq #\1 (first lbeats))
-                    (eq #\x (first lbeats)))
-                ,@body)
-               ((eq #\X (first lbeats))
-                (let ((,d (* 2 ,d)))
-                  ,@body)))
-         (callback (+ time ,duration) #',i-name
-                   (+ time ,duration)
-                   (alexandria:rotate lbeats -1)
-                   bbeats))
-       (defun ,name ()
-         (,i-name (quant 4) l-beats beats)))))
-
-(defmacro defbeats (name duration beats notes &body body)
-  (let ((i-name (intern (format nil "%~a" name)))
-        (d (intern "D")))
-    `(let* ((l-beats (coerce ,beats 'list))
-            (l-beats (substitute #\x #\1 l-beats))
-            (n-on-beats (loop :for b :in l-beats :count (eq #\x b)))
-            (onotes  ,notes)
-            (notes   ,notes)
-            (notes   (subseq notes 0 (min n-on-beats (length notes))))
-            (beats   ,beats)
-            (,d      ,duration))
-       (defun ,i-name (time lbeats bbeats lnotes lonotes)
-         (when (not (equal onotes lonotes))
-           (setf lnotes onotes
-                 lonotes onotes))
-         (when (not (equal ,beats bbeats))
-           (setf bbeats beats
-                 lbeats (coerce bbeats 'list)))
-         (cond ((or (eq #\1 (first lbeats))
-                    (eq #\x (first lbeats)))
-                (let ((note (first lnotes)))
-                  ,@body
-                  (setf lnotes (alexandria:rotate lnotes -1))))
-               ((eq #\X (first lbeats))
-                (let ((,d (* 2 ,d)))
-                  ,@body)))
-         (callback (+ time ,duration) #',i-name
-                   (+ time ,duration)
-                   (alexandria:rotate lbeats -1)
-                   bbeats
-                   lnotes
-                   lonotes))
-       (defun ,name ()
-         (,i-name (quant 4) l-beats beats notes onotes)))))
-
-;;--------------------------------------------------
-
 ;; Drum Patterns took from:
 ;; https://github.com/lvm/tidal-drum-patterns
 ;; http://hiphoptranscriptions.com/post/159995606528
@@ -78,22 +14,9 @@
 ;;       For example some are 0/2.
 ;;
 ;; - Others not done to being unable to understand the pattern format yet.
-;;
-;; $ grep -l -e '(.*,' -e ']]' -e ']/' -e '\[\[' *.hs
-;; BooksOfMoses.hs
+;; $ grep -l -e ']]' -e ']/' -e '\[\[' *.hs
 ;; Breaks.hs
-;; ComeDancing.hs
-;; ExpressYourself.hs
-;; FunkyDrummer.hs
-;; GrooveMe.hs
-;; HipHop.hs
-;; IGotTheFeelin.hs
-;; ItsANewDay.hs
 ;; Jungle.hs
-;; MotherPopcorn.hs
-;; RespectYourself.hs
-;; TheThrillIsGone.hs
-;; UseMe.hs
 
 ;; https://stackoverflow.com/questions/5457346/lisp-function-to-concatenate-a-list-of-strings
 (defun concat (&rest list)
@@ -116,25 +39,34 @@
   (print-unreadable-object (obj out :type t)
     (format out "~s" (pattern-name obj))))
 
+(defun parse-pattern (s)
+  (when s
+    (loop
+       :for c
+       :across (string-downcase s)
+       :when (or (eq c #\x) (eq c #\0)
+                 (eq c #\~) (eq c #\-))
+       :collect
+       (if (or (eq c #\x)
+               (eq c #\0))
+           t
+           nil))))
+
+(defun parse-patternc (s)
+  (let ((p (parse-pattern s)))
+    (when p
+      (make-cycle p))))
+
 (defun make-pattern (name short-name &key bd ch oh sn)
   (declare (string name) (symbol short-name))
-  (flet ((f (s)
-             (when (stringp s)
-               (loop
-                  :for c
-                  :across (string-downcase s)
-                  :when (or (eq c #\x) (eq c #\0)
-                            (eq c #\~) (eq c #\-))
-                  :collect
-                  (if (or (eq c #\x)
-                          (eq c #\0))
-                      t
-                      nil)))))
-    (setf (gethash short-name *patterns*)
-          (make-instance 'drum-pattern
-                         :name name
-                         :bd (f bd) :ch (f ch)
-                         :oh (f oh) :sn (f sn)))))
+  (setf (gethash short-name *patterns*)
+        (make-instance
+         'drum-pattern
+         :name name
+         :bd (parse-pattern bd)
+         :ch (parse-pattern ch)
+         :oh (parse-pattern oh)
+         :sn (parse-pattern sn))))
 
 (defun list-patters ()
   (alexandria:hash-table-keys *patterns*))
@@ -150,6 +82,22 @@
   (let ((p (gethash name *patterns*)))
     (when p
       (make-cycle p))))
+
+(make-pattern
+ "Mother Popcorn"
+ 'popcorn
+ :bd (concat "[0 ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"
+             "[~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~][~ ~ 0 ~]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ ~][~ ~ 0 ~]"
+             "[~ 0 ~ 0][0 0 ~ 0][~ 0 ~ 0][0 0 ~ 0]")
+ :ch (concat "[0 ~ ~ ~]"))
+
+(make-pattern
+ "Book Of Moses"
+ 'moses
+ :bd "[0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ 0][~ ~ ~ ~]"
+ :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
+ :ch "[0 ~ 0 ~]")
 
 (make-pattern
  "Synthetic Substitution"
@@ -170,11 +118,29 @@
  :oh "[~ ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]")
 
 (make-pattern
+ "Express Yourself"
+ 'express
+ :bd (concat "[0 ~ ~ 0][0 ~ ~ 0][~ ~ 0 ~][0 ~ ~ 0]"
+             "[0 ~ ~ 0][~ ~ ~ ~][0 ~ ~ 0][~ ~ 0 ~]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ 0][~ 0 ~ 0]"
+             "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ 0][0 ~ ~ ~]")
+ :ch (concat "[0 0 0 0][0 0 0 0][0 0 0 0][0 0 0 0]"
+             "[0 0 0 0][0 0 0 0][0 0 0 0][0 0 0 ~]"))
+
+(make-pattern
  "Superstition"
  'superstition
  :bd "[0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~]"
  :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
  :ch "[0 ~ 0 ~][0 ~ 0 0][0 0 0 ~][0 ~ 0 0]")
+
+(make-pattern
+ "Respect Yourself"
+ 'respect
+ :bd (concat "[0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ ~][~ ~ 0 ~][0 ~ ~ ~]"
+             "[~ ~ ~ ~][0 ~ ~ ~][0 ~ 0 ~][0 ~ ~ ~]")
+ :ch (concat "[0 ~ 0 ~]"))
 
 (make-pattern
  "Rock Steady"
@@ -185,6 +151,20 @@
              "[0 ~ ~ ~][0 ~ 0 0][0 ~ ~ ~][0 ~ 0 0]")
  :oh (concat "[~ ~ 0 ~][~ ~ ~ 0][~ ~ 0 ~][~ ~ ~ 0]"
              "[~ 0 ~ ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"))
+
+(make-pattern
+ "GrooveMe"
+ 'grooveme
+ :bd "[0 ~ ~ 0][0 ~ ~ 0][0 0 ~ 0][~ 0 ~ 0]"
+ :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
+ :ch "[0 ~ 0 ~]")
+
+(make-pattern
+ "The Thrill Is Gone"
+ 'thrill
+ :bd (concat "[~ ~ ~ ~][~ ~ ~ 0][0 ~ 0 ~][~ ~ ~ ~]")
+ :sn (concat "[0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~][0 ~ ~ ~]")
+ :ch (concat "[0 ~ 0 ~]"))
 
 (make-pattern
  "Haitian Divorce"
@@ -262,7 +242,7 @@
              "[0 ~ 0 ~][~ 0 ~ 0][0 ~ ~ ~][~ ~ ~ 0]")
  :sn (concat "[~ 0 0 ~][0 0 0 ~][~ 0 0 ~][0 0 0 ~]"
              "[~ 0 ~ ~][0 0 ~ ~][~ 0 ~ ~][0 0 0 ~]")
- :ch (concat "[~ ~ ~ ~][~ ~ ~ ~][0 0 0 0][0 0 0 0]"))
+ :ch (concat "[0 ~ 0 ~]"))
 
 (make-pattern
  "Chug Chug Chug Chug A Lug"
@@ -420,14 +400,14 @@
              "[~ ~ 0 ~][~ ~ ~ ~][0 ~ ~ ~][0 ~ 0 ~]")
  :sn (concat "[~ ~ ~ ~][~ ~ 0 ~][~ 0 ~ ~][~ ~ 0 ~]"
              "[~ 0 ~ ~][0 0 ~ 0][~ 0 0 0][~ 0 0 0]")
- :ch (concat "[~ ~ ~ ~][~ ~ ~ ~][0 0 0 0][0 0 0 0]"))
+ :ch (concat "[0 ~ 0 ~]"))
 
 (make-pattern
  "Its A New Day"
  'newday
  :bd "[0 ~ 0 ~][~ ~ ~ ~][~ ~ 0 0][~ ~ ~ 0]"
  :sn "[~ ~ ~ ~][0 ~ ~ ~][~ ~ ~ ~][0 ~ ~ ~]"
- :ch "[~ ~ ~ ~][~ ~ ~ ~][0 0 0 0][0 0 0 0]")
+ :ch "[0 ~ 0 ~]")
 
 (make-pattern
  "Palm Grease"
@@ -450,8 +430,81 @@
  :oh "[~ ~ ~ ~][0 ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]")
 
 (make-pattern
+ "Funky Drummer"
+ 'funkyd
+ :bd (concat "[0 ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ 0 ~ ~]"
+             "[0 ~ 0 ~][~ ~ ~ ~][~ ~ 0 ~][~ 0 ~ ~]")
+ :sn (concat "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ 0][0 ~ ~ 0]"
+             "[~ ~ ~ ~][0 ~ ~ 0][~ 0 ~ 0][0 ~ ~ 0]")
+ :ch (concat "[0 0 0 0]"))
+
+(make-pattern
  "Galactic"
  'galactic
  :bd "xx-- x-x- xx-- -x--"
  :sn "--x-"
  :ch "xxxx")
+
+;; --------------------------------------------------
+
+;; TODO: track the beat progression to skip ahead on redefinition
+;;       add metro?
+(defmacro defbeat (name duration beats &body body)
+  "(defbeat kick .15 \"x---x-----------\"
+      (synth 'atari :dur (- d .05) :tone0 15 :freq0 30))"
+  (let ((i-name (intern (format nil "%~a" name)))
+        (d (intern "D")))
+    `(let ((l-beats (coerce ,beats 'list))
+           (beats ,beats)
+           (,d    ,duration))
+       (defun ,i-name (time lbeats bbeats)
+         (when (not (equal ,beats bbeats))
+           (setf bbeats beats
+                 lbeats (coerce bbeats 'list)))
+         (cond ((or (eq #\1 (first lbeats))
+                    (eq #\x (first lbeats)))
+                ,@body)
+               ((eq #\X (first lbeats))
+                (let ((,d (* 2 ,d)))
+                  ,@body)))
+         (callback (+ time ,duration) #',i-name
+                   (+ time ,duration)
+                   (alexandria:rotate lbeats -1)
+                   bbeats))
+       (defun ,name ()
+         (,i-name (quant 4) l-beats beats)))))
+
+(defmacro defbeats (name duration beats notes &body body)
+  (let ((i-name (intern (format nil "%~a" name)))
+        (d (intern "D")))
+    `(let* ((l-beats (coerce ,beats 'list))
+            (l-beats (substitute #\x #\1 l-beats))
+            (n-on-beats (loop :for b :in l-beats :count (eq #\x b)))
+            (onotes  ,notes)
+            (notes   ,notes)
+            (notes   (subseq notes 0 (min n-on-beats (length notes))))
+            (beats   ,beats)
+            (,d      ,duration))
+       (defun ,i-name (time lbeats bbeats lnotes lonotes)
+         (when (not (equal onotes lonotes))
+           (setf lnotes onotes
+                 lonotes onotes))
+         (when (not (equal ,beats bbeats))
+           (setf bbeats beats
+                 lbeats (coerce bbeats 'list)))
+         (cond ((or (eq #\1 (first lbeats))
+                    (eq #\x (first lbeats)))
+                (let ((note (first lnotes)))
+                  ,@body
+                  (setf lnotes (alexandria:rotate lnotes -1))))
+               ((eq #\X (first lbeats))
+                (let ((,d (* 2 ,d)))
+                  ,@body)))
+         (callback (+ time ,duration) #',i-name
+                   (+ time ,duration)
+                   (alexandria:rotate lbeats -1)
+                   bbeats
+                   lnotes
+                   lonotes))
+       (defun ,name ()
+         (,i-name (quant 4) l-beats beats notes onotes)))))
