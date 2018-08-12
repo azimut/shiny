@@ -39,17 +39,17 @@
   (print-unreadable-object (obj out :type t)
     (format out "~s" (pattern-name obj))))
 
-
 (defun parse-pattern (s)
   (when s
     (loop
        :for c
        :across (string-downcase s)
-       :when (or (eq c #\x) (eq c #\0)
+       :when (or (eq c #\1) (eq c #\x) (eq c #\0)
                  (eq c #\~) (eq c #\-))
        :collect
        (if (or (eq c #\x)
-               (eq c #\0))
+               (eq c #\0)
+               (eq c #\1))
            t
            nil))))
 
@@ -414,7 +414,6 @@
              "[0 ~ 0 ~][~ ~ ~ ~][~ ~ ~ ~][~ ~ ~ ~]")
  :oh (concat "[~ ~ ~ ~][~ ~ ~ ~][~ ~ 0 ~][~ ~ ~ ~]"))
 
-
 (make-pattern
  "Funky President"
  'funkyp
@@ -440,35 +439,39 @@
  :ch "xxxx")
 
 ;; --------------------------------------------------
-
 ;; TODO: track the beat progression to skip ahead on redefinition
 ;;       add metro?
 
 (defmacro defpattern (name (pattern dur) &body body)
-  `(let ((bdp (make-cycle (bd ,pattern)))
-         (snp (make-cycle (sn ,pattern)))
-         (chp (make-cycle (ch ,pattern)))
-         (ohp (make-cycle (oh ,pattern))))
-     (defun ,name (time)
-       (when (next bdp)
-         ,(first body))
-       (when (next snp)
-         ,(second body))
-       (when (next chp)
-         ,(third body))
-       (when (next ohp)
-         ,(fourth body))
-       (aat (+ time (* *sample-rate* ,dur)) #',name it))))
+  (let* ((lbody (length body)))
+    `(let ((bdp (make-cycle (bd ,pattern)))
+           (snp (make-cycle (sn ,pattern)))
+           (chp (make-cycle (ch ,pattern)))
+           (ohp (make-cycle (oh ,pattern)))
+           (d  ,dur))
+       (defun ,name (time)
+         (when (next bdp)
+           ,(first body))
+         (and (> ,lbody 1) (when (next snp)
+                             ,(second body)))
+         (and (> ,lbody 2) (when (next chp)
+                             ,(third body)))
+         (and (> ,lbody 3) (when (next ohp)
+                             ,(fourth body)))
+         (aat (+ time (* *sample-rate* ,dur))
+              #',name it)))))
 
 (defmacro defbeat (name (pattern dur) &body body)
-  `(let ((ppattern
+  `(let ((d ,dur)
+         (ppattern
           (cond ((stringp ,pattern)
                  (parse-patternc ,pattern))
                 ((listp ,pattern) (make-cycle ,pattern)))))
      (defun ,name (time)
        (when (next ppattern)
          ,@body)
-       (aat (+ time (* *sample-rate* ,dur)) #',name it))))
+       (aat (+ time (* *sample-rate* ,dur))
+            #',name it))))
 
 ;; (defmacro defbeats (name duration beats notes &body body)
 ;;   (let ((i-name (intern (format nil "%~a" name)))
