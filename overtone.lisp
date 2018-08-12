@@ -33,6 +33,8 @@
 ;; Taking a similar function to cycle
 ;; NOTE: use make-list
 (defun repeat (n l &optional (nl '()))
+  (when (not (listp l))
+    (setf l (list l)))
   (if (zerop n)
       nl
       (repeat (- n 1)
@@ -254,7 +256,8 @@
         (:augmented         . (3 1 3 1 3 1))
         (:purvi             . (1 3 2 1 1 3 1))
         (:chinese           . (4 2 1 4 1))
-        (:lydian-minor      . (2 2 2 1 1 2 2))))))
+        (:lydian-minor      . (2 2 2 1 1 2 2))
+        (:ryukyu            . (4 1 2 4 1))))))
 
 (defvar +degree+
   (let ((degrees '((:i   . 1) (:ii . 2) (:iii . 3)
@@ -365,7 +368,8 @@
 (defun resolve-degrees (degrees)
   "Either maps the degrees to integers if they're keywords using the map DEGREE
   or leaves them unmodified"
-  (mapcar (lambda (x) (if (keywordp x) (degree x) x)) degrees))
+  (mapcar (lambda (x) (if (keywordp x) (degree x) x))
+          degrees))
 
 (defun ov-scale (x y &optional z)
   "Returns a list of notes for the specified scale. The root must be
@@ -490,7 +494,8 @@
   (if inversion
       (let* ((root (note root))
              (chord (resolve-chord chord-name))
-             (notes (mapcar (lambda (x) (+ x root)) chord)))
+             (notes (mapcar (lambda (x) (+ x root))
+                            chord)))
         (invert-chord notes inversion))
       (chord root chord-name 0)))
 
@@ -519,7 +524,10 @@
          (root      (note root))
          (max-pitch (+ pitch-range root))
          (roots     (myrange max-pitch :step 12))
-         (notes     0))))
+         (notes     (flatten (mapcar (lambda (x) (mapcar (lambda (y) (+ x y)) chord))
+                                     roots)))
+         (notes     (filter (lambda (x) (when (<= x max-pitch) x)) notes)))
+    (sort (pick-random-list notes num-pitches) #'<)))
 
 ;;; Extra
 (defun ov-pc-scale (scale-name-key)

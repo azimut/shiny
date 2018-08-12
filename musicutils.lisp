@@ -10,8 +10,10 @@
 ;; | sed 's/^/(defvar /g'
 ;; | sed 's/$/)/g'
 
-(defun cumsum (list)
-  (loop for x in list with z = 0
+(defun cumsum (l)
+  "> (cumsum '(20 30 40 50 60))
+  (20 50 90 140 200)"  
+  (loop :for x :in l :with z = 0
      :collect (incf z x)))
 
 (setf *random-state* (make-random-state t))
@@ -73,6 +75,7 @@
 ;; https://github.com/ctford/functional-composition
 ;; ----------------------
 (defun midihz (midi)
+  (declare (number midi))
   (* 8.1757989156
      (expt 2 (/ midi 12))))
 
@@ -198,8 +201,8 @@ See also: `pbjorklund'"
 
 ;;--------------------------------------------------
 ;; Visual utils
-
-(defun trigger-once ()
+;;--------------------------------------------------
+(defun make-trigger ()
   "thing/closure that has 1 live until is regen
    unless is bulletproof in which case is alive forever"
   (let ((alive 1)
@@ -218,28 +221,42 @@ See also: `pbjorklund'"
                                      (progn (setf alive 0) 1)
                                      0)))))))
 
-(defmacro with-trigger ((trigger t-trigger) &body body)
+;; (defmacro with-trigger ((trigger t-trigger) &body body)
+;;   "makes a mortal trigger-once call"
+;;   (let ((it (intern "IT")))
+;;     `(let ((,it ,t-trigger))
+;;        (callback ,t-trigger #'funcall ,trigger 'alive)
+;;        ,@body)))
+
+(defmacro with-trigger ((trigger) &body body)
   "makes a mortal trigger-once call"
-  (let ((it (intern "IT")))
-    `(let ((,it ,t-trigger))
-       (callback ,t-trigger #'funcall ,trigger 'alive)
-       ,@body)))
+  `(progn
+     (funcall ,trigger 'alive)
+     ,@body))
 
-(defmacro with-trigger-expire ((trigger t-trigger dur) &body body)
+(defmacro with-trigger-expire ((trigger dur) &body body)
   "makes a inmortal trigger-once call"
-  (let ((it (intern "IT")))
-    `(let ((,it ,t-trigger))       
-       (callback ,t-trigger #'funcall ,trigger 'bulletproof)
-       (callback (+ ,t-trigger ,dur) #'funcall ,trigger 'curse)
-       ,@body)))
+  `(progn
+     (funcall ,trigger 'bulletproof)
+     (at (+ (now) (+ ,dur (* 44100d0 b))) #'(lambda () (funcall ,trigger 'curse)))
+     ,@body))
 
+;; (defmacro with-trigger-expire ((trigger t-trigger dur) &body body)
+;;   "makes a inmortal trigger-once call"
+;;   (let ((it (intern "IT")))
+;;     `(let ((,it ,t-trigger))       
+;;        (callback ,t-trigger #'funcall ,trigger 'bulletproof)
+;;        (callback (+ ,t-trigger ,dur) #'funcall ,trigger 'curse)
+;;        ,@body)))
 
-;;; CM helpers
-
+;;--------------------------------------------------
+;; CM helpers
+;;--------------------------------------------------
 (defun make-cycle (elements &optional (for-elements 1 for-elements-p))
-  (if for-elements-p
-      (new cycle :of elements :for for-elements)
-      (new cycle :of elements)))
+  (when elements ;; do not make a cycle of just nil
+    (if for-elements-p
+        (new cycle :of elements :for for-elements)
+        (new cycle :of elements))))
 (defun make-heap (elements &optional (for-elements 1 for-elements-p))
   (if for-elements-p
       (new heap :of elements :for for-elements)
@@ -262,33 +279,49 @@ See also: `pbjorklund'"
         (new weighting :of sane-elements :for for-elements)
         (new weighting :of sane-elements))))
 (defun make-palindrome (elements)
-  (new palindrome :of elements :elide t))
+  (cm:new cm:palindrome :of elements :elide t))
 ;; appeared on jazz.cm
 (defun rancyc (data prob)
   (list (make-cycle data) :weight prob))
 
-
 ;; <3
 ;; Might be I can generalize the pick and pickl of CM too.
-(defun pick-random-list (list &optional (max 0 max-set))
+(defun pick-random-list (list &optional (end 0))
   "pick a random number of elements from a list, up to max elements,
    useful if you have a 4note chord that you want to avoid"
-  (let* ((l (if max-set max (length list)))
+  (let* ((l (max end (length list)))
          (n (- l (random l))))
     (loop :for x :in list :collect x :repeat n)))
 
+;; like overtone's choose-n
+(defun pickn (n l)
+  "get n random elements from list"
+  (subseq (cm:shuffle l)
+          0 (min (length l) n)))
+
 ;; Apparently same idea of nudruz.lisp
-(defun nths (l lnth)
+(defun nths (lnth l)
   "get nth elements from lnth list"
   (remove nil (loop :for i :in lnth :collect (nth i l))))
 
-;; from overtone , choose-n, like take but shuffle
-(defun pickn (n l)
-  "get n random elements from list"
-  (subseq (shuffle l)
-          0 (min (length l) n)))
+;;--------------------------------------------------
+;; From overtone, fn.clj
+;; cycle-fn????
 
-;; from overtone, who know if I will use it...
+;; from overtone, lists.clj
+;; rotate, like alexandria:rotate-elt
+;; fill a.k.a. repeat
+
+;; from overtone, chance.clj
+;; might be called pickln
+(defun choose-n (n l)
+  "Choose n random elements from l"
+  (take n (alexandria:shuffle l)))
+
+;; weighted-coin is like (cm:odds)
+;; ranged-rand is like (cm:between)
+;; choose/chosen-from is like (cm:pickl) or (alexandria:random-elt)
+;; weighted-choose is like (cm:new cm:weighted)
 (defun sputter (list &optional (prob .25) (max 100) (result '()))
   "Returns a list where some elements may have been repeated.
 
@@ -298,10 +331,10 @@ See also: `pbjorklund'"
    repetiton). The size of the resulting list can be constrained to max
    elements (defaulting to 100).
 
-  (sputter [1 2 3 4])        ;=> [1 1 2 3 3 4]
-  (sputter [1 2 3 4] 0.7 5)  ;=> [1 1 1 2 3]
-  (sputter [1 2 3 4] 0.8 10) ;=> [1 2 2 2 2 2 2 2 3 3]
-  (sputter [1 2 3 4] 1 10)   ;=> [1 1 1 1 1 1 1 1 1 1]
+  (sputter '(1 2 3 4))        ;=> (1 1 2 3 3 4)
+  (sputter '(1 2 3 4) 0.7 5)  ;=> (1 1 1 2 3)
+  (sputter '(1 2 3 4) 0.8 10) ;=> (1 2 2 2 2 2 2 2 3 3)
+  (sputter '(1 2 3 4) 1 10)   ;=> (1 1 1 1 1 1 1 1 1 1)
   "
   (let ((head (first list))
         (tail (rest  list)))
@@ -314,3 +347,29 @@ See also: `pbjorklund'"
                      prob max
                      (cons head result)))
         (reverse result))))
+
+(defun nth-set (n new-value l)
+  "Change the value at n on l for new-value
+   > (nth-set 1 20 '(60 70 80 90 100))
+   (60 20 80 90 100)"
+  (when (not (listp l))
+    (setf l (list l)))
+  (loop :for i :upfrom 0
+     :for e :in l
+     :collect
+     (if (= n i)
+         new-value
+         e)))
+
+(defun nth-inc (n inc-by l)
+  "Increment by inc-by the value at n on l
+   > (nth-inc 1 -5 '(30 40 50 60 70 80))
+   (30 35 50 60 70 80)"
+  (when (not (listp l))
+    (setf l (list l)))
+  (loop :for i :upfrom 0
+     :for e :in l
+     :collect
+     (if (= n i)
+         (+ e inc-by)
+         e)))

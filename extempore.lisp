@@ -701,25 +701,25 @@ you can call the metro with the following symbols
              (mod (- (car args) cycle-beats) cycle))
             ((eq sym 'beat-at-time)
              (funcall beat-env (car args))) ;; FIXME
-            ((eq sym 'set-tempo)
-             (let ((time (if (null (cdr args)) (round (now)) (cadr args))))
-               (if (or (null (cdr args))
-                       (null (cddr args)))
-                   (setf total-beats
-                         (+ total-beats (/ (- time mark)
-                                           (* *sample-rate* g-tempo))))
-                   (setf total-beats (caddr args)))
-               (setf g-tempo (/ 60 (car args)))
-               (setf mark time)
-               (setf samp-env (funcall beat-pos total-beats
-                                       mark
-                                       (+ total-beats 1)
-                                       (+ mark (* g-tempo *sample-rate*))))
-               (setf beat-env (funcall beat-pos mark
-                                       total-beats
-                                       (+ mark (* g-tempo *sample-rate*))
-                                       (+ total-beats 1)))
-               (car args)))
+            ;; ((eq sym 'set-tempo)
+            ;;  (let ((time (if (null (cdr args)) (now) (cadr args))))
+            ;;    (if (or (null (cdr args))
+            ;;            (null (cddr args)))
+            ;;        (setf total-beats
+            ;;              (+ total-beats (/ (- time mark)
+            ;;                                (* *sample-rate* g-tempo))))
+            ;;        (setf total-beats (caddr args)))
+            ;;    (setf g-tempo (/ 60 (car args)))
+            ;;    (setf mark time)
+            ;;    (setf samp-env (funcall beat-pos total-beats
+            ;;                            mark
+            ;;                            (+ total-beats 1)
+            ;;                            (+ mark (* g-tempo *sample-rate*))))
+            ;;    (setf beat-env (funcall beat-pos mark
+            ;;                            total-beats
+            ;;                            (+ mark (* g-tempo *sample-rate*))
+            ;;                            (+ total-beats 1)))
+            ;;    (car args)))
             ((eq sym 'get-tempo) (* (/ 1 g-tempo) 60))
             ((eq sym 'dur) (* *sample-rate* g-tempo (car args)))
             ((eq sym 'push) (setf loffset (+ loffset 256)))
@@ -729,7 +729,7 @@ you can call the metro with the following symbols
                            (/ (- (round (now)) mark)
                               (* *sample-rate* g-tempo))))
                    (quantize (if (null args) 1.0 (car args))))
-               (round (+ val (- quantize (mod val quantize))))))
+               (+ val (- quantize (mod val quantize)))))
             (t 'bad-method-name)))))
 
 (defun make-metre (metre base)

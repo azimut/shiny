@@ -25,4 +25,5 @@
                (:file "musicutils")
 ;;               (:file "nudruz")
                (:file "extempore")
-               (:file "overtone")))
+               (:file "overtone")
+               (:file "drums")))

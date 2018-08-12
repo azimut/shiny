@@ -87,6 +87,7 @@
                 #:sample->fixnum
                 #:non-negative-sample
                 #:lin->db
+                #:SAMPLE
                 #:*SAMPLE-DURATION*
                 #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
