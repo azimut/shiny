@@ -1,58 +1,16 @@
 (in-package :somecepl)
 
+;; Used by examples/cvmultiple.lisp
+(defparameter *factor* 1)
+(defparameter *single* 50)
+(defparameter *hsv* nil)
+(defparameter *size* .01)
+(defparameter *stop* nil)
+
 ;; instruments were attempts to copy the ones from ctford song
 ;; from overtone/supercollider to incudine, some thing I dunno how to translate
 ;; melody is just me trying to make things sound less awful, haven't read original
 ;; song melody just yet
-
-(defvar *buffers* (make-hash-table :test #'equal))
-(defvar *sample-words* (make-hash-table :test #'equal))
-
-(defun bbuffer-load (filename)
-  "buffer-load wrapper for global hash caching and easy access"
-  (let ((hkey (file-namestring filename)))
-    (when (not (gethash hkey *buffers*))
-      (setf (gethash hkey *buffers*)
-            (buffer-load filename)))))
-
-(defstruct phrase
-  filename
-  start-at
-  dur)
-
-(defun put-phrase (word filename start-at dur)
-  (setf (gethash word *sample-words*)
-        (make-phrase :filename filename
-                     :start-at start-at
-                     :dur dur)))
-
-(dsp! bplay ((buf buffer) rate start-pos (loop-p boolean) attenuation rms cfreq)
-  (:defaults 0d0 1 0 nil .00001 0 100)
-  (with-samples ((in (incudine.vug:buffer-play
-                      buf rate start-pos loop-p #'stop))
-                 (inn (* in attenuation))
-                 (inn (+ inn
-;;                        (incudine.vug:lpf inn 500 50)
-                        (incudine.vug:hpf inn 100 20)
-;;                        (incudine.vug:butter-hp inn 1020)
-                        )))
-    (out inn inn)))
-
-(defun word-play (word rate
-               &key (loop-p nil) (attenuation 1f0) (id 2))
-  "bplay wrapper with duration support AND word slice"
-  (when word
-    (let* ((obj (gethash word *sample-words*))
-           (dur (phrase-dur obj))
-           (buf (gethash (phrase-filename obj)
-                         *buffers*))
-           (sample-rate (buffer-sample-rate buf))
-           (start-pos (* sample-rate (phrase-start-at obj))))
-      (bplay buf rate start-pos loop-p
-             :attenuation attenuation
-             :id id)
-      (when dur
-        (at (+ (now) #[dur b]) #'free (node id))))))
 
 (bbuffer-load "/home/sendai/curso/furi-dream-cc.wav")
 (bbuffer-load "/home/sendai/curso/furi-better-cc.wav")
@@ -60,7 +18,6 @@
 (bbuffer-load "/home/sendai/curso/furi-forget-cc.wav")
 (bbuffer-load "/home/sendai/curso/furi-search-cc.wav")
 (bbuffer-load "/home/sendai/curso/furi-clock-cc.wav")
-
 
 (put-phrase "nothing" "furi-better-cc.wav" 1.7 1.9)
 (put-phrase "better" "furi-better-cc.wav" 0 1.2)
@@ -79,17 +36,28 @@
 (put-phrase "forget" "furi-forget-cc.wav" 15.4 2.3)
 (put-phrase "her" "furi-forget-cc.wav" 19 2)
 
-(put-phrase "search" "furi-search-cc.wav" 0 5.8)
-(put-phrase "searchsearch" "furi-search-cc.wav" 0 2.8)
-(put-phrase "hope" "furi-search-cc.wav" 6 4.5)
-(put-phrase "missing" "furi-search-cc.wav" 13.4 2.35)
+(put-phrase "search" "furi-search-cc.wav" 0 5)
+(put-phrase "searchsearch" "furi-search-cc.wav" 0 2.6)
+(put-phrase "hope" "furi-search-cc.wav" 6 4.2)
+(put-phrase "missing" "furi-search-cc.wav" 13.4 2.2)
 
 (put-phrase "time" "furi-clock-cc.wav" 0 4.7)
 (put-phrase "still" "furi-clock-cc.wav" 6.9 4)
 (put-phrase "stop" "furi-clock-cc.wav" 11.8 1.8)
 (put-phrase "tick" "furi-clock-cc.wav" 16.5 3.5)
 
-(word-play "time" 1d0 :attenuation 2d0 :id 40)
+;; (word-play "tick" 1d0 :attenuation 2d0 :id 40 :loop-p t)
+;; (bplay (gethash "furi-better-cc.wav" *buffers*) 1 0 nil :attenuation 2 :id 40)
+;; (corrupt (now) 40 .2 .9 1.1)
+
+(defun corrupt (time node &optional (time-step .2) (min-rate .9) (max-rate 1.5))
+  "send erratic rate changes
+   (bplay (gethash \"furi-better-cc.wav\" *buffers*) 1 0 nil :attenuation 2 :id 40)
+   (corrupt (now) 40 .2 .9 1.1)"
+  (let ((alive (node-id (node node))))
+    (when alive
+      (set-control node :rate (cm:between min-rate max-rate))
+      (aat (+ time #[time-step b]) #'corrupt it node))))
 
 ;;<3
 (dsp! green (freq dur volume rms)
@@ -146,7 +114,7 @@
        (phrase (make-cycle '("dream" nil nil nil "better" nil
                              "real" nil
                              "stuck" nil "stuck"  nil "jstuck" nil "jstuck" nil nil nil)))
-;;     (phrase (make-cycle '("dream" nil nil nil)))
+;;    (phrase (make-cycle '("dream" nil nil nil)))
 ;;       (phrase (make-cycle '("wait" nil nil)))
        )
   (defun f (time)
@@ -154,7 +122,8 @@
           (d (next r)))
       
       (and (not (node-id (node 40)))
-           (word-play (next phrase) .9
+           (word-play (next phrase)
+                      :rate .9
                       :attenuation 2f0
                       :id 40))
       
@@ -208,7 +177,8 @@
           (d (next r)))
       (if *hsv* (setf *hsv* nil) (setf *hsv* t))
       (and (not (node-id (node 40)))
-           (word-play (next phrase) .9
+           (word-play (next phrase)
+                      :rate .9
                       :attenuation 2f0
                       :id 40))
 
@@ -280,7 +250,8 @@
           (d (next r)))
 
       (and (not (node-id (node 40)))
-           (word-play (next phrase) .9
+           (word-play (next phrase)
+                      :rate .9
                       :attenuation 2f0
                       :id 40))
 
@@ -389,6 +360,7 @@
 ;;     (at (+ time #[d b]) #'gg (+ time #[d b]))))
 ;; (gg (tempo-sync #[12 b]))
 
+;; LOAD FLUIDSYNTH for this
 (let* ((main (make-cycle '(nil nil nil nil nil t)))
        (lead (make-heap (make-chord-fixed 75 3 (scale 0 'aeolian))))
        (sizes (make-heap '(.2 .3 .4 .5 .6 .7 .8 .9)))
@@ -402,7 +374,8 @@
     (let ((l (next lead)))
       (p time l (rcosr 70 5 5) 1 1 :pan (pick 0 127))
       (and (not (node-id (node 40)))
-           (word-play (next phrase) .9
+           (word-play (next phrase)
+                      :rate .9
                       :attenuation 2f0
                       :id 40))
 

@@ -17,7 +17,7 @@
                     (expwarp x n))))
   (let ((chord (car chords)))
     (dolist (k chord)
-      (p time k (rcosr 40 10 3/4) 2 1))
+      (p time k (rcosr 40 5 3/4) 2 4))
     (aat (+ time 2) #'ew it (cdr chords))))
 
 (ew (quant 4))

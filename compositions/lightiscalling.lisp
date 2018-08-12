@@ -1,12 +1,5 @@
 (in-package :somecepl)
 
-(fp 1 89)
-(defun g ())
-(defun g (time)
-  (p time 60 (rcosr 45 5 1/2) 1.2 1)
-  (aat (+ time 1) #'g it))
-(g (quant 4))
-
 (fp 2 44)
 (defparameter *current-note* 120)
 (defun v ())
@@ -18,6 +11,16 @@
       (p time c 35 (next n) 2))
     (aat (+ time 2) #'v it)))
 (v (quant 4))
+
+(fg 1f0)
+(fp 1 89)
+(defun g ())
+(let* ((pan 63)
+       (pan (make-cycle '(0 127))))
+  (defun g (time)
+    (p time 60 (rcosr 45 5 1/2) 1.2 1 :pan (next pan))
+    (aat (+ time 1) #'g it)))
+(g (quant 4))
 
 (fp 8 52)
 (fp 0 40)
@@ -98,6 +101,8 @@
 (fp 10 30)
 (fp 10 29)
 (fp 10 28)
+
+(fp 10 50)
 (defun strin ())
 (defun strin (time)
   (let ((r (pick 4 2 2 1)))

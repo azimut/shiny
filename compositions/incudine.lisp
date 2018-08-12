@@ -1,35 +1,92 @@
-(bbuffer-load "/home/sendai/projects/sonic-pi/etc/samples/guit_em9.flac")
-(bbuffer-load "/home/sendai/projects/sonic-pi/etc/samples/loop_garzul.flac")
+(in-package :somecepl)
+
+(define-vug select (l)
+  (car (alexandria:shuffle l)))
+
+(dsp! ambi (freq vol)
+  (:defaults 100 1)
+  (with-samples
+      ((note  (incudine.vug:lag 70 1))
+       (freq  (midihz note))
+       (detune1 (incudine.vug:lag 12 1))
+       (detune2 (incudine.vug:lag 24 1))
+       (freq2 (midihz (+ note detune1)))
+       (freq3 (midihz (+ note detune2)))
+       (noise (select (list (pink-noise .002)
+                            (white-noise .002))))
+       (in (+ (incudine.vug:ringz noise freq  .2)
+              (incudine.vug:ringz noise freq  .2)
+              (incudine.vug:ringz noise freq2 .2)
+              (incudine.vug:ringz noise freq3 .2)))
+       (in (tanh in))
+       (in (incudine.vug:lpf in 110 .1))
+       (in (* 100 in)))
+    (out in in)))
+
+(ambi :id 2)
+(incudine:free (node 2))
+
+
+;; https://www.systemshock.org/shocklogs/
+(bbuffer-load "/home/sendai/Downloads/sample/LOG0119.wav")
+(bbuffer-load "/home/sendai/Downloads/sample/LOG0120.wav")
+
+(put-phrase "joy"        "LOG0120.wav"  5.5 3.7)
+(put-phrase "apart"      "LOG0120.wav"  9   4)
+(put-phrase "separate"   "LOG0120.wav" 13    .8)
+(put-phrase "individual" "LOG0120.wav" 14.5 4)
+(put-phrase "undo"       "LOG0119.wav" 17   2.2)
+
+(word-play "separate" :rate -1)
+
+;;--------------------------------------------------
+
+(bbuffer-load
+ "/home/sendai/projects/sonic-pi/etc/samples/guit_em9.flac")
+(bbuffer-load
+ "/home/sendai/projects/sonic-pi/etc/samples/loop_garzul.flac")
 
 (defun f (time)
-  (bbplay (gethash "guit_em9.flac" *buffers*)
-          :rate (pick .25 .5 1)
-          :attenuation .5)
-  (bbplay (gethash "loop_garzul.flac" *buffers*)
-          :rate (pick .5 1)
-          :attenuation 1)
+  (bbplay (gethash "ice.ogg" *buffers*)
+          ;;          :rate (pick .25 .5 1)
+          :beat-length 8
+          :attenuation .5
+;;          :id 2
+          )
+;;   (bbplay (gethash "guit_em9.flac" *buffers*)
+;;           ;;          :rate (pick .25 .5 1)
+;;           :beat-length 8
+;;           :attenuation .5
+;; ;;          :id 2
+;;           )
+  ;; (bbplay (gethash "loop_garzul.flac" *buffers*)
+  ;;         :rate (pick .5 1)
+  ;;         :attenuation 1
+  ;;         :id 3)
   (aat (+ time #[8 b]) #'f it))
 
 (defun f ())
 (f (now))
+(incudine:free (node 0))
 
 ;;--------------------------------------------------
-
-(bbuffer-load "/home/sendai/Downloads/sample/EM0903.wav")
-
 (bbuffer-load "/home/sendai/Downloads/sample/EM0902-EM0902.wav")
-(bplay (gethash "EM0902-EM0902.wav" *buffers*) 1 0 t
-       :attenuation 1)
-
-(bbuffer-load "/home/sendai/Downloads/sample/LOG0106.wav")
-(bplay (gethash "LOG0106.wav" *buffers*) 1 0 t
+(bplay (gethash "EM0902-EM0902.wav" *buffers*) 1 0 nil
        :attenuation 1
        :id 2)
 
-(bplay-beat (gethash "EM0903.wav" *buffers*) 2 nil)
+(bbuffer-load "/home/sendai/Downloads/sample/LOG0106.wav")
+(bbplay (gethash "LOG0106.wav" *buffers*)
+        :attenuation 1
+        :id 2
+        :loop-p nil)
 
-(bplay (gethash "EM0903.wav" *buffers*) 1 0 t
+(bbuffer-load "/home/sendai/Downloads/sample/EM0903.wav")
+(bbplay (gethash "EM0903.wav" *buffers*)
+        :beat-length 8)
+(bplay (gethash "EM0903.wav" *buffers*) 1 0 nil
        :attenuation 1)
+
 (put-phrase "nuisance" "EM0903.wav" 21 1)
 (put-phrase "why" "EM0903.wav" 8.4 2)
 (put-phrase "feel" "EM0903.wav" 10.5 3)
@@ -37,23 +94,34 @@
 (word-play (pick "why" "nuisance" "feel")
            :rate (pick 1 2 1.5)
            :id (1+ (random 30)))
+
 (word-play "why") 
 (word-play "nuisance" :beat-length 4)
 (incudine:free (node 0))
 
 (bbuffer-load "/home/sendai/whatever.wav")
-(bplay (gethash "whatever.wav" *buffers*) 1 0 t
-       :attenuation 1)
+(bplay (gethash "whatever.wav" *buffers*) 1 0 nil
+       :attenuation 1
+       :id 2)
+
+(defun g ())
+(defun g (time)
+  (let ((cfreq (drunk 60 5)))
+    (set-controls
+     2
+     :cfreq cfreq
+     :rate (funcall (pick '+ '+ '+ '- '+ '+ '+ '+)
+                    (+ cfreq (pick 0 0 1 -1 -2)))))
+  (aat (+ time #[1 b]) #'g it))
+(g (now))
 
 (set-controls
  2
- :rate 10f0 ; (drunk 5f0 2f0)
- :attenuation .4d0
- :cfreq 10)
+ :rate 1f0
+ :attenuation 1d0
+ :cfreq 1)
 
 ;;--------------------------------------------------
-
-(play-sample 'drum *gm-cowbell*)
 
 (make-instrument 'drum "/home/sendai/Downloads/sample/OH/")
 
@@ -83,19 +151,3 @@
 (f (now) 1)
 
 ;;--------------------------------------------------
-
-(define-vug grain-gen-id
-    (buf unit-rate frames gain rate start-pos lp-freq
-         lp-q lp-dist peak-freq peak-q peak-gain hp-freq hp-q
-         a length r)
-  (with-samples
-      ((snippet (buffer-read buf (* (phasor (* rate unit-rate) start-pos) frames)
-                             :wrap-p nil :interpolation :cubic)))
-    (lpf18
-     (peak-eq
-      (hpf
-       (* (envelope (make-local-envelope `(0 ,gain ,gain 0) `(,a ,length ,r)) 1 1 #'identity)
-          snippet)
-       hp-freq hp-q)
-      peak-freq peak-q peak-gain)
-     lp-freq lp-q lp-dist)))

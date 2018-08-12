@@ -1,12 +1,19 @@
-(in-package :sc)
+(in-package :sc-user)
 
-(setf *s* (sc:make-external-server "localhost" :port 4444))
-(sc:server-boot *s*)
-(sc:server-quit *s*)
+(setf *sc-plugin-paths*
+      (list "/usr/lib/SuperCollider/plugins/"
+;;            "/usr/share/SuperCollider/Extensions/"
+            ))
+(setf *sc-synth-program* "/usr/bin/scsynth")
+(setf *s* (make-external-server "localhost" :port 4444))
+(server-boot *s*)
+(server-quit *s*)
 
 (in-package :somecepl)
 
 (defparameter *synth* (play (sin-osc.ar 300 0 .2)))
+
+(cl-collider:free *synth*)
 
 (defsynth rhodey ((freq 440) (out 0) (gate 1) (pan 0) (amp 0.1)
                   (vel .8) (mod-index .2) (mix .2)
@@ -27,7 +34,7 @@
          (snd (pan2.ar snd pan amp)))
     (out.ar out snd)))
 
-(synth 'rhodey :freq (midicps 62) :amp .5 :gate 0)
+(synth 'rhodey :freq (midicps 62) :amp .5 :gate 1)
 
 (defmacro pa (time notes offset)
   `(let* ((other (cdr ,notes))
@@ -49,9 +56,9 @@
              :freq (midicps (+ -12 (first mychord)))
              :mix .4))
     (pa time mychord .5)
-;;    (callback next-time #'f next-time)
-    ))
+    (callback next-time #'f next-time)))
 
+(defun f ())
 (f (quant 4))
 
 (defparameter *m* (synth 'rhodey))
@@ -68,6 +75,7 @@
 
 (drum 3000)
 
+(named-readtables:in-readtable :sc)
 
 (defsynth saw-synth ((note 60) (dur 4.0))
   (let* ((env (env-gen.kr (env [0 .2 0] [(* dur .2) (* dur .8)]) :act :free))
@@ -79,10 +87,10 @@
   (when (> n 0)
     (at time (synth 'saw-synth :note (+ offset (alexandria:random-elt '(62 65 69 72)))))
       (let ((next-time (+ time (alexandria:random-elt '(0 1 2 1.5)))))
-        (callback next-time #'make-melody next-time (- n 1) offset))))
+        (callback next-time #'make-melody next-time (- n 1) offset)
+        )))
 
 (make-melody (quant 4) 16)
-
 
 (defsynth saw-synth ((note 60) (dur 4.0))
   (let* ((env (env-gen.kr (env [0 .2 0] [(* dur .2) (* dur .8)]) :act :free))

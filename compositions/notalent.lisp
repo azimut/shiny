@@ -41,6 +41,9 @@
             *notes*)))
   pitch)
 
+(defun spawn-circle (pitch &rest rest)
+  pitch)
+
 (fg 1.0)
 
 ;;--------------------------------------------------
@@ -54,7 +57,7 @@
                :pencil 0
                :fade 1
                :growth '-
-               :selfcolor (v! 1 0 0)
+;;;;;;;               :selfcolor (v! 1 0 0)
                ;;:color (v! 0 0 0)
                )
          50 1 1))
@@ -83,7 +86,7 @@
 
 (defun fff ())
 (let ((notes   (make-weighting '(60 62 (59 .1))))
-      (rhythms (make-weighting '(4 3 (2 .1))))
+      (rhythms (make-weighting '(4 3 (2 .5))))
       (amps    (make-weighting '(45 (50 .1)))))
   (defun fff (time)
     (let ((rhythm (next rhythms)))
@@ -91,7 +94,7 @@
                             rhythm
                             :selfcolor (v! 1 0 0)
                             :shape 3
-                            :growth (pick '+ '- nil)
+                            :growth '-
                             :rotation (random 45f0))
          (next amps) .5 3)
       (aat (+ time rhythm) #'fff it))))
@@ -106,22 +109,22 @@
  ;;      (b (make-cycle '(65 68 70) 10))
        (c (make-cycle (pval (make-chord-fixed 75 4 (pc-diatonic 0 '- (next i))))
                       (make-weighting '(1 (2 .4) 3))))
-       (r (make-weighting '(.5 1 (2 .1)))))
+       (r (make-weighting '(.5 3/2 (2 .1)))))
   (defun bb (time)
     (let ((rhythm (next r))
           (notes (next c 3)))
       (p time (spawn-circle (nths notes
-                                  (pick '(0 5) '(0) '(0) '(0 2)))
+                                  (pick '(0 3) '(0) '(0) '(0 2)))
                             rhythm
-                            :growth '-
-                            :pos (v! (random 1f0) (random 1f0))
+;;                            :growth '-
+;;                            :pos (v! (random 1f0) (random 1f0))
                             :shape 1
                             :rotation (if (> (first notes) 70)
                                           0f0
                                           (random 90f0))
 ;;                            :selfcolor (v3! 0 (random .8))
                             )
-         35 rhythm 5)
+         65 rhythm 5)
       (aat (+ time rhythm) #'bb it))))
 
 (defun bb ())
@@ -131,3 +134,5 @@
 (bb (tempo-sync #[1 b]))
 (bb (quant 4))
 (aat (quant 4) #'bb it)
+
+(fg .4)

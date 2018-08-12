@@ -46,17 +46,15 @@ NOTES a list midi notes to play
 PATTERN a list with 0's and 1's that indicate when to play the beat  
 LENGTHS a list of duration in beats a note should play
 R is the midi channel used."
-;;  (when (cm:odds .5)
-  (print r)
   (print pattern)
+  (print r)
   (let* ((lpattern   (length pattern))
          (t-lpattern (+ time (/ lpattern 2)))
-         (pbeat      (remove nil
-                             (loop
-                                :for beat :in pattern
-                                :for nbeat :from 0 :upto 64
-                                :collect (when (= 1 beat)
-                                           nbeat)))))
+         (pbeat      (loop
+                        :for beat :in pattern
+                        :for nbeat :from 0 :upto 64
+                        :when (= 1 beat)
+                        :collect nbeat)))
     ;; Take the list of beats where a note is played
     ;; pbeat '(0 4 8 32) and schedule it
     (loop :for cbeat :in pbeat :do
@@ -150,7 +148,8 @@ R is the midi channel used."
   (let* ((midinote (cm:keynum note))
          (notes    (loop
                       :for x :from bottom :to up
-                      :collect (pc-relative midinote x pc))))
+                      :collect (pc-relative midinote x pc)))
+         (notes (rest notes)))
     (ppattern time lpattern notes length1 length2 :play 'yes)))
 
 #|
@@ -164,6 +163,12 @@ R is the midi channel used."
 (mbox (tempo-sync #[1 b]) 32 :C 7 3 -7 14 (scale 0 'aeolian))
 
 (mbox (quant 4) 32 :C 7 3 -7 14 (scale 0 'ryukyu))
+
+
+
+
+(mbox (quant 4) 32 :C 9 14.5 -14 14 (scale 0 'dorian))
+
 
 |#
 

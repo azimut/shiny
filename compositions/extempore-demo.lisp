@@ -39,13 +39,13 @@
 (defun sometune (beat time dur root)
   (let ((n-beat (+ beat 4)))
     (if (= 0.0 (mod beat 12))
-        (progn (play-midi-note time (+ root 72) 90 4 3)
-               (play-midi-note (+ time #[6 b])
+        (progn (p time (+ root 72) 90 4 3)
+               (p (+ time 6)
                                (pc-relative (+ root 72) (random-elt #(-1 -2 -3)) *scale*)
                                90 4 4))
-        (play-midi-note time (pc-quantize (+ root 67) *scale*) 90 2 2))
-;;    (play-midi-note (+ time #[3 b]) 36 90 (* 3.0 dur) (+ 10 (random 10)))
-    (mapcar (lambda (x y) (play-midi-note (+ time #[y b]) x 100 (* 2.0 dur) 0))
+        (p time (pc-quantize (+ root 67) *scale*) 90 2 2))
+    (p (+ time 3) 36 90 (* 3.0 dur) (+ 10 (random 10)))
+    (mapcar (lambda (x y) (p (+ time y) x 100 (* 2.0 dur) 0))
             (make-chord 40 (rcosr 75 10 1/32) 5
                         (pc-chord root (if (member root '(10 8))
                                         '^7
@@ -59,6 +59,8 @@
 (sometune (funcall *metro* 'get-beat 4)
           (funcall *metro* (funcall *metro* 'get-beat 4))
           4 0)
+
+(defun sometune ())
 
 (fluidsynth:program-change *synth* 2 53)
 (fluidsynth:program-change *synth* 3 52)

@@ -10,25 +10,63 @@
 ;; The random function has a concept of a "seed" that is self-feed across
 ;; calls. Making it less random. I guess.
 
+;; compose()
 (defparameter max-pitch 96)
 (defparameter min-pitch 36)
-(defvar min-octave 1)
-(defvar max-octave 6)
 
 (defparameter *seed* nil)
-(defparameter *scale* 1)
-(defparameter *pitches* nil)
-(defparameter *pitches-array* nil)
+
 (defparameter *pitches-noises* nil)
 
-(defparameter *scale-chromatic*
-  (make-array 12 :initial-contents (scale 0 'chromatic)))
-(defparameter *scale-pentatonic*
-  (make-array 5 :initial-contents (scale 0 'pentatonic)))
-(defparameter *myscales*
-  (make-array 2 :initial-contents
-              (list *scale-chromatic*
-                    *scale-pentatonic*)))
+;; set-pitches-based-on-scale-and-octaves()
+;;(defparameter *scale* 1)
+(defparameter *pitches* nil)
+(defparameter *pitches-array* nil)
+
+;; (defvar min-octave 1)
+;; (defvar max-octave 6)
+
+;; (defparameter *scale-chromatic*
+;;   (make-array 12 :initial-contents (scale 0 'chromatic)))
+;; (defparameter *scale-pentatonic*
+;;   (make-array 5 :initial-contents (scale 0 'pentatonic)))
+
+;; (defparameter *myscales*
+;;   (make-array 2 :initial-contents
+;;               (list *scale-chromatic*
+;;                     *scale-pentatonic*)))
+
+;; ------------------------
+;; Set pitches from scale
+;; ------------------------
+
+(defun set-pitches-based-on-scale-and-octaves (pc min-octave max-octave)
+  (let ((max (length pc)))
+    (setf *pitches* nil
+          *pitches-array* nil)
+    (loop :for octave :from min-octave :upto max-octave :do
+       (loop :for tone :below max :do
+          (let ((pitch (+ (* 10 (+ octave 2))
+                          (+ 4  (* octave 2))
+                          (nth tone pc))))
+            (push pitch *pitches*))))
+    (setf *pitches-array*
+          (make-array (length *pitches*) :initial-contents *pitches*))))
+
+;; (defun set-pitches-based-on-scale-and-octaves ()
+;;   (let ((max 7))
+;;     (cond ((equal *scale* 0) (setf max 12))
+;;           ((equal *scale* 1) (setf max 5)))
+;;     (setf *pitches* nil
+;;           *pitches-array* nil)
+;;     (loop :for octave :from min-octave :upto max-octave :do
+;;        (loop :for tone :below max :do
+;;           (let ((pitch (+ (* 10 (+ octave 2))
+;;                           (+ 4  (* octave 2))
+;;                           (aref (aref *myscales* *scale*) tone))))
+;;             (push pitch *pitches*))))
+;;     (setf *pitches-array*
+;;           (make-array (length *pitches*) :initial-contents *pitches*))))
 
 ;; ----------------------
 ;; Mapping functions
@@ -69,24 +107,6 @@
       ((sixty-fourth)  (setf d 0.015625)))
     (* d 4)))
 
-;; ------------------------
-;; Set pitches from scale
-;; ------------------------
-
-(defun set-pitches-based-on-scale-and-octaves ()
-  (let ((max 7))
-    (cond ((equal *scale* 0) (setf max 12))
-          ((equal *scale* 1) (setf max 5)))
-    (setf *pitches* nil
-          *pitches-array* nil)
-    (loop :for octave :from min-octave :upto max-octave :do
-       (loop :for tone :below max :do
-          (let ((pitch (+ (* 10 (+ octave 2))
-                          (+ 4  (* octave 2))
-                          (aref (aref *myscales* *scale*) tone))))
-            (push pitch *pitches*))))
-    (setf *pitches-array*
-          (make-array (length *pitches*) :initial-contents *pitches*))))
 
 ;; ----------------------
 ;; Random functions
@@ -266,7 +286,7 @@
 ;;        (push pitch mypitches))
 ;;     mypitches))
 
-(defun compose ()
+(defun compose (pc min-octave max-octave)
   (let ((l-pitches (length *pitches*))
         (position 0)
         (pitch 0)
@@ -274,7 +294,7 @@
         (mytype)
         (mypitches '())
         (mydurations '()))
-    (set-pitches-based-on-scale-and-octaves)
+    (set-pitches-based-on-scale-and-octaves pc min-octave max-octave)
     (setf *pitches-noises* (get-fractional-noise-sequence 300))
     (loop :for i :from 0 :below l-pitches :do
        (setf position (map-value (aref *pitches-noises* i)

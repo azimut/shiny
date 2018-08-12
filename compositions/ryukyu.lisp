@@ -29,9 +29,10 @@
 (defvar *metre2* nil)
 (setf *metre2* (make-metre '(10) .5))
 
+(defun newscale2 ())
 (defun newscale2 (time pitch)
-  (play-midi-note time pitch (if (odds .3) 0 30) .3 1)
-  (aat (+ time #[(pick .5 .25 .5 .5) b])
+  (p time pitch (if (odds .3) 0 50) .3 1)
+  (aat (+ time (pick .5 .25 .5 .5))
        #'newscale2 it
        (if (and (odds .4)
                 (ispitch pitch '(0))
@@ -42,7 +43,7 @@
             (pick 1 -1)
             (scale 0 'ryukyu)))))
 
-(newscale2 (tempo-sync #[1 b]) 60)
+(newscale2 (quant 4) 60)
 
 (setf *metre2* (make-metre '(8) .5))
 
@@ -96,7 +97,7 @@
                                72
                                (random-elt #(2 3))
                                '(0 4 5 7 11))))
-            (pc time x 25 4 7))))
+            (p time x 25 4 7))))
 
     (p time pitch (odds .1 25 35) .3 1)
     (aat (funcall *metro* n-beat) #'newscale

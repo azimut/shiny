@@ -110,28 +110,33 @@
 ;; "Piano phase" - https://en.wikipedia.org/wiki/Piano_Phase
 ;; ----------------------------------
 
-(defvar *piece* nil)
-(setf *piece* '(:E4 :F#4 :B4 :C#5 :D5 :F#4 :E4 :C#5 :B4 :F#4 :D5 :C#5))
+(defparameter *piece* '(:E4 :F#4 :B4 :C#5 :D5 :F#4 :E4 :C#5 :B4 :F#4 :D5 :C#5))
 
 (repeat 1000 *piece*)
 
-(setf (bpm *tempo*) 35)
+;;(setf (bpm *tempo*) 35)
 
+(defun player ())
 (defun player (time speed notes c)
   (let ((note   (first notes))
         (notes  (cdr notes))) 
     (when note
-      (play-midi-note time
-                      (note-name-to-midi-number (symbol-name note))
-                      (round (cosr 60 5 1/2))
-                      1
-                      c)
+      (p time
+         (note-name-to-midi-number (symbol-name note))
+         ;;(rcosr 60 5 5)
+         55
+         (+ -.1 speed)
+         c)
       (aat (+ time speed) #'player it speed notes c))))
 
 #|
 (player (now) #[.335 b] *piece* 0)
 (flush-pending)
 |#
+(fp 3 108)
+(let ((time (quant 4)))
+  (player time .338 *piece* 3)
+  (player time .335 *piece* 3))
 
 (let ((time (now)))
   (player time #[.338 b] *piece* 3)
@@ -364,56 +369,33 @@ h half   x sixty-fourth
 (setf *metro* (make-metro 90))
 
 (defun pp (chan time keys rhythms)
-  (let ((note   (cm:keynum (cm:next keys)))
-        (rhythm (cm:rhythm (cm:next rhythms) 30)))
-    (play-midi-note time
-                    note
-                    40 rhythm chan)
-    (aat (+ time #[rhythm b]) #'pp chan it keys rhythms)))
+  (let ((note   (cm:keynum (next keys)))
+        (rhythm (cm:rhythm (next rhythms) 30)))
+    (p time
+       note
+       40 rhythm chan)
+    (aat (+ time rhythm) #'pp chan it keys rhythms)))
 
-
-(defun ppp (chan time keys rhythms)
-  (let ((note   (cm:keynum (cm:next keys)))
-        (rhythm (cm:rhythm (cm:next rhythms) 30)))
-    (play-midi-note (funcall *metro* time)
-                    note
-                    40 rhythm chan)
-    (at (funcall *metro* (+ time rhythm)) #'ppp
-        chan (+ time rhythm) keys rhythms)))
+(defun pp ())
+(defun ppp ())
 
 (pp 1
-;;    (funcall *metro* (funcall *metro* 'get-beat 4))
-    (tempo-sync #[4.25 b])
-;    (funcall *metro* 'get-beat .5)
-    (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
-    (cm:new cm:cycle :of '(e s q e. s.)))
+    (quant 4)
+    (make-cycle '(e3 gs4 b4 ds4))
+    (make-cycle '(e s q e. s.)))
+
 (pp 2
-;;    (funcall *metro* (funcall *metro* 'get-beat 4.75))
-    (tempo-sync #[1 b])
-;;    (funcall *metro* 'get-beat 1)
-    (cm:new cm:cycle :of '(e4 gs4 b4 ds4))
-    (cm:new cm:cycle :of '(s e s. e. q)))
-
-(ppp 1
-    (funcall *metro* 'get-beat 4)
-    (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
-    (cm:new cm:cycle :of '(e s q e. s.)))
-
-(ppp 2
-    (funcall *metro* 'get-beat 4)
-    (cm:new cm:cycle :of '(e4 gs4 b4 ds4))
-    (cm:new cm:cycle :of '(s e s. e. q)))
+    (quant 4)
+    (make-cycle '(e4 gs4 b4 ds4))
+    (make-cycle '(s e s. e. q)))
 
 #|
 (flush-pending)
 (off-with-the-notes)
 |#
 
-(defun p (chan vel time keys rhythms amps &key (life nil))
-  ;;  (if (not (= chan 4))
-  ;; (cm:odds .1 
-  ;;          (q3 4 35 time
-  ;;              (cm:new cm:heap :of '(e4 fs5)) :life 10))
+(defun p+ ())
+(defun p+ (chan vel time keys rhythms amps &key life)
   (if (or (null life)
           (> life 0))
       (let* ((amp    (cm:next amps))
@@ -421,37 +403,37 @@ h half   x sixty-fourth
              (rhythm (cm:rhythm (cm:next rhythms) 30))
              (life   (if (integerp life) (1- life) nil)))
         (if (not (= note 0))
-            (play-midi-note time
-                            (cm:keynum note)
-                            vel rhythm chan ))
-        (aat (+ time #[rhythm b]) #'p chan vel it keys rhythms amps
+            (p time
+               (cm:keynum note)
+               vel rhythm chan ))
+        (aat (+ time rhythm) #'p+ chan vel it keys rhythms amps
              :life life))))
 
 (defun q1 (chan vel time keys &key (life nil))
-  (let ((rhythms (cm:new cm:cycle :of '(s s s s s s s s+q q)))
-        (amps    (cm:new cm:cycle :of '(0 1 0 1 0 1 0 1   0))))
-    (p chan vel time keys rhythms amps :life life)))
+  (let ((rhythms (make-cycle '(s s s s s s s s+q q)))
+        (amps    (make-cycle '(0 1 0 1 0 1 0 1   0))))
+    (p+ chan vel time keys rhythms amps :life life)))
 
 (defun q2 (chan vel time keys &key (life nil))
-  (let ((rhythms (cm:new cm:cycle :of '(e e e e+q q)))
-        (amps    (cm:new cm:cycle :of '(1 1 1 1 0))))
-    (p chan vel time keys rhythms amps :life life)))
+  (let ((rhythms (make-cycle '(e e e e+q q)))
+        (amps    (make-cycle '(1 1 1 1 0))))
+    (p+ chan vel time keys rhythms amps :life life)))
 
 (defun q3 (chan vel time keys &key (life nil))
-  (let ((rhythms (cm:new cm:cycle :of '(s q e.+q q)))
-        (amps    (cm:new cm:cycle :of '(1 1 1 0))))
-    (p chan vel time keys rhythms amps :life life)))
+  (let ((rhythms (make-cycle '(s q e.+q q)))
+        (amps    (make-cycle '(1 1 1 0))))
+    (p+ chan vel time keys rhythms amps :life life)))
 
 (defun q4 (chan vel time keys &key (life nil) )
-  (let ((rhythms (cm:new cm:cycle :of '(e s s s s s s+q q)))
-        (amps    (cm:new cm:cycle :of '(1 1 1 1 1 1 1 0))))
-    (p chan vel time keys rhythms amps :life life)))
+  (let ((rhythms (make-cycle '(e s s s s s s+q q)))
+        (amps    (make-cycle '(1 1 1 1 1 1 1 0))))
+    (p+ chan vel time keys rhythms amps :life life)))
 
-(progn
-  (q1 1 10 (tempo-sync #[1 b]) (cm:new cm:heap :of '(gs4 b4 a4 fs4)))
-  (q2 2 30 (tempo-sync #[2 b]) (cm:new cm:heap :of '(gs4 b4 a4 fs4)))
-  (q3 3 60 (tempo-sync #[3 b]) (cm:new cm:heap :of '(e4 fs5)))
-  (q4 4 45 (tempo-sync #[4 b]) (cm:new cm:heap :of '(fs3))) )
+(q1 1 50 (quant 4) (make-heap '(gs4 b4 a4 fs4)))
+(q2 2 50 (quant 4) (make-heap '(gs4 b4 a4 fs4)))
+(q3 3 50 (quant 4) (make-heap '(e4 fs5)))
+(q4 4 55 (quant 4) (make-heap '(fs3)))
+
 ;; 33 sting
 ;; 40 trumpet
 ;; 37- winds wood
@@ -465,44 +447,50 @@ h half   x sixty-fourth
 (fluidsynth:program-change *synth* 4 40)
 
 (q4 3 40
-    (funcall *metro* (funcall *metro* 'get-beat 3.5))
-;;    (tempo-sync #[1 b])
+    (quant 4)
     (cm:new cm:cycle :of '(e3 gs4 b4 ds4)))
 
-(p 4 30 (tempo-sync #[1 b])
+(p+ 4 30 (tempo-sync #[1 b])
    (cm:new cm:cycle :of '(e3 gs4 b4 ds4))
    (cm:new cm:cycle :of '(s e s. e. q))
    (cm:new cm:cycle :of '(1)))
 
 ;; emergen.scm - launchOB
 
+(all-piano 0)
+
 (progn
-  (q1 1 30 (tempo-sync #[1 b])
-      (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
-  (q2 2 30 (tempo-sync #[1 b])
-      (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
-  (q3 4 35 (tempo-sync #[1 b])
-      (cm:new cm:heap :of '(e4 fs5)) :life 10)
-  (q4 4 45 (tempo-sync #[1 b])
-      (cm:new cm:heap :of '(fs3)) :life 10) )
+  (q1 1 30 (quant 4)
+      (make-heap '(gs4 b4 a4 fs4)) :life 10)
+  (q2 2 30 (quant 8)
+      (make-heap '(gs4 b4 a4 fs4)) :life 10)
+  (q3 4 35 (quant 12)
+      (make-heap '(e4 fs5)) :life 10)
+  (q4 4 45 (quant 16)
+      (make-heap '(fs3)) :life 10) )
 
 (defun q5 (rhythms)
-  (let* ((rhythm (cm:rhythm (cm:next rhythms) 30)))
+  (let* ((rhythm (cm:rhythm (next rhythms) 30)))
     (print "hey")
-    (q1 1 30 (tempo-sync #[1 b])
-        (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
-    (q2 2 30 (tempo-sync #[1 b])
-        (cm:new cm:heap :of '(gs4 b4 a4 fs4)) :life 10)
-    (q3 4 35 (tempo-sync #[1 b])
-        (cm:new cm:heap :of '(e4 fs5)) :life 10)
-    (q4 4 45 (tempo-sync #[1 b])
-        (cm:new cm:heap :of '(fs3)) :life 10)
-    (aat (+ (now) #[rhythm s]) #'q5 rhythms)))
- 
-(q5 (cm:new cm:cycle :of '(e s s s s s s+q q)))
-(q5 (cm:new cm:cycle :of '(w w+h w+w w+w+w)))
+    (q1 1 30 (quant 4)
+        (make-heap '(gs4 b4 a4 fs4)) :life 10)
+    (q2 2 30 (quant 4)
+        (make-heap '(gs4 b4 a4 fs4)) :life 10)
+    (q3 4 35 (quant 4)
+        (make-heap '(e4 fs5)) :life 10)
+    (q4 4 45 (quant 4)
+        (make-heap '(fs3)) :life 10)
+    (aat (+ (now) (* 10 rhythm)) #'q5 rhythms)))
+
+(defun q5 ())
+
+(fg .4)
+(all-piano 0)
+
+(q5 (make-cycle '(e s s s s s s+q q)))
+(q5 (make-cycle '(w w+h w+w w+w+w)))
     
-(q1 1 30 (tempo-sync #[1 b]) (cm:new cm:heap :of '(gs4 b4 as4 fs4)))
+(q1 1 30 (quant 4) (make-heap '(gs4 b4 as4 fs4)))
 
 #|
 (flush-pending)
@@ -630,11 +618,12 @@ h half   x sixty-fourth
     (1 (rw-next rwrules initgen))
     (t (rw-next rwrules (rwgen rwrules initgen (- gennbr 1))))))
 
+(defun pw ())
 (defun pw (chan time notes amps)
-  (let* ((amp  (cm:next amps)))
+  (let ((amp  (next amps)))
     (if (= amp 1)
-        (play-midi-note time (cm:next notes) 40 1 chan))
-    (aat (tempo-sync #[1 b]) #'pw chan it notes amps)))
+        (p time (next notes) 40 1 chan))
+    (aat (+ time .5) #'pw chan it notes amps)))
 
 ; clav  - 19
 ; brass - 40
@@ -647,7 +636,8 @@ h half   x sixty-fourth
 (setf *cycle* (cm:new cm:cycle :of *chord*))
 
 (pw 1
-        (tempo-sync #[4 b])
+    (quant 4)
+;;        (tempo-sync #[4 b])
 ;;    (funcall *metro* (funcall *metro* 'get-beat 4.0))
     (cm:new cm:cycle :of *chord*)
     (cm:new cm:cycle :of (rwgen mtrules '(1 0) 2)))
