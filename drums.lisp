@@ -442,12 +442,22 @@
 ;; TODO: track the beat progression to skip ahead on redefinition
 ;;       add metro?
 
+(defgeneric nth-pattern (n pattern)
+  (:method (n (pattern drum-pattern))
+    (case n
+      (0 (bd pattern))
+      (1 (sn pattern))
+      (2 (ch pattern))
+      (3 (oh pattern))))
+  (:method (n (pattern list))
+    (parse-pattern (nth n pattern))))
+
 (defmacro defpattern (name (pattern dur) &body body)
   (let* ((lbody (length body)))
-    `(let ((bdp (make-cycle (bd ,pattern)))
-           (snp (make-cycle (sn ,pattern)))
-           (chp (make-cycle (ch ,pattern)))
-           (ohp (make-cycle (oh ,pattern)))
+    `(let ((bdp (make-cycle (nth-pattern 0 ,pattern)))
+           (snp (make-cycle (nth-pattern 1 ,pattern)))
+           (chp (make-cycle (nth-pattern 2 ,pattern)))
+           (ohp (make-cycle (nth-pattern 3 ,pattern)))
            (d  ,dur))
        (defun ,name (time)
          (when (next bdp)

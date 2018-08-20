@@ -40,7 +40,7 @@
                 #:cout
                 #:vuglet
                 #:current-frame
-              ;;  #:buffer-play
+                #:buffer-play
                 #:foreach-channel
                 #:foreach-frame
                 #:pan2

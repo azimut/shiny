@@ -13,6 +13,8 @@
         #:incudine
         #:cepl.skitter
         #:livesupport)
+  (:import-from #:incudine.external
+                #:foreign-copy-samples)
   (:import-from #:cm
                 #:eop?
                 #:rhythm
@@ -47,9 +49,10 @@
                 #:frame-ref
                 #:delay1
                 #:cout
+                #:counter
                 #:vuglet
                 #:current-frame
-              ;;  #:buffer-play
+                #:buffer-play
                 #:foreach-channel
                 #:foreach-frame
                 #:pan2
@@ -61,7 +64,7 @@
                 #:midi-note-on-p
                 #:midi-note-off-p
                 #:midi-program-p
-                ;;                #:mouse-button
+                ;;#:mouse-button
                 #:with-control-period
                 #:white-noise
                 #:samphold
@@ -75,12 +78,13 @@
                 #:lpf
                 #:hpf
                 #:buffer-read
+                #:buffer-write
                 #:butter-lp
                 #:fractal-noise
                 #:out
                 #:~
                 ;; nieveh!!!!
-                ;; #:rand
+                ;;#:rand
                 #:sine
                 #:pulse
                 #:line
@@ -92,7 +96,7 @@
                 #:db->lin
                 #:+twopi+
                 #:rt-eval
-              ;  #:barrier
+                ;;#:barrier
                 #:return-value-p
                 #:sample->fixnum
                 #:non-negative-sample
