@@ -2,35 +2,16 @@
 
 ;; Needs (rt-start) first.
 
-;; (dsp! bplay
-;;     ((buf buffer) rate start-pos
-;;      (loop-p boolean) attenuation rms (cfreq fixnum))
-;;   (:defaults 0d0 -1 0 nil .00001 0 10)
-;;   (with-samples
-;;       ((in (incudine.vug:buffer-play
-;;             buf rate start-pos loop-p #'stop))
-;;        (inn (* in attenuation))
-;;       ;; (inn (incudine.vug:downsamp cfreq inn))
-;;        )
-;;     (out inn inn)))
-
 (dsp! bplay
     ((buf buffer) rate start-pos
-     (loop-p boolean) attenuation rms (cfreq fixnum))
-  (:defaults 0d0 1 0 nil .00001 0 10)
+     (loop-p boolean) attenuation left right)
+  (:defaults (incudine:incudine-missing-arg "BUFFER")
+      1 0 nil 1 1 1)
   (with-samples
-      ((in (incudine.vug:buffer-play
-            buf rate start-pos loop-p #'incudine:free))
-       (inn (* in attenuation))
-       (inn (+ inn
-;;               (incudine.vug:buzz 2 .1 2)
-             ;; (incudine.vug:downsamp 10 inn)
-             ;; (incudine.vug:lpf inn 100 1)
-             ;; (incudine.vug:hpf inn 200 10)
-             ;; (incudine.vug:butter-hp inn 1000)
-               ))       
-       )
-    (out inn inn)))
+      ((in (* attenuation
+              (buffer-play
+               buf rate start-pos loop-p #'incudine:free))))
+    (out (* left in) (* right in))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer helpers
@@ -56,6 +37,9 @@
 (defun list-words ()
   (alexandria:hash-table-keys *sample-words*))
 
+(defun node-alive (id)
+  (node-id (node id)))
+
 (defun corrupt-node
     (time id &key (center 1f0) (radius .1) (period 1) (life 3))
   (declare (sample time) (integer id))
@@ -67,7 +51,7 @@
        id
        :rate (funcall (pick '+ '+ '+ '+ '+ '+ '-)
                       (cosr center radius 10)))
-      (aat (+ time #[period b])
+      (aat (+ time (* *sample-rate* period))
            #'corrupt-node it id :life (- life 1)))))
 
 (defun pitch-to-ratio (p)
@@ -100,22 +84,28 @@
 
 (defun bbplay
     (buf &key (rate 1d0 rate-p) (rpitch 0 rpitch-p) (beat-length 1f0 beat-length-p)
-           (start-pos 0d0) (loop-p nil) (attenuation 2d0) (id 2 id-p))
-  (declare (buffer buf) (integer rpitch id) (boolean loop-p))
+           (start-pos 0d0) (loop-p nil) (attenuation 1d0) (id 2 id-p)
+           (left 1d0) (right 1d0))
+  (declare (integer rpitch id) (boolean loop-p))
   "plays the provided buffer either by
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
    BEAT-LENGTH stretch the whole buffer to play for N beats"
+  (when (stringp buf)
+    (let ((b (gethash buf *buffers*)))
+      (if b
+          (setf buf b)
+          (error "No buffer with that name on *buffers*"))))
   ;; TODO: big check so we can send nil to beat-length without crashing
   (let ((sample-rate (buffer-sample-rate buf))
         (frames (buffer-frames buf)))
     (when rpitch-p
-      (setf rate (pitch-to-ratio rpitch)))
+      (mulf rate (pitch-to-ratio rpitch)))
     (when beat-length-p
       ;; need to calculate the total duration in sec
       ;; to provide it to (beat-to-ratio
       (let ((dur (/ frames sample-rate)))
-        (setf rate (beat-to-ratio beat-length
+        (mulf rate (beat-to-ratio beat-length
                                   sample-rate
                                   dur))))
     ;; "hack" to work with buffer-play vug
@@ -124,9 +114,11 @@
     (if id-p
         (bplay buf rate start-pos loop-p
                :attenuation attenuation
+               :left left :right right
                :id id)
         (bplay buf rate start-pos loop-p
-               :attenuation attenuation))))
+               :attenuation attenuation
+               :left left :right right))))
 
 ;;------------------------------------------------------
 ;; Slice of a single buffer, dedicated to words or phrases
@@ -169,10 +161,10 @@
                          (phrase-start-at obj))))
       ;; pitch to ratio - from sonic-pi
       (if rpitch-p
-          (setf rate (pitch-to-ratio rpitch)))
+          (mulf rate (pitch-to-ratio rpitch)))
       ;; play for beat-length
       (if beat-length-p
-          (setf rate (beat-to-ratio beat-length
+          (mulf rate (beat-to-ratio beat-length
                                     sample-rate
                                     dur)))
       ;; change where to start when played backwards
@@ -190,7 +182,7 @@
                       :period corrupt-period))
       ;; kill voice
       (let ((dur (* (/ (abs rate)) dur)))
-        (at (+ (now) #[dur b]) #'incudine:free (node id))))))
+        (at (+ (now) (* *sample-rate* dur)) #'incudine:free (node id))))))
 
 
 ;;--------------------------------------------------
