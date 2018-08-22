@@ -3,13 +3,10 @@
   :author "Your Name <your.name@example.com>"
   :license "GPL-3.0"
   :serial t
-  :depends-on (
-               ;; ???
+  :depends-on (;; ???
                #:swank
                ;; misc
                #:arrow-macros
-               ;; needed on extempore.lisp
-               #:cl-ppcre
                ;; cepl stuff
                #:cepl.sdl2
                #:cepl.sdl2-image
@@ -20,11 +17,9 @@
                #:temporal-functions
                #:dirt
                #:split-sequence
-               #:rtg-math
                #:rtg-math.vari
                #:dendrite
                #:nineveh
-               #:with-setf
-               )
+               #:with-setf)
   :components ((:file "cepl/package-standalone")
-               ))
+               (:file "assets")))

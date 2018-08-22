@@ -35,7 +35,6 @@
    (loop for i from (1+ shift) to (- length shift -2) collect i)
    (loop for i from 1 to shift collect i)))
 
-
 (defun rotate-list (list shift)
   "Rotate the given LIST by the specified SHIFT."
   (let ((len (length list)))
@@ -146,8 +145,6 @@ See also: `pbjorklund'"
         (the-list (cons total ()) (cons total the-list)))
        ((= counter (- number 1)) (reverse the-list))))
 
-
-
 (defun brownian-motion (start number-of-notes)
   (do* ((counter 0 (incf counter))
         (the-array (make-array 7 :initial-contents
@@ -163,10 +160,12 @@ See also: `pbjorklund'"
 (defmacro divf (place divisor)
   `(setf ,place (/ ,place ,divisor)))
 
-;; Set if not defined, need a better name (?
+;; Set if not defined, needs a better name (?
 (defmacro setp (var values)
   `(when (null ,var)
      (setf ,var ,values)))
+
+;;--------------------------------------------------
 
 ;; from Fluxus Fluxa
 (defun zmod (number divisor &optional (rest 0))
@@ -202,23 +201,28 @@ See also: `pbjorklund'"
 ;;--------------------------------------------------
 ;; Visual utils
 ;;--------------------------------------------------
-(defun make-trigger ()
+(defun make-trigger (&optional (max-life 1))
   "thing/closure that has 1 live until is regen
    unless is bulletproof in which case is alive forever"
-  (let ((alive 1)
-        (bulletproof nil))
+  (let* ((mf max-life)
+         (alive mf)
+         (bulletproof nil))
     (lambda (sym)
       (cond ((eq sym 'bulletproof) (setf bulletproof t
-                                         alive 1))
+                                         alive mf))
             ((eq sym 'bulletproof-p) bulletproof)
             ((eq sym 'curse) (setf bulletproof nil))
-            ((eq sym 'alive) (setf alive 1
+            ((eq sym 'alive) (setf alive mf
                                    bulletproof nil))
             ((eq sym 'alive-p) alive)
+            ((eq sym 'bleed) (progn
+                               (when (> alive 0)
+                                 (decf alive .05))
+                               alive))
             ((eq sym 'shoot) (if bulletproof
-                                 1
-                                 (if (= alive 1)
-                                     (progn (setf alive 0) 1)
+                                 mf
+                                 (if (> alive 0)
+                                     (progn (setf alive 0) mf)
                                      0)))))))
 
 ;; (defmacro with-trigger ((trigger t-trigger) &body body)
@@ -238,51 +242,8 @@ See also: `pbjorklund'"
   "makes a inmortal trigger-once call"
   `(progn
      (funcall ,trigger 'bulletproof)
-     (at (+ (now) (+ ,dur (* 44100d0 b))) #'(lambda () (funcall ,trigger 'curse)))
+     (at (+ (now) (* ,dur 44100d0)) #'(lambda () (funcall ,trigger 'curse)))
      ,@body))
-
-;; (defmacro with-trigger-expire ((trigger t-trigger dur) &body body)
-;;   "makes a inmortal trigger-once call"
-;;   (let ((it (intern "IT")))
-;;     `(let ((,it ,t-trigger))       
-;;        (callback ,t-trigger #'funcall ,trigger 'bulletproof)
-;;        (callback (+ ,t-trigger ,dur) #'funcall ,trigger 'curse)
-;;        ,@body)))
-
-;;--------------------------------------------------
-;; CM helpers
-;;--------------------------------------------------
-(defun make-cycle (elements &optional (for-elements 1 for-elements-p))
-  (when elements ;; do not make a cycle of just nil
-    (if for-elements-p
-        (new cycle :of elements :for for-elements)
-        (new cycle :of elements))))
-(defun make-heap (elements &optional (for-elements 1 for-elements-p))
-  (if for-elements-p
-      (new heap :of elements :for for-elements)
-      (new heap :of elements)))
-(defun make-weighting (elements &optional (for-elements 1 for-elements-p))
-  ;; try to add :weight keyword if only provided 2 elements
-  ;; we push since order doesn't really matter...
-  (let ((sane-elements '()))
-    (loop for e in elements do
-         (if (and (listp e) (= 3 (length e)))
-             (push e sane-elements))
-         (if (not (listp e))
-             (push e sane-elements))
-         (if (and (listp e) (= 2 (length e)))
-             (push (list (first e)
-                         :weight
-                         (first (last e)))
-                   sane-elements)))
-    (if for-elements-p
-        (new weighting :of sane-elements :for for-elements)
-        (new weighting :of sane-elements))))
-(defun make-palindrome (elements)
-  (cm:new cm:palindrome :of elements :elide t))
-;; appeared on jazz.cm
-(defun rancyc (data prob)
-  (list (make-cycle data) :weight prob))
 
 ;; <3
 ;; Might be I can generalize the pick and pickl of CM too.
@@ -304,49 +265,6 @@ See also: `pbjorklund'"
   "get nth elements from lnth list"
   (remove nil (loop :for i :in lnth :collect (nth i l))))
 
-;;--------------------------------------------------
-;; From overtone, fn.clj
-;; cycle-fn????
-
-;; from overtone, lists.clj
-;; rotate, like alexandria:rotate-elt
-;; fill a.k.a. repeat
-
-;; from overtone, chance.clj
-;; might be called pickln
-(defun choose-n (n l)
-  "Choose n random elements from l"
-  (take n (alexandria:shuffle l)))
-
-;; weighted-coin is like (cm:odds)
-;; ranged-rand is like (cm:between)
-;; choose/chosen-from is like (cm:pickl) or (alexandria:random-elt)
-;; weighted-choose is like (cm:new cm:weighted)
-(defun sputter (list &optional (prob .25) (max 100) (result '()))
-  "Returns a list where some elements may have been repeated.
-
-   Repetition is based on probabilty (defaulting to 0.25), therefore,
-   for each element in the original list, there's a chance that it will
-   be repeated. (The repetitions themselves are also subject to further
-   repetiton). The size of the resulting list can be constrained to max
-   elements (defaulting to 100).
-
-  (sputter '(1 2 3 4))        ;=> (1 1 2 3 3 4)
-  (sputter '(1 2 3 4) 0.7 5)  ;=> (1 1 1 2 3)
-  (sputter '(1 2 3 4) 0.8 10) ;=> (1 2 2 2 2 2 2 2 3 3)
-  (sputter '(1 2 3 4) 1 10)   ;=> (1 1 1 1 1 1 1 1 1 1)
-  "
-  (let ((head (first list))
-        (tail (rest  list)))
-    (if (and head (< (length result) max))
-        (if (< (random 1.0) prob)
-            (sputter (cons head tail)
-                     prob max
-                     (cons head result))
-            (sputter tail
-                     prob max
-                     (cons head result)))
-        (reverse result))))
 
 (defun nth-set (n new-value l)
   "Change the value at n on l for new-value

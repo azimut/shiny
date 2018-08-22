@@ -557,3 +557,48 @@ whelmed.play> (degrees->pitches [:i :ii :ii+ :ii#] :dorian :E3)
 
 https://github.com/overtone/overtone/blob/36221f68733fc5921aeb60a2a8b10e99426f236d/src/overtone/music/pitch.clj
 |#
+
+;;--------------------------------------------------
+
+;; From overtone, fn.clj
+;; cycle-fn????
+
+;; from overtone, lists.clj
+;; rotate, like alexandria:rotate-elt
+;; fill a.k.a. repeat
+
+;; from overtone, chance.clj
+;; might be called pickln
+(defun choose-n (n l)
+  "Choose n random elements from l"
+  (take n (alexandria:shuffle l)))
+
+;; weighted-coin is like (cm:odds)
+;; ranged-rand is like (cm:between)
+;; choose/chosen-from is like (cm:pickl) or (alexandria:random-elt)
+;; weighted-choose is like (cm:new cm:weighted)
+(defun sputter (list &optional (prob .25) (max 100) (result '()))
+  "Returns a list where some elements may have been repeated.
+
+   Repetition is based on probabilty (defaulting to 0.25), therefore,
+   for each element in the original list, there's a chance that it will
+   be repeated. (The repetitions themselves are also subject to further
+   repetiton). The size of the resulting list can be constrained to max
+   elements (defaulting to 100).
+
+  (sputter '(1 2 3 4))        ;=> (1 1 2 3 3 4)
+  (sputter '(1 2 3 4) 0.7 5)  ;=> (1 1 1 2 3)
+  (sputter '(1 2 3 4) 0.8 10) ;=> (1 2 2 2 2 2 2 2 3 3)
+  (sputter '(1 2 3 4) 1 10)   ;=> (1 1 1 1 1 1 1 1 1 1)
+  "
+  (let ((head (first list))
+        (tail (rest  list)))
+    (if (and head (< (length result) max))
+        (if (< (random 1.0) prob)
+            (sputter (cons head tail)
+                     prob max
+                     (cons head result))
+            (sputter tail
+                     prob max
+                     (cons head result)))
+        (reverse result))))

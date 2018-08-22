@@ -1,5 +1,7 @@
 (in-package #:somecepl)
 
+;; CEPL HELPERS
+
 (defun mynow ()
   ;; Just some number that increases over time that we use
   ;; in a bunch of places
