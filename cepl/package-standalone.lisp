@@ -2,9 +2,6 @@
   (:use #:cl
         ;; misc
         #:arrow-macros
-        #:cl-ppcre
-        ;; collider
-        ;; #:sc
         ;; cepl
         #:cepl
         #:vari

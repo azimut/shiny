@@ -22,4 +22,4 @@
                #:nineveh
                #:with-setf)
   :components ((:file "cepl/package-standalone")
-               (:file "assets")))
+               (:file "lib/assets")))
