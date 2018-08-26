@@ -15,23 +15,19 @@
           (distance (v! .5 .5)
                     uv))))
 
-(defstruct-g particle
-  (pos :vec3)
-  (vel :vec3))
-
 ;;--------------------------------------------------
 
-(defun-g frag
-    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
-     (time :float) (rms :float))
-  (let* ((vec-to-light (- (v! 0 0 -20)
-                          frag-pos))
-         (dir-to-light (normalize vec-to-light))
-         (color (v! .2 .2 .2 1))
-         (color (+ (* (+ 1 (* .2 (syn (* 100 time))))
-                      (dot dir-to-light frag-norm))
-                   color)))
-    color))
+;; (defun-g frag
+;;     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
+;;      (time :float) (rms :float))
+;;   (let* ((vec-to-light (- (v! 0 0 -20)
+;;                           frag-pos))
+;;          (dir-to-light (normalize vec-to-light))
+;;          (color (v! .2 .2 .2 1))
+;;          (color (+ (* (+ 1 (* .2 (syn (* 100 time))))
+;;                       (dot dir-to-light frag-norm))
+;;                    color)))
+;;     color))
 
 (defun-g vert
     ((vert g-pnt) &uniform
@@ -51,7 +47,7 @@
 
 ;;--------------------------------------------------
 
-(defun-g white-frag
+(defun-g sphere-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
      (time :float) (light-factor :float))
   (let* (
@@ -109,8 +105,8 @@
 
 (defun-g voz-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
-     (time :float) (rms :float) (light-factor :float))
-  (let* ((light-pos (v! 0 40 -100))
+     (time :float) (light-factor :float) (cam-pos :vec3))
+  (let* ((light-pos (v! 0 30 -150))
          (obj-color (v! .2 .9 1))
          ;; Ambient
          (light-ambient .15)
@@ -118,22 +114,84 @@
          (vec-to-light  (- light-pos frag-pos))
          (dir-to-light  (normalize vec-to-light))
          (light-diffuse (saturate (dot frag-norm dir-to-light)))
+
+
+         ;; Specular
+         (vec-to-cam (- cam-pos frag-pos))
+         (dir-to-cam (normalize vec-to-cam))
+         (reflection (normalize (reflect (- dir-to-light)
+                                         frag-norm)))
+         (spec-foo .11)
+         (spec (* spec-foo (pow (saturate
+                                 (dot dir-to-cam reflection))
+                                32)))
+                  
          (lights (* light-factor
                     (+ light-diffuse
-                       light-ambient)))
+                       light-ambient
+                       spec)))
          (result (* lights obj-color)))
     (v! result 0)))
+
 ;;--------------------------------------------------
 
+(defun-g ground-vert
+    ((vert g-pnt) &uniform
+     (model-world :mat4) (world-view :mat4) (view-clip :mat4)
+     (time :float) (tex-noise :sampler-2d))
+  (let* ((pos       (pos vert))
+         (norm      (norm vert))
+         (tex       (tex vert))
+         (dis (* 2
+                 (x
+                  (texel-fetch
+                   tex-noise
+                   (ivec2 (v! (int (floor (* 100 (/ (+ 50 (x pos)) 100))))
+                              (int (floor (* 100 (/ (+ 50 (z pos)) 100))))))
+                   0))))
+         (pos (+ pos (v! 0 dis 0)))
+         (pos (* pos .1))
+         (norm      (* (m4:to-mat3 model-world) (norm vert)))
+         (world-pos (* model-world (v! pos 1)))
+         (view-pos  (* world-view  world-pos))
+         (clip-pos  (* view-clip   view-pos)))
+    (values clip-pos
+            tex
+            norm
+            (s~ world-pos :xyz))))
 
+(defun-g ground-frag
+    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
+     (time :float))
+  (let* ((color (v3! 1)))
+    color))
+
+
+(defun-g pass-vert ((pos :vec2))
+  (values (v! pos 0 1)
+          (+ .5 (* .5 pos))))
+(defun-g pass-frag ((uv :vec2) &uniform (time :float))
+  (let ((color (v3! (perlin-noise (+ time (* 10 uv))))))
+    (v! color 0)))
+(defpipeline-g pass-pipe ()
+  (pass-vert :vec2)
+  (pass-frag :vec2))
+
+(defpipeline-g ground-pipe ()
+  :vertex (ground-vert g-pnt)
+  :fragment (voz-frag :vec2 :vec3 :vec3))
+
+;; No verted logic, voz shading
 (defpipeline-g lead ()
   :vertex (vert g-pnt)
   :fragment (voz-frag :vec2 :vec3 :vec3))
 
+;; Vertex movement, voz shading
 (defpipeline-g pipe ()
   :vertex (voz-vert g-pnt)
   :fragment (voz-frag :vec2 :vec3 :vec3))
 
+;; No vextex logic, sphere shading
 (defpipeline-g white ()
   :vertex (vert g-pnt)
-  :fragment (white-frag :vec2 :vec3 :vec3))
+  :fragment (sphere-frag :vec2 :vec3 :vec3))

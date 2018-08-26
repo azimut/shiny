@@ -5,7 +5,9 @@
 
 (defmethod sync (x) (+ .5 (* .5 (sin x))))
 (defmethod cync (x) (+ .5 (* .5 (cos x))))
+
 (defgeneric update (actor))
+(defmethod update (actor))
 
 (defun model->world (actor)
   (with-slots (pos rot) actor
@@ -21,6 +23,7 @@
 (defclass voz    (actor) ())
 (defclass sphere (actor) ())
 (defclass wall   (actor) ())
+(defclass ground (actor) ())
 
 (defun delete-actor-class (class-name)
   (declare (string class-name))
@@ -28,12 +31,19 @@
         (delete-if (lambda (x) (string= class-name (class-name (class-of x))))
                    *actors*)))
 
+(defun make-ground ()
+  (let ((ground
+         (make-instance
+          'ground
+          :buf (lattice))))
+    (push ground *actors*)
+    ground))
+
 (defun make-lead ()
   (let ((lead
          (make-instance
           'lead
-          :buf (cone 1f0 3f0)
-          :pos (v! 0 30 -50)
+          :buf (cone 1f0 3f0) :pos (v! 0 30 -50)
           :rot (q:from-axis-angle (v! 0 0 1) (radians 90)))))
     (push lead *actors*)
     lead))
