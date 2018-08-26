@@ -52,3 +52,16 @@
                                                           :height height)
           (setf (gethash key *meshes*)
                 (make-buffer-stream vert :index-array index))))))
+
+(defun lattice
+    (&optional (width 100f0) (height 100f0) (x 500) (y 500))
+  (let ((key (list :lat width height x y)))
+    (or (gethash key *meshes*)
+        (destructuring-bind (vert index)
+            (nineveh.mesh.data.primitives:lattice-gpu-arrays
+             :width width
+             :height height
+             :x-segments x
+             :y-segments y)
+          (setf (gethash key *meshes*)
+                (make-buffer-stream vert :index-array index))))))
