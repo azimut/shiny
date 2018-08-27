@@ -1,8 +1,10 @@
 (defclass camera ()
-  ((pos  :initarg :pos  :initform (v! 0 0 0) :accessor rot)
-   (rot  :initarg :rot  :initform (q:identity) :accessor pos)
+  ((pos :initarg :pos :initform (v! 0 0 0) :accessor rot)
+   (rot :initarg :rot :initform (q:identity) :accessor pos)
    (near :initarg :near :initform .1 :accessor near)
-   (far  :initarg :far  :initform 400f0 :accessor far)))
+   (far :initarg :far :initform 400f0 :accessor far)
+   (frame-size
+    :initarg :frame-size :initform nil :accessor frame-size)))
 
 (defclass orth (camera) ())
 (defclass pers (camera)
@@ -16,41 +18,55 @@
   (m4:* (m4:translation (v3:negate (pos camera)))
         (q:to-mat4      (q:inverse (rot camera)))))
 
-(defgeneric projection (camera width height)
-  (:method ((camera pers) width height)
-    (rtg-math.projection:perspective
-     width
-     height
-     (near camera)
-     (far camera)
-     (fov camera)))
-  (:method ((camera orth) width height)
-    (rtg-math.projection:orthographic
-     (* .2 width)
-     (* .2 height)
-     (near camera)
-     (far camera))))
+(defgeneric projection (camera)
+  (:method ((camera pers))
+    (let ((fs (or (frame-size camera)
+                  (viewport-resolution (current-viewport)))))
+      (rtg-math.projection:perspective
+       (x fs)
+       (y fs)
+       (near camera)
+       (far camera)
+       (fov camera))))
+  (:method ((camera orth))
+    (let ((fs (or (frame-size camera)
+                  (viewport-resolution (current-viewport)))))
+      (rtg-math.projection:orthographic
+       (x fs)
+       (y fs)
+       (near camera)
+       (far camera)))))
 
 (defmethod update ((camera orth))
   (setf (pos camera)
-        (v! 0 0 300))
+        (v! 0 5 0))
+  (setf (frame-size camera) (v! 100 100))
+;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera)
-        (q:from-axis-angle (v! 1 0 0) (radians -90)))
-  )
+        ;; (q:*
+        ;;  (q:from-axis-angle (v! 0 1 0)
+        ;;                     (radians 180)))
+        (q:from-axis-angle (v! 1 0 0)
+                           (radians -55))))
 
 (defmethod update ((camera pers))
+  (setf (pos camera) (v! 0 50 70))
+  ;;  (setf (rot camera) (v! 0 0 0))
+  (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
+  ;; (setf (rot camera)
+  ;;       ;; (q:*
+  ;;       ;;  (q:from-axis-angle (v! 0 1 0)
+  ;;       ;;                     (radians 180)))
+  ;;       (q:from-axis-angle (v! 1 0 1)
+  ;;                          (radians 30)))
   ;;  (setf (pos camera) (v! 30 10 70))
-  (setf (pos camera) (v! 0 2 10))
-  (setf (rot camera) (v! 0 0 0))
+  ;; (setf (pos camera) (v! 0 2 10))
+  ;; (setf (rot camera) (v! 0 0 0))  
   ;; (setf (rot camera)
-  ;;       (q:from-axis-angle
-  ;;        (v! 0 1 1)
-  ;;        (radians 40)))
-  
-  ;; (setf (rot camera)
-  ;;        (q:from-axis-angle
-  ;;         (v! 1 1 1)
-  ;;         (radians (mod (* 20
-  ;;                          (mynow))
-  ;;                       360))))
-   )
+  ;;        (q:* (q:from-axis-angle
+  ;;              (v! 0 1 0)
+  ;;              (radians 180))
+  ;;             (q:from-axis-angle
+  ;;              (v! 1 -1 0)
+  ;;              (radians -45))))
+  )

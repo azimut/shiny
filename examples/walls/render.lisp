@@ -10,13 +10,18 @@
 (defun-g syn ((x :float))
   (+ .5 (* .5 (sin x))))
 
+;; https://learnopengl.com/Advanced-OpenGL/Depth-testing
+(defun-g linearize-depth ((depth :float) (near :float) (far :float))
+  (let ((z (- (* depth 2f0) 1f0))) ;; to NDC
+    (/ (* 2f0 near far)
+       (+ far near
+          (- (* z (- far near)))))))
+
 (defun-g circle-g ((uv :vec2) (size :float))
   (v3! (* size
           (distance (v! .5 .5)
                     uv))))
-
 ;;--------------------------------------------------
-
 ;; (defun-g frag
 ;;     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
 ;;      (time :float) (rms :float))
@@ -55,8 +60,9 @@
          ;;                    frag-pos))
          ;;         (dir-to-light (normalize vec-to-light))
          (light-color (v! .2 .9 .09)) ;; .9 .1 0 ;; .2 .9 .1
-         (light-size (+ (/ 90 light-factor) (* 2 (sin (* 100 time)))))
-         (circle (circle-g uv light-size))
+         (light-size (+ ;;(/ 90 light-factor)
+                        (+ 30 (* .01 (syn time)))))
+         (circle (circle-g (+ (v! -.2 .1) uv) light-size))
          (sky (- 1 (* circle light-color)))
          (noise (+  -3 (perlin-noise (* 40 (+ (v! (* .009 time) 0) uv)))))
          (landmass (* (v! .2 .2 .2) ;; 0 .2 .9 ;; .2 .2 .2
@@ -67,8 +73,8 @@
                        (v3! r)
                        (v3! 0))))
          (starry (clamp (* starry (y frag-pos)) 0 1))
-         (final (+ (* .9 landmass)
-                   (clamp sky 0 1)
+         (final (+ ;;(* .9 landmass)
+                   ;;(clamp sky 0 1)
                    (* 2 (+ .2 (* .05 (sin (* 10 time)))) starry)))
 ;;         (final (+ (* 1 (dot dir-to-light frag-norm)) (s~ final :xyz)))
          )
@@ -106,31 +112,21 @@
 (defun-g voz-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
      (time :float) (light-factor :float) (cam-pos :vec3))
-  (let* ((light-pos (v! 0 30 -150))
+  (let* ((light-pos (v! 0 70 150))
          (obj-color (v! .2 .9 1))
          ;; Ambient
-         (light-ambient .15)
+         (light-ambient .1)
          ;; Diffuse
          (vec-to-light  (- light-pos frag-pos))
          (dir-to-light  (normalize vec-to-light))
          (light-diffuse (saturate (dot frag-norm dir-to-light)))
-
-
-         ;; Specular
-         (vec-to-cam (- cam-pos frag-pos))
-         (dir-to-cam (normalize vec-to-cam))
-         (reflection (normalize (reflect (- dir-to-light)
-                                         frag-norm)))
-         (spec-foo .11)
-         (spec (* spec-foo (pow (saturate
-                                 (dot dir-to-cam reflection))
-                                32)))
-                  
          (lights (* light-factor
                     (+ light-diffuse
-                       light-ambient
-                       spec)))
-         (result (* lights obj-color)))
+                       light-ambient)))
+         (result (* lights obj-color))
+         (depth (v3! (/ (linearize-depth (z gl-frag-coord) .1f0 100f0) 100f0)))
+         (result (* result
+                    depth)))
     (v! result 0)))
 
 ;;--------------------------------------------------
@@ -142,15 +138,16 @@
   (let* ((pos       (pos vert))
          (norm      (norm vert))
          (tex       (tex vert))
-         (dis (* 2
+         (dis (* 20
                  (x
                   (texel-fetch
                    tex-noise
-                   (ivec2 (v! (int (floor (* 100 (/ (+ 50 (x pos)) 100))))
-                              (int (floor (* 100 (/ (+ 50 (z pos)) 100))))))
+                   (ivec2 (v! (int (floor (* 200 (/ (+ 50 (x pos)) 100))))
+                              (int (floor (* 200 (/ (+ 50 (z pos)) 100))))))
                    0))))
          (pos (+ pos (v! 0 dis 0)))
-         (pos (* pos .1))
+;;         (pos (- pos (v! 0 10 0)))
+         (pos (* pos (v! 3 3 3)))
          (norm      (* (m4:to-mat3 model-world) (norm vert)))
          (world-pos (* model-world (v! pos 1)))
          (view-pos  (* world-view  world-pos))
@@ -166,12 +163,15 @@
   (let* ((color (v3! 1)))
     color))
 
-
+;;--------------------------------------------------
 (defun-g pass-vert ((pos :vec2))
   (values (v! pos 0 1)
           (+ .5 (* .5 pos))))
 (defun-g pass-frag ((uv :vec2) &uniform (time :float))
-  (let ((color (v3! (perlin-noise (+ time (* 10 uv))))))
+  (let ((color
+         (v3! (nineveh.noise:cellular-noise
+               (+ (- (v! 0 (+ (- (clamp (sin time) .1 .16)) time)))
+                  (* 5 uv))))))
     (v! color 0)))
 (defpipeline-g pass-pipe ()
   (pass-vert :vec2)
@@ -180,7 +180,7 @@
 (defpipeline-g ground-pipe ()
   :vertex (ground-vert g-pnt)
   :fragment (voz-frag :vec2 :vec3 :vec3))
-
+;;--------------------------------------------------
 ;; No verted logic, voz shading
 (defpipeline-g lead ()
   :vertex (vert g-pnt)
