@@ -39,19 +39,25 @@
   (print-unreadable-object (obj out :type t)
     (format out "~s" (pattern-name obj))))
 
-(defun parse-pattern (s)
-  (when s
-    (loop
-       :for c
-       :across (string-downcase s)
-       :when (or (eq c #\1) (eq c #\x) (eq c #\0)
-                 (eq c #\~) (eq c #\-))
-       :collect
-       (if (or (eq c #\x)
-               (eq c #\0)
-               (eq c #\1))
-           t
-           nil))))
+
+(defgeneric parse-pattern (pattern))
+(defmethod parse-pattern (pattern))
+(defmethod parse-pattern ((pattern string))
+  (loop
+     :for c
+     :across (string-downcase pattern)
+     :when (or (eq c #\1) (eq c #\x) (eq c #\0)
+               (eq c #\~) (eq c #\-))
+     :collect
+     (if (or (eq c #\x)
+             (eq c #\0)
+             (eq c #\1))
+         t
+         nil)))
+
+(defmethod parse-pattern ((pattern list))
+  (loop :for beat :in pattern :collect
+     (if (= 0 beat) nil t)))
 
 (defun parse-patternc (s)
   (let ((p (parse-pattern s)))
