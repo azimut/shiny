@@ -28,6 +28,7 @@ You don't need to have all these, but some .asd files or examples will require t
 * https://github.com/azimut/pixel-spirit-deck/
 * https://github.com/titola/incudine
 * https://github.com/ormf/cm/
+* https://github.com/gogins/csound-extended/tree/develop/nudruz
 
 WIP
 
@@ -36,6 +37,7 @@ WIP
 WIP
 
 ## TODO(s)
+* Naming!
 * Add fft and wave analysis from incudine as cepl textures
 * Package fluidsynth use a separate asdf(?) package
 * Add non fluidsynth package (loading wav files)
