@@ -1,4 +1,4 @@
-(uiop:define-package somecepl
+(uiop:define-package shiny
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:use #:cl 
         #:arrow-macros

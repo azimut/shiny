@@ -1,4 +1,4 @@
-(uiop:define-package somecepl
+(uiop:define-package shiny
   (:use #:cl
         ;; misc
         #:arrow-macros
