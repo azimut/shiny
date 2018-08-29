@@ -1,4 +1,4 @@
-(in-package #:somecepl)
+(in-package #:shiny)
 ;; ----------- Overtone / Clojure
 
 ;; http://www.appservgrid.com/hyper/hyp/lisp#take

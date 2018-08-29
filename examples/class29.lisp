@@ -1,6 +1,6 @@
 ;;;; somecepl.lisp
 
-(in-package #:somecepl)
+(in-package #:shiny)
 
 ;;; "somecepl" goes here. Hacks and glory await!
 
