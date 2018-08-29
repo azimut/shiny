@@ -17,11 +17,15 @@
 
 (defvar *meshes* (make-hash-table :test #'equal))
 
-(defun sphere (&optional (radius 1f0))
+(defun sphere
+    (&optional (radius 1f0) (lines-of-latitude 30) (lines-of-longitude 30))
   (let ((key radius))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
-            (nineveh.mesh.data.primitives:sphere-gpu-arrays :radius radius)
+            (nineveh.mesh.data.primitives:sphere-gpu-arrays
+             :radius radius
+             :lines-of-latitude lines-of-latitude
+             :lines-of-longitude lines-of-longitude)
           (setf (gethash key *meshes*)
                 (make-buffer-stream vert :index-array index))))))
 
