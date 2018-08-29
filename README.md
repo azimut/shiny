@@ -1,4 +1,7 @@
-# somecepl
+# Shiny
+
+> Oh! Shiny!
+*famous last words*
 
 Personal space to keep my experiments with music composition in lisp with some ocassional interaction with opengl (CEPL).
 
@@ -37,7 +40,6 @@ WIP
 WIP
 
 ## TODO(s)
-* Naming!
 * Add fft and wave analysis from incudine as cepl textures
 * Package fluidsynth use a separate asdf(?) package
 * Add non fluidsynth package (loading wav files)
