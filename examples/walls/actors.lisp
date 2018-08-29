@@ -1,5 +1,6 @@
 (in-package :shiny)
 
+(defvar *outsiders* nil)
 (defvar *actors* nil)
 (defvar *lead* nil)
 
@@ -14,6 +15,11 @@
 
 (defgeneric update (actor))
 (defmethod update (actor))
+
+(defun update-all-the-things (l)
+  (declare (list l))
+  (loop :for actor :in l :do
+     (update actor)))
 
 (defun model->world (actor)
   (with-slots (pos rot) actor
@@ -30,8 +36,15 @@
 (defclass sphere (actor) ())
 (defclass wall   (actor) ())
 (defclass ground (actor) ())
+(defclass portal (actor) ())
 
-
+(defun make-portal ()
+  (let ((portal
+         (make-instance
+          'portal
+          :buf (sphere 10f0))))
+    (push portal *outsiders*)
+    portal))
 
 (defun make-ground ()
   (let ((ground
@@ -70,7 +83,7 @@
 
 (defmethod update ((actor lead))
   (setf (rot actor) (q:from-axis-angle (v! 1 0 0) (radians 90)))
-  (setf (pos actor) (v! 0 20 200))
+  (setf (pos actor) (v! 0 100 200))
   ;; (setf (pos actor) (v! (* 20 (sync (* 2 (mynow))))
   ;;                       (* 10 (cync (mynow)))
   ;;                       (* 100 (sync (* .5 (mynow))))))
@@ -96,4 +109,15 @@
   ;; (setf (rot actor) (q:from-axis-angle
   ;;                    (v! 0 1 0)
   ;;                    (radians (* 360 (sync (mynow))))))
+  )
+
+(defmethod update ((actor portal))
+  ;;(setf (rot actor) (v! 0 0 0))
+    (setf (rot actor)
+        (q:from-axis-angle (v! 1 0 0)
+                           (radians 180)))
+
+  ;; (setf (rot actor)
+  ;;       (q:from-axis-angle (v! 1 1 0)
+  ;;                          (radians (mod (* .01 (get-internal-real-time)) 360))))
   )

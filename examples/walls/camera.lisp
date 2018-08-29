@@ -1,5 +1,5 @@
 (defclass camera ()
-  ((pos :initarg :pos :initform (v! 0 0 0) :accessor rot)
+  ((pos :initarg :pos :initform (v! 0 0 0)   :accessor rot)
    (rot :initarg :rot :initform (q:identity) :accessor pos)
    (near :initarg :near :initform .1 :accessor near)
    (far :initarg :far :initform 400f0 :accessor far)
@@ -50,7 +50,7 @@
                            (radians -45))))
 
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 50 300))
+  (setf (pos camera) (v! 0 0 20))
   ;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
   ;; (setf (rot camera)
@@ -70,3 +70,15 @@
   ;;              (v! 1 -1 0)
   ;;              (radians -45))))
   )
+
+
+(defvar *light-camera* (make-instance 'orth))
+(setf (pos *light-camera*) (v! 0 5 0))
+(setf (rot *light-camera*) (q:from-axis-angle (v! 1 0 0)
+                                              (radians -55)))
+(setf (frame-size *light-camera* (v! 20 20)))
+
+(defvar *portal-camera* (make-instance 'pers))
+(setf (pos *portal-camera*) (v! 0 100 200))
+(setf (rot *portal-camera*) (q:from-axis-angle (v! 1 0 0) (radians -10)))
+(setf (frame-size *portal-camera*) (v! 30 30))

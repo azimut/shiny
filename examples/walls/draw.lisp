@@ -2,6 +2,11 @@
 
 (defvar *light-factor* 1f0)
 
+(defvar *fbo* nil)
+(defvar *sam* nil)
+(defvar *lfbo* nil)
+(defvar *sfbo* nil)
+
 (defgeneric draw (actor camera))
 (defmethod draw (actor camera))
 
@@ -17,13 +22,14 @@
            :view-clip  (projection camera))))
 
 (defmethod draw ((actor lead) camera)
-  (with-slots (buf) actor
-    (map-g #'lead buf
-           :time (mynow)
-           :light-factor *light-factor*
-           :model-world (model->world actor)
-           :world-view (world->view camera)
-           :view-clip  (projection camera))))
+  ;; (with-slots (buf) actor
+  ;;   (map-g #'lead buf
+  ;;          :time (mynow)
+  ;;          :light-factor *light-factor*
+  ;;          :model-world (model->world actor)
+  ;;          :world-view (world->view camera)
+  ;;          :view-clip  (projection camera)))
+  )
 
 (defmethod draw ((actor voz) camera)
   (with-slots (buf) actor
@@ -50,6 +56,15 @@
   (with-slots (buf) actor
     (map-g #'white buf
            :time (mynow)
+           :model-world (model->world actor)
+           :world-view (world->view camera)
+           :view-clip  (projection camera))))
+
+(defmethod draw ((actor portal) camera)
+  (with-slots (buf) actor
+    (map-g #'portal-pipe buf
+           :time (mynow)
+           :portal-window *sam*
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))

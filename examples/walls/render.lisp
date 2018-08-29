@@ -69,8 +69,8 @@
          ;;                    frag-pos))
          ;;         (dir-to-light (normalize vec-to-light))
          (light-color (v! .2 .9 .09)) ;; .9 .1 0 ;; .2 .9 .1
-         (light-size (+ ;;(/ 90 light-factor)
-                        (+ 30 (* .01 (syn time)))))
+         (light-size (+ (/ 90 light-factor)
+                        (syn time)))
          (circle (circle-g uv light-size))
          (sky (- 1 (* circle light-color)))
          (noise (+  -3 (perlin-noise (* 40 (+ (v! (* .009 time) 0) uv)))))
@@ -187,6 +187,18 @@
   (pass-frag :vec2))
 
 ;;--------------------------------------------------
+
+(defun-g portal-frag
+    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
+     (time :float) (portal-window :sampler-2d))
+  (let* ((final (texture portal-window uv)))
+    final))
+
+;;--------------------------------------------------
+(defpipeline-g portal-pipe ()
+  :vertex (vert g-pnt)
+  :fragment (portal-frag :vec2 :vec3 :vec3))
+
 ;; Deform vertex logic, voz-shading
 (defpipeline-g ground-pipe ()
   :vertex (ground-vert g-pnt)
