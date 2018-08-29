@@ -14,6 +14,9 @@
       (new heap :of elements :for for-elements)
       (new heap :of elements)))
 
+(defun make-line (elements)
+  (new cm:line :of elements))
+
 (defun make-weighting
     (elements &optional (for-elements 1 for-elements-p))
   ;; try to add :weight keyword if only provided 2 elements
