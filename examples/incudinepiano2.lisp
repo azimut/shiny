@@ -16,14 +16,6 @@
 (setf *ssdir* "/home/sendai/Downloads/morepiano/piano-sampler-incudine/")
 (setf *ssdir-f* "/home/sendai/Downloads/samples/pianosample/SalamanderGrandPianoV2_44.1khz16bit/44.1khz16bit/")
 
-(define-vug buffer-loop-play ((buffer buffer)
-                              rate
-                              start-pos
-                              loopstart
-                              loopend)
-  (buffer-read buffer (phasor-loop rate start-pos loopstart loopend)
-               :interpolation :cubic))
-
 (defstruct lsample
   "structure for a sample with two loop-points. The structure also
 contains a slot for the sample buffer data."
@@ -41,23 +33,23 @@ slots of the lsamples are filled with the sample data. The array is
 returned."
   (let ((lsample-map (make-array 128 :adjustable nil :element-type 'lsample)))
     (loop
-       for lsample-def in 
-	 (sort lsample-defs #'(lambda (x y) (< (second x) (second y))))
-       with array-idx = -1
-       do (destructuring-bind
-		(file keymap-upper-bound keynum loopstart loopend) 
-	      lsample-def
-	    (let ((lsample ;;; make lsample from lsample-def and fill slots
-		   (let ((full-name (merge-pathnames file ssdir)))
-		     (make-lsample :file full-name
-				   :buffer (buffer-load full-name)
-				   :keynum (incudine.util:sample keynum)
-				   :loopstart (incudine.util:sample loopstart)
-				   :loopend (incudine.util:sample loopend)))))
-	      (do () ;;; fill array with references to the lsample
-		  ((>= array-idx keymap-upper-bound))
-		(setf (aref lsample-map (incf array-idx)) lsample)))))
-    (values lsample-map)))
+       :for lsample-def
+       :in (sort lsample-defs #'(lambda (x y) (< (second x) (second y))))
+       :with array-idx = -1
+       :do (destructuring-bind
+                 (file keymap-upper-bound keynum loopstart loopend) 
+               lsample-def
+             (let ((lsample ;;; make lsample from lsample-def and fill slots
+                    (let ((full-name (merge-pathnames file ssdir)))
+                      (make-lsample :file full-name
+                                    :buffer (buffer-load full-name)
+                                    :keynum (incudine.util:sample keynum)
+                                    :loopstart (incudine.util:sample loopstart)
+                                    :loopend (incudine.util:sample loopend)))))
+               (do () ;;; fill array with references to the lsample
+                   ((>= array-idx keymap-upper-bound))
+                 (setf (aref lsample-map (incf array-idx)) lsample)))))
+    lsample-map))
 
 ;; (defparameter *piano-map*
 ;;   (generate-lsample-map 
@@ -120,7 +112,7 @@ returned."
 ;; example: (get-lsample 61 *piano-map*)
 ;; -> #S(LSAMPLE
 ;;       :FILE "/home/orm/work/snd/csound/BOSEN_mf_D#3_mn.wav"
-;       :BUFFER #<BUFFER :FRAMES 132917 :CHANNELS 1 :SR 44100.0>
+;;       :BUFFER #<BUFFER :FRAMES 132917 :CHANNELS 1 :SR 44100.0>
 ;;       :KEYNUM 63
 ;;       :LOOPSTART 82246
 ;;       :LOOPEND 132839)
@@ -132,6 +124,12 @@ returned."
         (* steps #.(coerce 1/12 'incudine.util:sample))))
 
 (defparameter *env1* (make-envelope '(0 1 1 0) '(0 .9 .1)))
+
+(define-vug buffer-loop-play
+    ((buffer buffer) rate start-pos loopstart loopend)
+  (with-samples
+      ((frame (phasor-loop rate start-pos loopstart loopend)))
+    (buffer-read buffer frame :interpolation :cubic)))
 
 ;; (dsp! play-lsample (keynum dur amp)
 ;;   (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map*)))
@@ -147,9 +145,10 @@ returned."
 (dsp! play-lsample-f (keynum dur amp)
   (with ((lsample (get-lsample (sample->fixnum keynum) *piano-map-f*)))
 ;  (with ((lsample (get-lsample keynum *piano-map-f*)))
-    (with-samples ((rate      (ct->fv (- keynum (lsample-keynum lsample))))
-                   (loopstart (lsample-loopstart lsample))
-                   (loopend   (lsample-loopend lsample)))
+    (with-samples
+        ((rate      (ct->fv (- keynum (lsample-keynum lsample))))
+         (loopstart (lsample-loopstart lsample))
+         (loopend   (lsample-loopend lsample)))
       (with ((buffer (lsample-buffer lsample)))
         (stereo (* amp 
 		(envelope *env1* 1 dur #'incudine:stop)

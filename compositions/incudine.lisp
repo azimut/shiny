@@ -1,5 +1,65 @@
 (in-package :somecepl)
 
+
+;; (dsp! bplay
+;;     ((buf buffer) rate start-pos
+;;      (loop-p boolean) attenuation rms (cfreq fixnum))
+;;   (:defaults 0d0 -1 0 nil .00001 0 10)
+;;   (with-samples
+;;       ((in (incudine.vug:buffer-play
+;;             buf rate start-pos loop-p #'stop))
+;;        (inn (* in attenuation))
+;;       ;; (inn (incudine.vug:downsamp cfreq inn))
+;;        )
+;;     (out inn inn)))
+
+;; (dsp! bplay
+;;     ((buf buffer) rate start-pos
+;;      (loop-p boolean) attenuation rms (cfreq fixnum))
+;;   (:defaults 0d0 1 0 nil .00001 0 10)
+;;   (with-samples
+;;       ((in (incudine.vug:buffer-play
+;;             buf rate start-pos loop-p #'incudine:free))
+;;        (inn (* in attenuation))
+;;        (inn (+ inn
+;; ;;               (incudine.vug:buzz 2 .1 2)
+;;              ;; (incudine.vug:downsamp 10 inn)
+;;              ;; (incudine.vug:lpf inn 100 1)
+;;              ;; (incudine.vug:hpf inn 200 10)
+;;              ;; (incudine.vug:butter-hp inn 1000)
+;;                ))       
+;;        )
+;;     (out inn inn)))
+
+;;(defvar *buf* (make-buffer 512 :channels 1))
+
+;; From Music V family.
+(define-vug rms (in hp)
+  (:defaults 0 10)
+  (with-samples ((b (- 2 (cos (* hp *twopi-div-sr*))))
+                 (c2 (- b (sqrt (the non-negative-sample (1- (* b b))))))
+                 (c1 (- 1 c2))
+                 (in2 (* in in))
+                 (q +sample-zero+))
+    (sqrt (the non-negative-sample (~ (+ (* c1 in2) (* c2 it)))))))
+
+
+;; (dsp! rms-master-out-test ((index fixnum))
+;;   (:defaults 0)
+;;   (setf (aref-c *c-arr* index)
+;;         (coerce (audio-out 0) 'single-float))
+;;   (setf index
+;;         (mod (1+ index) 512)))
+
+;; (dsp! rms-master-out-test ((index fixnum))
+;;   (:defaults 0)
+;;   (setf (smp-ref (incudine::buffer-base-data- *buf*) index)
+;;         (rms (audio-out 0)))
+;;   (setf index
+;;         (mod (1+ index) (the fixnum (buffer-size *buf*)))))
+
+
+
 (define-vug select (l)
   (car (alexandria:shuffle l)))
 
@@ -37,7 +97,7 @@
 (put-phrase "individual" "LOG0120.wav" 14.5 4)
 (put-phrase "undo"       "LOG0119.wav" 17   2.2)
 
-(word-play "separate" :rate -1)
+(word-play "joy" :rate 1)
 
 ;;--------------------------------------------------
 
@@ -78,7 +138,7 @@
 (bbuffer-load "/home/sendai/Downloads/sample/LOG0106.wav")
 (bbplay (gethash "LOG0106.wav" *buffers*)
         :attenuation 1
-        :id 2
+        :id 3
         :loop-p nil)
 
 (bbuffer-load "/home/sendai/Downloads/sample/EM0903.wav")
@@ -141,13 +201,28 @@
 (push-note 'drum *gm-ride-bell* "ride1Bell_OH_F_6.wav")
 
 (defun f (time dur &optional (beat 0))
-  (and (zmod beat 1) (play-instrument 'drum *gm-kick* dur .4))
-  (and (zmod beat 3) (play-instrument 'drum *gm-snare* dur .4))
-  (and (zmod beat 2) (play-instrument 'drum *gm-side-stick* dur .4))
-  (and (zmod beat 2.5) (play-instrument 'drum *gm-side-stick* dur .4))
+  (and (zmod beat 1) (bbplay (gethash "kick_OH_F_9.wav" *buffers*)
+                             :attenuation 1d0
+                             :left .1))
+  (and (zmod beat 3) (play-instrument 'drum *gm-snare* :dur dur :amp .4))
+;;  (and (zmod beat 2) (play-instrument 'drum *gm-side-stick* dur .4))
+;;  (and (zmod beat 2.5) (play-instrument 'drum *gm-side-stick* dur .4))
   (aat (+ time #[dur b]) #'f it .5 (+ beat dur)))
 
 (defun f ())
 (f (now) 1)
-
+(pat (now))
+(defun pat ())
+(defpattern pat ((get-pattern 'getup) .2)
+  (if (odds .5)
+      (bbplay (gethash "kick_OH_F_9.wav" *buffers*)
+              :attenuation 1d0
+              :left .1)
+      (bbplay (gethash "kick_OH_F_9.wav" *buffers*)
+              :attenuation 1d0
+              :right .1))
+  (bbplay (gethash "snareStick_OH_F_9.wav" *buffers*)
+          :attenuation 1d0)
+  (bbplay (gethash "hihatClosed_OH_F_20.wav" *buffers*)
+          :attenuation 1d0))
 ;;--------------------------------------------------

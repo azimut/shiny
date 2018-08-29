@@ -121,11 +121,11 @@
     (let ((chord (make-chord 50 70 2 pc))
           (d (next r)))
       
-      (and (not (node-id (node 40)))
-           (word-play (next phrase)
-                      :rate .9
-                      :attenuation 2f0
-                      :id 40))
+      ;; (and (not (node-id (node 40)))
+      ;;      (word-play (next phrase)
+      ;;                 :rate .9
+      ;;                 :attenuation 2f0
+      ;;                 :id 40))
       
       (green (cm:hertz (car (next chord)))
              :dur (pick d (/ d 2))

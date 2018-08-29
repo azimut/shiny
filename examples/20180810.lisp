@@ -1,5 +1,7 @@
 (in-package :somecepl)
 
+;;; Code from "undo" video, along with compositions/ray.lisp
+
 (defvar *growth* 0f0)
 
 (defun-g circle-sdf ((st :vec2))
