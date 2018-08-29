@@ -22,10 +22,10 @@
   (setf (clear-color) (v! .2 .2 .2 0))
   (setf *actors* nil)
   (setf *lead*   nil)
-  (make-sphere)
-  ;;(make-voz)
+  ;;(make-sphere)
+  (setf *lead* (make-lead))
+  (make-voz)
   (make-ground)
-  ;;(setf *lead* (make-lead))
   nil)
 
 (defun draw! ()  
@@ -33,20 +33,20 @@
     (setf (resolution (current-viewport))
           res)
     (as-frame
-      (update *currentcamera*)
       ;; Noise texture
       (map-g-into *fbo* #'pass-pipe
                   (get-quad-stream-v2)
                   :time (mynow))
       ;; Shadow
-      (with-fbo-bound (*lfbo* :attachment-for-size :d)
+      (progn;;with-fbo-bound (*lfbo* :attachment-for-size :d)
         (loop :for actor :in *actors* :do
            (draw actor *light-camera*)))
-      (draw-tex-tl *sam*)
+      ;;(draw-tex-tl *sam*)
       ;;; Render
-      (loop :for actor :in *actors* :do
-         (update actor)
-         (draw actor *currentcamera*)))))
+      ;; (loop :for actor :in *actors* :do
+      ;;    (update actor)
+      ;;    (draw actor *currentcamera*))
+      )))
 
 (def-simple-main-loop runplay
     (:on-start #'initialize)

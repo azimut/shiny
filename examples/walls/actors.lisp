@@ -3,6 +3,12 @@
 (defvar *actors* nil)
 (defvar *lead* nil)
 
+(defun delete-actor-class (class-name)
+  (declare (string class-name))
+  (setf *actors*
+        (delete-if (lambda (x) (string= class-name (class-name (class-of x))))
+                   *actors*)))
+
 (defmethod sync (x) (+ .5 (* .5 (sin x))))
 (defmethod cync (x) (+ .5 (* .5 (cos x))))
 
@@ -25,16 +31,13 @@
 (defclass wall   (actor) ())
 (defclass ground (actor) ())
 
-(defun delete-actor-class (class-name)
-  (declare (string class-name))
-  (setf *actors*
-        (delete-if (lambda (x) (string= class-name (class-name (class-of x))))
-                   *actors*)))
+
 
 (defun make-ground ()
   (let ((ground
          (make-instance
           'ground
+          :pos (v! 0 -50 0)
           :buf (lattice))))
     (push ground *actors*)
     ground))
@@ -67,9 +70,11 @@
 
 (defmethod update ((actor lead))
   (setf (rot actor) (q:from-axis-angle (v! 1 0 0) (radians 90)))
-  (setf (pos actor) (v! (* 20 (sync (* 2 (mynow))))
-                        (* 10 (cync (mynow)))
-                        (* -50 (sync (* .5 (mynow)))))))
+  (setf (pos actor) (v! 0 20 200))
+  ;; (setf (pos actor) (v! (* 20 (sync (* 2 (mynow))))
+  ;;                       (* 10 (cync (mynow)))
+  ;;                       (* 100 (sync (* .5 (mynow))))))
+  )
 
 (defmethod update ((actor voz))
   ;; (setf (pos actor) (v! 0 0 0))
@@ -77,7 +82,9 @@
   ;;                                      (radians 90)))
   )
 (defmethod update ((actor sphere))
-  (setf (rot actor) (v! 0 0 0))
+  ;; (setf (rot actor) (v! 0 0 0))
+  ;; (setf (pos actor) (v! 0 0 0))
+  ;;(setf (rot actor) (v! 0 0 0))
   ;; (setf (rot actor)
   ;;       (q:from-axis-angle (v! 0 1 0)
   ;;                          (radians 90)))

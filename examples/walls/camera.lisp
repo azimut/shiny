@@ -39,18 +39,18 @@
 
 (defmethod update ((camera orth))
   (setf (pos camera)
-        (v! 0 5 0))
-  (setf (frame-size camera) (v! 100 100))
+        (v! 0 30 0))
+  (setf (frame-size camera) (v! 300 300))
 ;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera)
         ;; (q:*
         ;;  (q:from-axis-angle (v! 0 1 0)
         ;;                     (radians 180)))
         (q:from-axis-angle (v! 1 0 0)
-                           (radians -55))))
+                           (radians -45))))
 
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 50 70))
+  (setf (pos camera) (v! 0 50 300))
   ;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
   ;; (setf (rot camera)

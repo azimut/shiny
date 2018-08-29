@@ -9,6 +9,7 @@
   (with-slots (buf) actor
     (map-g #'ground-pipe buf
            :time (mynow)
+           :light-tex *sfbo*
            :cam-pos (pos camera)
            :light-factor *light-factor*
            :model-world (model->world actor)
