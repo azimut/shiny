@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Radio vago the sinking (trying to get the sounds)
 

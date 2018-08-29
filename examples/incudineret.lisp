@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; From Music V family.
 (define-vug rms (in hp)

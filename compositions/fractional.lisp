@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://github.com/laurasirco/The-Algorithmic-Composer-MAC/blob/master/src/FractionalNoiseComposer.cpp
 

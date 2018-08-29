@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defn phrase
   "Translates a sequence of durations and pitches into a melody.

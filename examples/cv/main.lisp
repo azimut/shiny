@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; CV> (query-video "/home/sendai/videos/sally.mp4")
 ;; size:7600 n-size:144 w:50 h:50

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar *buf* (make-buffer 512 :channels 1))
 

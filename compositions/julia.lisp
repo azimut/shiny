@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (let* ((chord  (make-chord-fixed 60 3 (ov-pc-scale :melodic-minor)))
        (cc     (make-cycle (list (make-cycle (first chord) 8)

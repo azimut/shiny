@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 (let ((scale (make-cycle (list (scale 0 'aeolian)
                                (nth-inc 3 (scale 0 'aeolian) -1))
                          3))

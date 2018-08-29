@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Use this with https://github.com/zazzerino/cl-fluidsynth
 ;; This version of cl-fluidsynth adds the standalone audio-driver support

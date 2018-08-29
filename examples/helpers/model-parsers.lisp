@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 ;;(in-package :cepl.examples.model-parsers)
 
 (defun meshes->lists (scene)

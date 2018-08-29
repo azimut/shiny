@@ -1,3 +1,3 @@
-(in-package :somecepl)
+(in-package :shiny)
 ;;; music.scm
 

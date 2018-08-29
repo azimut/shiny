@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defgeneric p (time pitch velocity duration channel)
   (:method ((time double-float) (pitch list) velocity duration channel)

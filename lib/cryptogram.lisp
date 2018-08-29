@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; http://ericsams.org/index.php/on-music/essays/on-schumann/97-did-schumann-use-cyphers-aug-1965
 (defparameter *schumann*

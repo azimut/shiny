@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://sourceforge.net/p/incudine/mailman/message/34320609/
 ;; https://ccrma.stanford.edu/realsimple/faust_strings/faust_strings.pdf

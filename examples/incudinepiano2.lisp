@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://sourceforge.net/p/incudine/mailman/message/31182999/
 

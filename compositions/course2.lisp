@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; 1 - Consistency a.k.a. Patterns
 ;; "The more patterns the more boring it gets..."

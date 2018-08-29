@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 ;; Trying CM drunk, random walk
 
 (defun plank (time root)

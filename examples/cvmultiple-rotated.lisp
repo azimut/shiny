@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defparameter *phrase*
   (make-cycle '("don't" "you" "ever" "let" "me" "go")))

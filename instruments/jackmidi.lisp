@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar *midiout* (jackmidi:open :direction :output))
 ;; Connect with Carla/qjackctl

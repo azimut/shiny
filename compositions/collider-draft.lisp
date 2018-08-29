@@ -9,7 +9,7 @@
 (server-boot *s*)
 (server-quit *s*)
 
-(in-package :somecepl)
+(in-package :shiny)
 
 (defparameter *synth* (play (sin-osc.ar 300 0 .2)))
 

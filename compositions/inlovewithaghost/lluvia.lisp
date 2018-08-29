@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (buffer-read "/home/sendai/Downloads/lluvia.wav")
 

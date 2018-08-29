@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defparameter *scale*  (ov-scale :G4 :minor))
 (defparameter *ncrypt* (decrypt-melody "carla"))

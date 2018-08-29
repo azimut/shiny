@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; THIS SYNTX SUCKS!!!
 (pa (quant 4) (repeat 4 '(60))

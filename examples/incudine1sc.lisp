@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 (defparameter s1env (make-envelope '(0 1 0) '(.2 1)))
 
 (define-vug s1 (f a e g d q)

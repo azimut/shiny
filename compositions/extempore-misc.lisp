@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; extempore - a study in part
 ;; this basically covers a scale descendent

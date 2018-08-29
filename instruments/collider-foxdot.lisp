@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (named-readtables:in-readtable :sc)
 

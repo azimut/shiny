@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defparameter *step* (make-stepper (seconds .05) (seconds 1)))
 

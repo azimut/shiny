@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (at (tempo-sync #[8 b])
     #'eval

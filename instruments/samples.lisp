@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; TODO: look at implementations:
 ;; - overtone/src/overtone/sc/sample.clj

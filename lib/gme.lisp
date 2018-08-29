@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;;::::::::::::::::::::::::::::::::::::::::::::::::::
 ;; Game-Music-Emu - cl-gme - helpers

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;(sort (loop for x in (directory (pathname "/home/sendai/Downloads/samples/pianosample/SalamanderGrandPianoV2_44.1khz16bit/44.1khz16bit/*v10*.wav")) collect (note-name-to-midi-number (uiop:unix-namestring x))) #'<)
 

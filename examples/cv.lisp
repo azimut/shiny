@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar *hsv* nil)
 (defvar *rgb* nil)

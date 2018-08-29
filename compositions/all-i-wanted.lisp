@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Used by examples/cvmultiple.lisp
 (defparameter *factor* 1)

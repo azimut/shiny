@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar *factor* 2)
 (defvar *single* 50)

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Fractal music
 ;; https://github.com/holgafreak/maxann-grace

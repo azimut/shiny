@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://musescore.com/user/335926/scores/629201
 

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 ;; https://www.youtube.com/watch?v=4lyI7O7kLP0
 
 (all-piano 0)

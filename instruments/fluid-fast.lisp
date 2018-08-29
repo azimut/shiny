@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;;(pa (now) '(60 62 64) 60 1 1)
 

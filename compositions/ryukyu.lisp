@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;;; -----------
 ;; ryukyu scale (aka ionic pentantonic scale)

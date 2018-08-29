@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (fp 2 44)
 (defparameter *current-note* 120)

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defun play-midi-note (time pitch velocity dur c)
   (when (and

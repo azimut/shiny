@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (midihelper:start-midihelper)
 ;; connect on qjackctl

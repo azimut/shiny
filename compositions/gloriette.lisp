@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; --------------------------------------------------------------------
 ;; Gloriette for John Cage - Translated from notes from metalevel

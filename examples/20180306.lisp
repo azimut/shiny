@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://ansimuz.itch.io/parallax-forest
 ;; http://terraria.wikia.com/wiki/Bunny

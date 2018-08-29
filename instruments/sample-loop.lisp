@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar *brain*
   (buffer-load "/home/sendai/Downloads/177479__unfa__slowly-raining-loop.flac"))

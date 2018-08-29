@@ -24,7 +24,7 @@
   (border-const :int :count 4)
   (image-data-origin :pointer))
 
-(in-package :somecepl)
+(in-package :shiny)
 
 (defconstant +window-freeratio+ #x00000100)
 (defconstant +window-gui-normal+ #x00000010)

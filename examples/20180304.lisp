@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defclass actor ()
   ((pos :initform (v! 0 0 0) :initarg :pos)

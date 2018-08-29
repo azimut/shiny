@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Trying the ideas on the song
 ;; https://www.youtube.com/watch?v=Ql_dEdMEjl4

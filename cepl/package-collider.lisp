@@ -66,5 +66,5 @@
                 #:heap))
 
 ;; define var, provided originally by incudine
-(in-package :somecepl)
+(in-package :shiny)
 (defvar *sample-rate* 1d0)

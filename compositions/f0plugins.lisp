@@ -42,7 +42,7 @@
          (z (* amp (atari2600.ar tone0 tone1 freq0 freq1 vol0 vol1 rate))))
     (out.ar out (pan2.ar (* z e) pan))))
 
-(in-package :somecepl)
+(in-package :shiny)
 
 (defparameter *synth* (synth 'atari :tone0 15 :freq0 30 :vol1 0 :vol0 1))
 (free *synth*)
@@ -101,5 +101,5 @@
          (a3 (logior a3 (* (clip.kr (round vbl 1) 0 31) 8))))
     (out.ar 0 (nes2.ar trig a0 a1 a2 a3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1))))
 
-(in-package :somecepl)
+(in-package :shiny)
 

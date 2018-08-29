@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defun freset ()
   "reset all the things! (programs and synths)"

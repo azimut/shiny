@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 (make-instrument 'drum "/home/sendai/Downloads/sample/OH/")
 
 (push-note 'drum *gm-kick* "kick_OH_F_9.wav")

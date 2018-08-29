@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defvar subkick   1)
 (defvar clapsnare 2)

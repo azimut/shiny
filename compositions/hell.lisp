@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (fg 2f0)
 

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; Nice keys2 - Program names
 ;; Nice-Keys-Ultimate-V2.3.sf2

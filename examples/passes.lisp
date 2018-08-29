@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 #|
 float sphereSDF(vec3 p) {

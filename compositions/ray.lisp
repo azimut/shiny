@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;;; Code from "undo" video, along with examples/20180810.lisp
 

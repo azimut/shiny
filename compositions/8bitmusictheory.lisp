@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://www.youtube.com/watch?v=5zGqN1ZOEJQ
 ;; Gbmaj13 - Fm9

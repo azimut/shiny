@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defun-g g-rand ((x :float))
   (fract (* (sin x)

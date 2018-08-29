@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defun-g vert ((vert :vec2))
   (v! vert 0 1))

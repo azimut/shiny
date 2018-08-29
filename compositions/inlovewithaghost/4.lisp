@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (let ((i (make-cycle '(iv v iii vi))))
   (defun ff (time)

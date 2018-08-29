@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (dsp! green (freq dur volume rms)
   (:defaults 440 1 1 0)

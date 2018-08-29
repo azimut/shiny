@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (fluidsynth:program-change *synth* 1 33)
 (fluidsynth:program-change *synth* 1 40)

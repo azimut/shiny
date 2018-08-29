@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defclass camera ()
   ((pos  :initarg :pos  :initform (v! 0 0 0) :accessor rot)

@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defstruct-g (music :layout :std-140)
   (samples (:double 512)))

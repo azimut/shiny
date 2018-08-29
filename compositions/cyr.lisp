@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; https://github.com/efairbanks/Cybin/blob/1a482bb824910ca2d16c94e4b8b16b8a5d9f2125/main.lua#L277
 ;; https://musical-artifacts.com/artifacts/415

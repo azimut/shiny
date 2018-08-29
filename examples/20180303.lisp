@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 (defun mynow ()
   ;; Just some number that increases over time that we use

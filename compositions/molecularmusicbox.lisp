@@ -1,4 +1,4 @@
-(in-package :somecepl)
+(in-package :shiny)
 
 ;; --------------------------------------------------------------------
 ;; The rules for the algorithm are as follows :
