@@ -32,7 +32,6 @@
 (fluid-test *synth*)
 
 ;; --------------------------------------------------
-
 ;; Incudine replaced macro, using bare beat call instead of #[] (less clutter)
 (defmacro aat (time function &rest arguments)
   (let* ((it    (intern "IT"))
@@ -45,7 +44,6 @@
 (defun quant (beats)
   "returns the time (+ (now) beats), sc-collider like thing"
   (+ (now) #[beats b]))
-
 ;; --------------------------------------------------
 
 (defgeneric p (time pitch velocity duration channel &key pan)
@@ -67,7 +65,7 @@
                (< pitch 127)
                (> duration 0))
       (when pan
-        (fluidsynth:cc *synth* channel 10 pan))
+        (fluidsynth:cc *synth* channel 10 (min (max 0 pan) 127)))
       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
       (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch)))
   (:method ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer) &key pan)
@@ -78,7 +76,7 @@
         (at (+ time #[d b]) #'fluidsynth:noteoff *synth* channel pitch))))
   (:method ((time double-float) (pitch symbol) (velocity integer) (duration symbol) (channel integer) &key pan)
     "Play given note on american notation, at CM rhythm"
-    (unless (eql :_ pitch)
+    (unless (and (eql :_ pitch) (eql 'cm::r pitch))
       (let ((n (note pitch))
             (d (cm:rhythm duration)))
         (when (> d 0)
@@ -89,15 +87,13 @@
   (:method ((time double-float) (pitch symbol) (velocity integer) (duration number) (channel integer) &key pan)
     "Play given note on american notation"
     (when (and (> duration 0)
-               (not (eql :_ pitch)))
+               (not (eql :_ pitch))
+               (not (eql 'cm::r pitch)))
       (let ((n (note pitch)))
         (at time #'fluidsynth:noteon
                   *synth* channel n velocity)
         (at (+ time #[duration b]) #'fluidsynth:noteoff
                   *synth* channel n)))))
-
-
-
 
 (defgeneric pa (time notes offset velocity channel duration &key pan)
   (:documentation "Play the given notes as an arpeggio")
