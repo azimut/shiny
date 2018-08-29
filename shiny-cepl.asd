@@ -1,4 +1,4 @@
-(asdf:defsystem "somecepl-cepl"
+(asdf:defsystem "shiny-cepl"
   :author "someone"
   :description "+ cepl"
   :license "GPL-3.0"

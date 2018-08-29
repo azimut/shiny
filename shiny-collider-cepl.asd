@@ -1,4 +1,4 @@
-(asdf:defsystem "somecepl-collider-cepl"
+(asdf:defsystem "shiny-collider-cepl"
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
   :license "GPL-3.0"

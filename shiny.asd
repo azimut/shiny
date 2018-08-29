@@ -1,4 +1,4 @@
-(asdf:defsystem "somecepl"
+(asdf:defsystem "shiny"
   :description "Describe somecepl here"
   :author "Your Name <your.name@example.com>"
   :license "GPL-3.0"
