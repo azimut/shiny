@@ -1,9 +1,10 @@
 # Shiny
 
-> Oh! Shiny!
+> - Oh! Shiny!
+
 *famous last words*
 
-Personal space to keep my experiments with music composition in lisp with some ocassional interaction with opengl (CEPL).
+Experiments with music composition in lisp with some ocassional OpenGL interaction with CEPL.
 
 ## Demo(s)
 * compositions/[molecularmusic.lisp](https://www.youtube.com/watch?v=ubgOlfUOztU) - music pattern with simple 3d graphics
@@ -14,9 +15,7 @@ Personal space to keep my experiments with music composition in lisp with some o
 * compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
 
 ## Goals
-I found both libraries really interesting and the only sane way to learn these topics.
-
-So far I translated some of the [extempore](https://github.com/digego/extempore) functionality related to music composition (see musicutils.lisp) so It can be used almost for the same.
+I found both libraries really interesting and the only sane way to do livecoding.
 
 My goal is learn enough of both topics by taking popular and forgotten topics of both areas and mixing them in interesting ways.
 
@@ -38,13 +37,3 @@ WIP
 ## Usage
 
 WIP
-
-## TODO(s)
-* Add fft and wave analysis from incudine as cepl textures
-* Package fluidsynth use a separate asdf(?) package
-* Add non fluidsynth package (loading wav files)
-* Add instruments
-* ~~Add [cl-collider](https://github.com/byulparan/cl-collider)~~
-* Integrate ideas from Tidal/Overtone/Supercollider code
-* Add https://github.com/vydd/sketch
-* Datasets visualizations
