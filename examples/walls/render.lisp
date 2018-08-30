@@ -48,6 +48,10 @@
      (model-world :mat4) (world-view :mat4) (view-clip :mat4)
      (time :float))
   (let* ((pos       (pos vert))
+         (time (+ time gl-instance-id))
+         ;; (pos (+ pos (v! 0 (mod time 10) 0)
+         ;;         (* (* 100 (sin time))
+         ;;                   (tan gl-instance-id))))
          (norm      (norm vert))
          (tex       (tex vert))
          (norm      (* (m4:to-mat3 model-world) (norm vert)))
@@ -180,7 +184,7 @@
   (let ((color
          (v3! (nineveh.noise:cellular-noise
                (+ (- (v! 0 (+ (- (clamp (sin time) .1 .16)) time)))
-                  (* 5 uv))))))
+                  (* 4 uv))))))
     (v! color 0)))
 (defpipeline-g pass-pipe ()
   (pass-vert :vec2)
@@ -188,13 +192,52 @@
 
 ;;--------------------------------------------------
 
+(defun-g planet-vert
+    ((vert g-pnt) &uniform
+     (model-world :mat4) (world-view :mat4) (view-clip :mat4)
+     (time :float) (noise-tex :sampler-2d))
+  (let* ((pos       (pos vert))
+         (norm      (norm vert))
+         (tex       (tex vert))
+         (dis (* 2
+                 (x
+                  (texel-fetch
+                   noise-tex
+                   (ivec2 (v! (int (floor (* 200 (/ (+ 5 (x pos)) 10))))
+                              (int (floor (* 200 (/ (+ 5 (z pos)) 10))))))
+                   0))))
+         (pos (+ pos (* norm dis)))
+;;         (pos (+ pos (v! 0 dis 0)))
+;;         (pos (- pos (v! 0 10 0)))
+;;         (pos (* pos (v! 3 3 3)))
+         (norm      (* (m4:to-mat3 model-world) (norm vert)))
+         (world-pos (* model-world (v! pos 1)))
+         (view-pos  (* world-view  world-pos))
+         (clip-pos  (* view-clip   view-pos)))
+    (values clip-pos
+            tex
+            norm
+            (s~ world-pos :xyz))))
+
 (defun-g portal-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
      (time :float) (portal-window :sampler-2d))
-  (let* ((final (texture portal-window uv)))
+  (let* ((uv (* -1 uv))
+         (final (texture portal-window uv)))
     final))
 
 ;;--------------------------------------------------
+
+(defun-g planet-frag
+    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
+     (time :float) (noise-tex :sampler-2d))
+  (let* ((final (clamp (v3! 0) (v3! 1) (* (v! .2 .2 .2) frag-norm))))
+    final))
+
+(defpipeline-g planet-pipe ()
+  :vertex (planet-vert g-pnt)
+  :fragment (planet-frag :vec2 :vec3 :vec3))
+
 (defpipeline-g portal-pipe ()
   :vertex (vert g-pnt)
   :fragment (portal-frag :vec2 :vec3 :vec3))

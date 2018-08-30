@@ -36,13 +36,19 @@
 (defclass sphere (actor) ())
 (defclass wall   (actor) ())
 (defclass ground (actor) ())
-(defclass portal (actor) ())
+(defclass portal (actor)
+  ((buf :initform (box))))
+(defclass planet (actor)
+  ((buf :initform (sphere 5))
+   (pos :initform (v! 0 50 0))))
+
+(defun make-planet ()
+  (let ((planet (make-instance 'planet)))
+    (push planet *actors*)
+    planet))
 
 (defun make-portal ()
-  (let ((portal
-         (make-instance
-          'portal
-          :buf (sphere 10f0))))
+  (let ((portal (make-instance 'portal)))
     (push portal *outsiders*)
     portal))
 
@@ -113,9 +119,10 @@
 
 (defmethod update ((actor portal))
   ;;(setf (rot actor) (v! 0 0 0))
-    (setf (rot actor)
-        (q:from-axis-angle (v! 1 0 0)
-                           (radians 180)))
+  (setf (rot actor)
+        (q:from-axis-angle
+         (v! 1 1 1)
+         (radians (mod (* .01 (get-internal-real-time)) 360))))
 
   ;; (setf (rot actor)
   ;;       (q:from-axis-angle (v! 1 1 0)

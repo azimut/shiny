@@ -10,12 +10,15 @@
   (setf (clear-color) (v! .2 .2 .2 0))
   (setf *actors* nil)
   (setf *outsiders* nil)
-  (setf *lead*   nil)
+  (setf *lead* nil)
+  ;;--------------------------------------------------
+
   ;; Make!!!
-  (make-sphere)
-  (setf *lead* (make-lead))
-  (make-voz)
-  (make-portal)
+  (make-planet)
+  ;; (make-sphere)
+  ;; (setf *lead* (make-lead))
+  ;; (make-voz)
+  ;; (make-portal)
   ;;(make-ground)
   nil)
 
@@ -24,7 +27,7 @@
     (setf (resolution (current-viewport))
           res)
     (as-frame
-      ;;(update *currentcamera*)
+      (update *currentcamera*)
       ;; Noise texture
       ;; (map-g-into *fbo* #'pass-pipe
       ;;             (get-quad-stream-v2)
@@ -33,17 +36,43 @@
       ;; (with-fbo-bound (*lfbo* :attachment-for-size :d)
       ;;   (loop :for actor :in *actors* :do
       ;;      (draw actor *light-camera*)))
-      (draw-tex *sam*)
+      ;;(draw-tex *sam*)
       ;;; Render
-      (update-all-the-things *actors*)
+      (update-all-the-things *outsiders*)
       ;;(update *currentcamera*)
       (with-fbo-bound (*fbo*)
         (clear-fbo *fbo*)
         (loop :for actor :in *actors* :do
            (draw actor *portal-camera*)))
-      ;; (loop :for actor :in *outsiders* :do
-      ;;    (draw actor *currentcamera*))
+      (loop :for actor :in *outsiders* :do
+         (draw actor *currentcamera*))
       )))
+
+
+(defun draw! ()  
+  (let ((res (surface-resolution (current-surface))))
+    (setf (resolution (current-viewport))
+          res)
+    (as-frame
+      (update *currentcamera*)
+      ;; Noise texture
+      (map-g-into *fbo* #'pass-pipe
+                  (get-quad-stream-v2)
+                  :time (mynow))
+      ;; Shadow
+      ;; (with-fbo-bound (*lfbo* :attachment-for-size :d)
+      ;;   (loop :for actor :in *actors* :do
+      ;;      (draw actor *light-camera*)))
+      ;;(draw-tex *sam*)
+      ;;; Render
+      ;;(update-all-the-things *outsiders*)
+      ;;(update *currentcamera*)
+      ;; (with-fbo-bound (*fbo*)
+      ;;   (clear-fbo *fbo*)
+      ;;   (loop :for actor :in *actors* :do
+      ;;      (draw actor *portal-camera*)))
+      (loop :for actor :in *actors* :do
+         (draw actor *currentcamera*)))))
 
 (def-simple-main-loop runplay
     (:on-start #'initialize)

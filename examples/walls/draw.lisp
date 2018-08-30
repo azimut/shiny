@@ -61,10 +61,20 @@
            :view-clip  (projection camera))))
 
 (defmethod draw ((actor portal) camera)
+  (with-instances 10
+    (with-slots (buf) actor
+      (map-g #'portal-pipe buf
+             :time (mynow)
+             :portal-window *sam*
+             :model-world (model->world actor)
+             :world-view (world->view camera)
+             :view-clip  (projection camera)))))
+
+(defmethod draw ((actor planet) camera)
   (with-slots (buf) actor
-    (map-g #'portal-pipe buf
+    (map-g #'planet-pipe buf
            :time (mynow)
-           :portal-window *sam*
+           :noise-tex *sam*
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))

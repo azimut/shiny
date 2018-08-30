@@ -50,9 +50,12 @@
                            (radians -45))))
 
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 0 20))
-  ;;  (setf (rot camera) (v! 0 0 0))
-  (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
+  (setf (pos camera) (v! 0 50 20))
+    (setf (rot camera) (v! 0 0 0))
+  ;; (setf (rot camera) (q:from-axis-angle
+  ;;                     (v! 1 1 1)
+  ;;                     (radians (mod (* .1 (get-internal-real-time)) 360))))
+;;;  (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
   ;; (setf (rot camera)
   ;;       ;; (q:*
   ;;       ;;  (q:from-axis-angle (v! 0 1 0)
@@ -76,7 +79,7 @@
 (setf (pos *light-camera*) (v! 0 5 0))
 (setf (rot *light-camera*) (q:from-axis-angle (v! 1 0 0)
                                               (radians -55)))
-(setf (frame-size *light-camera* (v! 20 20)))
+(setf (frame-size *light-camera*) (v! 20 20))
 
 (defvar *portal-camera* (make-instance 'pers))
 (setf (pos *portal-camera*) (v! 0 100 200))
