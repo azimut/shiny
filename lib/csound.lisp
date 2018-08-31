@@ -7,14 +7,96 @@
 ;;   combine or compose them won't be that easy...
 ;; - Make a parser for orcs, initially to get the signature of the insts, like
 ;;  if they need extra arguments or not. And create the classes accordingly
+;; - Synths bring to the table the fact that I don't do much over time changes
+;; - Then parse the instrument part too might be to get good default values
+;; - But like baggers said "when you get a string in lisp is like it insults you"
 ;; - Aaaaaaand test ORCAsync
 
 ;; Copy csound's interfaces/csound.{lisp,asd} into
 ;; ~/.quicklisp/local-projects/csound/ then
-;; I also re-defined :string instead of :pointer for csound:csoundreadscore
+;; I also re-defined :string instead of :pointer for csound:csoundreadscore and :orcproc
 
 (defvar *c* nil)
 (defvar *orcs* (make-hash-table))
+
+;; TODO: add default args as a list for "extra" instead of a number
+(defclass cinstrument ()
+  ((iname :initarg :iname)
+   (extra :initarg :extra :initform 0 :reader extra)))
+
+;; FIXME: meh, needs to be a macro
+(defmethod print-object ((obj cinstrument) out)
+  (print-unreadable-object (obj out :type t)
+    (format out "~s" (extra obj))))
+
+;; HACKS!! ... p4 is kind of optional
+(defgeneric playcsound (instrument keynum duration p4 &rest rest))
+(defmethod playcsound
+    ((i cinstrument) (keynum integer) (duration number) (p4 number) &rest rest)
+  "plays a single note with INSTRUMENT
+  (playcsound *ins* 60 1 2.0 .02)"
+  (with-slots (extra iname) i
+    (let ((pch (incudine:keynum->pch keynum))
+          (start-at 0)
+          (lrest  (length rest))
+          (lextra (length extra)))
+      ;; Fill arguments if not provided or partially provided
+      (cond ((= lrest 0)
+             (setf rest extra))
+            ((< lrest lextra)
+             (setf rest (append rest (loop :for n :in (subseq extra lrest) :collect n)))))
+      (csound:csoundreadscore
+       *c*
+       (concatenate
+        'string
+        iname
+        (format nil "~{ ~A~}"
+                (append (list start-at duration p4 pch)
+                        rest)))))))
+
+(defmethod playcsound
+    ((i cinstrument) (keynum list) (duration number) (p4 number) &rest rest)
+  "plays chord of KEYNUM list
+   (playcsound *ins* '(60 62 64) 1 2.0 .02)"
+  (with-slots (extra iname) i
+    (let ((pchs (mapcar (lambda (x) (incudine:keynum->pch x)) keynum))
+          (start-at 0)
+          (lrest (length rest))
+          (lextra (length extra)))
+      ;; TODO: multiple values?
+      ;; Fill arguments if not provided or partially provided
+      (cond ((= lrest 0)
+             (setf rest extra))
+            ((< lrest lextra)
+             (setf rest (append rest (loop :for n :in (subseq extra lrest) :collect n)))))
+      (mapcar
+       (lambda (x)
+         (csound:csoundreadscore
+          *c*
+          (concatenate
+           'string
+           iname
+           (format nil "~{ ~A~}"
+                   (append (list start-at duration p4 x)
+                           rest)))))
+       pchs))))
+
+;; FIX: redundant loops..
+(defmacro make-play (name i p4 &rest rest)
+  (let ((fname (intern (format nil "~A-~A" 'play name))))
+    `(let ((c (make-instance 'cinstrument :iname ,i :extra (list ,@rest))))
+       (defun ,fname (keynum duration &optional (p4 ,p4) ,@(loop :for i :from 1 :for n :in rest :collect (list (intern (format nil "~a~d" 'arg i)) n)))
+         (playcsound c keynum duration p4 ,@(loop :for i :from 1 :for n :in rest :collect (intern (format nil "~a~d" 'arg i))))))))
+
+(defclass orc ()
+  ((orc :initarg :orc)
+   (table :initarg :table)))
+
+(defun make-orc (name &key orc table)
+  (declare (symbol name) (string orc table))
+  (let ((o (make-instance 'orc :orc orc :table table)))
+    (setf (gethash name *orcs*) o)))
+
 
 ;; (set-csound-options '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
 (defun set-csound-options (&optional (options '("-odac" "--nchnls=2")))
@@ -25,7 +107,7 @@
 
 ;; TODO: ew
 (defun start-csound (orchestra)
-  (declare (orc orchestra))
+  (declare (type orc orchestra))
   (unless *c*
     (with-slots (orc table) orchestra
       (csound:csoundinitialize 3)
@@ -34,57 +116,6 @@
       (csound:csoundcompileorc *c* orc)
       (csound:csoundstart *c*)
       (csound:csoundreadscore *c* table))))
-
-;; TODO: add default args as a list for "extra" instead of a number
-(defclass cinstrument ()
-  ((iname :initarg :iname)
-   (extra :initarg :extra :initform 0)))
-
-(defgeneric playcsound (instrument keynum duration &rest rest))
-(defmethod playcsound ((i cinstrument) (keynum integer) duration &rest rest)
-  "plays a single note with INSTRUMENT
-  (playcsound *ins* 60 1 2.0 .02)"
-  (let ((pch (incudine:keynum->pch keynum))
-        (start-at 0)
-        (padding 0))
-    (with-slots (iname extra) i
-      (when (= (length rest) extra)
-        (csound:csoundreadscore
-         *c*
-         (concatenate
-          'string
-          iname
-          (format nil "~{ ~A~}"
-                  (append (list start-at duration padding pch)
-                          rest))))))))
-(defmethod playcsound ((i cinstrument) (keynum list) duration &rest rest)
-  "plays chord of KEYNUM list
-   (playcsound *ins* '(60 62 64) 1 2.0 .02)"
-  (let ((pchs (mapcar (lambda (x) (incudine:keynum->pch x)) keynum))
-        (start-at 0)
-        (padding 0))
-    (with-slots (iname extra) i
-      (when (= (length rest) extra)
-        (mapcar
-         (lambda (x)
-           (csound:csoundreadscore
-            *c*
-            (concatenate
-             'string
-             iname
-             (format nil "~{ ~A~}"
-                     (append (list start-at duration padding x)
-                             rest)))))
-         pchs)))))
-
-(defclass orc ()
-  ((orc :initarg :orc)
-   (table :initarg :table)))
-
-(defun make-orc (name &key orc table)
-  (declare (symbol name) (string orc table))
-  (let ((o (make-instance 'orc :orc orc :table table)))
-    (setf (gethash name *orcs*) o)))
 
 (make-orc
  :xanadu
@@ -188,6 +219,14 @@ f20  0  16   -2    0   30  40  45  50  40  30  20  10  5  4  3  2  1  0  0  0
 f21  0  16   -2    0   20  15  10  9   8   7   6   5   4  3  2  1  0  0
 f22  0  9    -2   .001 .004 .007 .003 .002 .005 .009 .006"
  :orc "
+sr     =        44100  
+ksmps  =        64;;100
+nchnls =        2
+;============================================================================;
+;=============================== INITIALIZATION =============================;
+;============================================================================;
+garvb  init     0
+gadel  init     0
 ;============================================================================;
 ;==================================== IVORY =================================;
 ;============================================================================;
