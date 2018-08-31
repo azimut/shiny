@@ -13,6 +13,7 @@ Experiments with music composition in lisp with some ocassional OpenGL interacti
 * compositions/[mondaycv.lisp](https://www.youtube.com/watch?v=Ltb_nNCyqoI) - opencv video sequencing
 * compositions/[gme.lisp](https://www.youtube.com/watch?v=DasB0di7iAw) - opencv multi video sequencing, with live nsf (nintento sound format) sequencing
 * compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
+* compositions/[empty.lisp](https://www.youtube.com/watch?v=bybN395ssVQ) - csound through cffi, 3d scene and some fluidsynth
 
 ## Goals
 I found both libraries really interesting and the only sane way to do livecoding.
