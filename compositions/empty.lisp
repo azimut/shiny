@@ -1,5 +1,8 @@
 (in-package :shiny)
 
+;; needs quickload of lib/csound.lisp
+;; uses examples/walls/ for visuals
+
 (start-csound (gethash :xanadu *orcs*))
 
 (bt:make-thread
@@ -12,30 +15,6 @@
 (make-play plucke "i1" 0)
 (make-play pluck  "i2" 0)
 (make-play newfm  "i3" 0 .2 2.0)
-
-;; TRAPPED
-;; (make-play ivory  "i1" 0  200 .001 17.8 .99)
-;; (make-play blue   "i2" .2 600 23 10 .52)
-;; (make-play violet "i3" 0  800 .8 57)
-;; (make-play black  "i4" .4 1000 4600 6500 33 0.6)
-;; (make-play green  "i5" 0 3500 .2 .1 3 10 12 27)
-;; (make-play taupe  "i10" 0 3500 .2 .1 3 10 12 27)
-;; (make-play rust   "i11" 0 2200 .2)
-;;(play-rust 60 2 .8 1000 .9)
-
-;;(csound:csounddestroy *c*)
-
-;; (defparameter *expand*
-;;   (loop :for n :from 1 :to 3 :by .1 :collect
-;;      (mapcar #'round
-;;              (cm:expwarp (make-chord-fixed 60 3 (scale 0 'ryukyu)) n))))
-
-;; (defparameter *spectrum*
-;;   (mapcar
-;;    (lambda (x)
-;;      (mapcar #'round
-;;              (cm:scale-spectrum-low (make-chord-fixed 60 3 (scale 0 'ryukyu)) x)))
-;;    (cm:placereg (cm:heapvec 12) 3)))
 
 (defun f ())
 
