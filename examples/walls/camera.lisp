@@ -49,12 +49,22 @@
         (q:from-axis-angle (v! 1 0 0)
                            (radians -45))))
 
+(defparameter *crotate* nil)
+(defparameter *head* nil)
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 50 20))
-    (setf (rot camera) (v! 0 0 0))
-  ;; (setf (rot camera) (q:from-axis-angle
-  ;;                     (v! 1 1 1)
-  ;;                     (radians (mod (* .1 (get-internal-real-time)) 360))))
+  (if *head*
+      (setf (pos camera) *head*)
+      (setf (pos camera) (v! 2 (+ 40 (* *wave* (sync (mynow)))) 30)))
+  (if *crotate*
+      (setf (rot camera)
+            (q:*
+             (q:from-axis-angle
+              (v! 0 1 0)
+              (radians (mod (* .05 (get-internal-real-time)) 360)))
+             (q:from-axis-angle
+              (v! 1 0 0)
+              (radians (* 45 (sync (* .001 (get-internal-real-time))))))))      
+      (setf (rot camera) (v! 0 0 0)))
 ;;;  (setf (rot camera) (q:from-axis-angle (v! 1 0 0) (radians -10)))
   ;; (setf (rot camera)
   ;;       ;; (q:*
@@ -85,3 +95,5 @@
 (setf (pos *portal-camera*) (v! 0 100 200))
 (setf (rot *portal-camera*) (q:from-axis-angle (v! 1 0 0) (radians -10)))
 (setf (frame-size *portal-camera*) (v! 30 30))
+
+

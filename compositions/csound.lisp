@@ -8,101 +8,75 @@
            (when (not (= frame 0))
              (return))))))
 
+;; XANADU
+(make-play plucke "i1" 0)
+(make-play pluck  "i2" 0)
+(make-play newfm  "i3" 0 .2 2.0)
 
-(defparameter *inst1*
-  (make-instance 'cinstrument :iname "i1"))
-(defparameter *inst2*
-  (make-instance 'cinstrument :iname "i2"))
-(defparameter *inst3*
-  (make-instance 'cinstrument :iname "i3" :extra 2))
+;; TRAPPED
+;; (make-play ivory  "i1" 0  200 .001 17.8 .99)
+;; (make-play blue   "i2" .2 600 23 10 .52)
+;; (make-play violet "i3" 0  800 .8 57)
+;; (make-play black  "i4" .4 1000 4600 6500 33 0.6)
+;; (make-play green  "i5" 0 3500 .2 .1 3 10 12 27)
+;; (make-play taupe  "i10" 0 3500 .2 .1 3 10 12 27)
+;; (make-play rust   "i11" 0 2200 .2)
+;;(play-rust 60 2 .8 1000 .9)
 
 ;;(csound:csounddestroy *c*)
 
-(defparameter *expand*
-  (loop :for n :from 1 :to 3 :by .1 :collect
-     (mapcar #'round
-             (cm:expwarp (make-chord-fixed 60 3 (scale 0 'ryukyu)) n))))
+;; (defparameter *expand*
+;;   (loop :for n :from 1 :to 3 :by .1 :collect
+;;      (mapcar #'round
+;;              (cm:expwarp (make-chord-fixed 60 3 (scale 0 'ryukyu)) n))))
 
-(defparameter *spectrum*
-  (mapcar
-   (lambda (x)
-     (mapcar #'round
-             (cm:scale-spectrum-low (make-chord-fixed 60 3 (scale 0 'ryukyu)) x)))
-   (cm:placereg (cm:heapvec 12) 3)))
+;; (defparameter *spectrum*
+;;   (mapcar
+;;    (lambda (x)
+;;      (mapcar #'round
+;;              (cm:scale-spectrum-low (make-chord-fixed 60 3 (scale 0 'ryukyu)) x)))
+;;    (cm:placereg (cm:heapvec 12) 3)))
 
-(defpattern k ((gethash 'getup *patterns*) .5)
-  (playcsound *inst3* *gm-kick* d 4 .9)
-  (playcsound *inst3* *gm-snare* d 2 .2)
-  (playcsound *inst3* *gm-closed-hi-hat* d 4 .1))
-
-(defun k ())
-(k (now))
 (defun f ())
-(let ((chord (make-cycle (make-chord-fixed 60 3 (scale 0 'ryukyu))))
+
+(defun make-random-v3 ()
+  (v! (+ 0 (random 40)) (+ 50 (random 30)) (+ 20 (random 10))))
+
+(defparameter *wave* 1f0)
+
+(let ((stars (make-heap '(.991 .99 .99)))
+      (intent (make-heap '(5f0 1f0 2f0 3f0)))
+      (crot  (make-heap '(nil t)))
+      (chord (make-heap (make-chord-fixed 60 3 (scale 0 'ryukyu))))
       (here  (make-cycle '(t nil)))
-      (lead  (make-cycle (make-chord-fixed 80 5 (scale 0 'ryukyu)))))
+      (lead  (make-heap (make-chord-fixed 80 5 (scale 0 'ryukyu)))))
   (defun f (time)
     (let ((n (next chord)))
-      (playcsound *inst3* n 2 2 .2)
+      (setf *wave* 500f0)
+      (play-newfm n 2 0 .2 2)
       ;; (if (odds .5)
-      ;;     (p time 60 60 1 0)
       ;;     (progn
-      ;;       (p time 60 60 .5 2 :pan 0)
-      ;;       (p (+ time #[.5 b]) 60 60 .5 3 :pan 127)))
-      ;; (pa time (list (pickl '(79 83 84 88 89)) 0)
-      ;;     4 50 4 4)
-      (when (next here)
-        (playcsound *inst2* (next lead) 4)))
+      ;;       (setf *light-factor* (next intent))
+      ;;       (p time 60 60 1 0))
+      ;;     ;; (progn
+      ;;     ;;   (setf *head* (v! 0 50 0))
+      ;;     ;;   (p time 60 60 .5 2 :pan 0)
+      ;;     ;;   (p (+ time #[.5 b]) 60 60 .5 3 :pan 127))
+      ;;     )
+      ;; (progn
+      ;;   (setf *crotate* (next crot))
+      ;;   (pa time (list (pickl '(79 83 84 88 89)) 0)
+      ;;       4 (rcosr 40 5 5) 4 4))
+      ;; (when (next here)
+      ;;   (setf *stars* (next stars))
+      ;;   (play-pluck (+ 12 (next lead)) 4 0))
+      )
     (aat (+ time #[2 b])
          #'f it)))
 
-(fp 4 52)
-(f (tempo-sync #[1 b]))
-
-(let ((chord (make-cycle (make-chord-fixed 60 3 (scale 0 'ryukyu))))
-      (here  (make-cycle '(t nil)))
-      ;;(lead  (make-cycle (make-chord-fixed 80 5 (scale 0 'ryukyu))))
-      (lead  (make-cycle *spectrum*)))
-  (defun f (time)
-    (let ((n (next chord)))
-      ;;(playcsound *inst3* n 2 2 .2)
-      ;; (if (odds .5)
-      ;;     (p time 60 60 1 0)
-      ;;     (progn
-      ;;       (p time 60 60 .5 2 :pan 0)
-      ;;       (p (+ time #[.5 b]) 60 60 .5 3 :pan 127)))
-      (when (next here)
-        (playcsound *inst1* (next lead) 4)))
-    (aat (+ time #[2 b])
-         #'f it)))
-
-(defpattern k ((gethash 'wm *patterns*) .25)
-  (bbplay "kick_OH_F_9.wav" :attenuation .2 :rate 1)
-  (bbplay "snare_OH_FF_9.wav" :attenuation .2 :rate .2)
-  (bbplay "hihatClosed_OH_F_20.wav" :attenuation .05 :rate 2)
-  ;;(bbplay "hihatOpen_OH_FF_6.wav" :attenuation .05 :rate -2)
-  )
-
-(k (tempo-sync #[1 b]))
-(f (tempo-sync #[1 b]))
-
+(fg .5f0)
+(fp 4 23)
 (defun f ())
-(defun k ())
+(f (tempo-sync #[1 b]))
 
-(let ((chord (make-cycle (make-chord-fixed 60 3 (scale 0 'ryukyu))))
-      (here  (make-cycle '(t nil)))
-      ;;(lead  (make-cycle (make-chord-fixed 80 5 (scale 0 'ryukyu))))
-      (lead  (make-line *expand*)))
-  (defun f (time)
-    (let ((n (next chord)))
-      (playcsound *inst3* (+ 12 n) 2 2 .2)
-      ;; (if (odds .5)
-      ;;     (p time 60 60 1 0)
-      ;;     (progn
-      ;;       (p time 60 60 .5 2 :pan 0)
-      ;;       (p (+ time #[.5 b]) 60 60 .5 3 :pan 127)))
-      (when (next here)
-        (playcsound *inst3* (cm:transp (next lead) 0) 2 3 0.4)))
-    (aat (+ time #[1 b])
-         #'f it)))
 

@@ -74,7 +74,6 @@
   (with-slots (buf) actor
     (map-g #'planet-pipe buf
            :time (mynow)
-           :noise-tex *sam*
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))

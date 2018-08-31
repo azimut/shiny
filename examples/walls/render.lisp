@@ -65,6 +65,7 @@
 
 ;;--------------------------------------------------
 
+(defvar *stars* .9991)
 (defun-g sphere-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
      (time :float) (light-factor :float))
@@ -77,12 +78,12 @@
                         (syn time)))
          (circle (circle-g uv light-size))
          (sky (- 1 (* circle light-color)))
-         (noise (+  -3 (perlin-noise (* 40 (+ (v! (* .009 time) 0) uv)))))
+         (noise (+  -3 (perlin-noise (* 40 (+ (v! (* .01 time) 0) uv)))))
          (landmass (* (v! .2 .2 .2) ;; 0 .2 .9 ;; .2 .2 .2
                       (v3! noise)
                       (clamp (v3! (- (y frag-pos))) 0 1.2)))
          (starry (let ((r (g-rand (* 100 (y uv)))))
-                   (if (> r .9991)
+                   (if (> r *stars*)
                        (v3! r)
                        (v3! 0))))
          (starry (clamp (* starry (y frag-pos)) 0 1))
@@ -91,7 +92,7 @@
                    (* 2 (+ .2 (* .05 (sin (* 10 time)))) starry)))
 ;;         (final (+ (* 1 (dot dir-to-light frag-norm)) (s~ final :xyz)))
          )
-    final))
+    (v! (cos time) (sin time))))
 ;;--------------------------------------------------
 
 (defun-g voz-vert
@@ -230,9 +231,27 @@
 
 (defun-g planet-frag
     ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
-     (time :float) (noise-tex :sampler-2d))
-  (let* ((final (clamp (v3! 0) (v3! 1) (* (v! .2 .2 .2) frag-norm))))
-    final))
+     (time :float))
+  (let* ((final (v! .2 .2 .3 0)))
+    .2))
+
+(defun-g planet-frag
+    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
+     (time :float))
+  (let* ((light-pos (v! 0 50 -100))
+         (obj-color (v! .2 .9 1));; .2 .9 1  ;; celeste
+         ;; Ambient
+         (light-ambient .1)
+         ;; Diffuse
+         (vec-to-light  (- light-pos frag-pos))
+         (dir-to-light  (normalize vec-to-light))
+         (light-diffuse (saturate (dot frag-norm dir-to-light)))
+         (lights (+ light-ambient (+ light-diffuse)))
+         (result (* lights obj-color))
+;;         (depth (v3! (/ (linearize-depth (z gl-frag-coord) .1f0 10f0) 10f0)))
+         (result (* ;;depth
+                    result)))
+    (v! result 0)))
 
 (defpipeline-g planet-pipe ()
   :vertex (planet-vert g-pnt)

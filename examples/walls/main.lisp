@@ -15,7 +15,7 @@
 
   ;; Make!!!
   (make-planet)
-  ;; (make-sphere)
+  (make-sphere)
   ;; (setf *lead* (make-lead))
   ;; (make-voz)
   ;; (make-portal)
@@ -29,9 +29,9 @@
     (as-frame
       (update *currentcamera*)
       ;; Noise texture
-      ;; (map-g-into *fbo* #'pass-pipe
-      ;;             (get-quad-stream-v2)
-      ;;             :time (mynow))
+      (map-g-into *fbo* #'pass-pipe
+                  (get-quad-stream-v2)
+                  :time (mynow))
       ;; Shadow
       ;; (with-fbo-bound (*lfbo* :attachment-for-size :d)
       ;;   (loop :for actor :in *actors* :do
@@ -63,7 +63,7 @@
       ;; (with-fbo-bound (*lfbo* :attachment-for-size :d)
       ;;   (loop :for actor :in *actors* :do
       ;;      (draw actor *light-camera*)))
-      ;;(draw-tex *sam*)
+      ;;(draw-tex-br *sam*)
       ;;; Render
       ;;(update-all-the-things *outsiders*)
       ;;(update *currentcamera*)
