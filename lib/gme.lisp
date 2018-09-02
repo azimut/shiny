@@ -14,8 +14,10 @@
 
 (ql:quickload :cl-gme/incudine)
 
-(defparameter *loading* (make-hash-table :test #'equal))
-(defparameter *playing* (make-hash-table :test #'equal))
+;; Flip-flop buffer to avoid cuts while loading AND
+;; ...still being able to free old cuts
+(defvar *loading* (make-hash-table :test #'equal))
+(defvar *playing* (make-hash-table :test #'equal))
 
 (defun list-playing ()
   (map nil #'print (alexandria:hash-table-keys *playing*)))
@@ -48,17 +50,11 @@
                                  (cffi:mem-ref gmefile :pointer)
                                  frames
                                  offset))
-    buf))
-
-(defun gme-buffer-load (filename)
-  (declare (string filename))
-  (let ((f (file-namestring filename)))
-    (setf (gethash f *buffers*)
-          (gmebuffer filename))))
+    (incudine:normalize-buffer buf 1f0)))
 
 (defun gmeplay
     (filename node track-number
-     &key (attenuation .00001) (rate 1f0) (start-pos 0)
+     &key (attenuation 1) (rate 1f0) (start-pos 0)
        (fade-curve 3) (fade-time 0f0)
        (length 1) (offset 0) (voices '())
        (load-only nil))
@@ -69,7 +65,7 @@
    LOAD-ONLY just put the buffer in the global hash, do not play it
 
    (gmeplay \"/home/sendai/Downloads/sf2/ff3.nsf\" 2 15
-         :attenuation .00002
+         :attenuation .1
          :length 20
          :offset 10
          :voices '(2)
