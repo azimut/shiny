@@ -1,6 +1,6 @@
 (asdf:defsystem "shiny-cepl"
-  :author "someone"
-  :description "+ cepl"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine + cepl"
   :license "GPL-3.0"
   :version "0.1"
   :serial t
@@ -22,7 +22,6 @@
   :components ((:file "cepl/package")
                (:file "lib/assets")
                (:file "lib/musicutils")
-;;               (:file "nudruz")
                (:file "lib/extempore")
                (:file "lib/overtone")
                (:file "lib/drums")

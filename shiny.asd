@@ -1,18 +1,16 @@
 (asdf:defsystem "shiny"
-  :description "Describe somecepl here"
-  :author "Your Name <your.name@example.com>"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
   :license "GPL-3.0"
-  :depends-on (
-               #:swank
+  :version "0.1"
+  :serial t
+  :depends-on (#:swank
                #:cm
                #:incudine
                #:arrow-macros
-               #:cl-ppcre
-               )
-  :serial t
+               #:cl-ppcre)
   :components ((:file "package")
                (:file "lib/musicutils")
-;;               (:file "nudruz")
                (:file "lib/extempore")
                (:file "lib/cm")
                (:file "lib/overtone")

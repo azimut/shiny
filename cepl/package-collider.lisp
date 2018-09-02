@@ -1,5 +1,5 @@
 (uiop:define-package shiny
-  (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
+  (:shadowing-import-from #:cm #:between)
   (:shadowing-import-from #:cepl #:free #:mix)
   (:use #:cl
         ;; misc
