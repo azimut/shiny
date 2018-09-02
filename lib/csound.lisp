@@ -16,6 +16,8 @@
 ;; ~/.quicklisp/local-projects/csound/ then
 ;; I also re-defined :string instead of :pointer for csound:csoundreadscore and :orcproc
 
+(ql:quickload :csound)
+
 (defvar *c* nil)
 (defvar *orcs* (make-hash-table))
 
@@ -35,24 +37,25 @@
     ((i cinstrument) (keynum integer) (duration number) (p4 number) &rest rest)
   "plays a single note with INSTRUMENT
   (playcsound *ins* 60 1 2.0 .02)"
-  (with-slots (extra iname) i
-    (let ((pch (incudine:keynum->pch keynum))
-          (start-at 0)
-          (lrest  (length rest))
-          (lextra (length extra)))
-      ;; Fill arguments if not provided or partially provided
-      (cond ((= lrest 0)
-             (setf rest extra))
-            ((< lrest lextra)
-             (setf rest (append rest (loop :for n :in (subseq extra lrest) :collect n)))))
-      (csound:csoundreadscore
-       *c*
-       (concatenate
-        'string
-        iname
-        (format nil "~{ ~A~}"
-                (append (list start-at duration p4 pch)
-                        rest)))))))
+  (when (and (> keynum 0) (> duration 0))
+    (with-slots (extra iname) i
+      (let ((pch (incudine:keynum->pch keynum))
+            (start-at 0)
+            (lrest  (length rest))
+            (lextra (length extra)))
+        ;; Fill arguments if not provided or partially provided
+        (cond ((= lrest 0)
+               (setf rest extra))
+              ((< lrest lextra)
+               (setf rest (append rest (loop :for n :in (subseq extra lrest) :collect n)))))
+        (csound:csoundreadscore
+         *c*
+         (concatenate
+          'string
+          iname
+          (format nil "~{ ~A~}"
+                  (append (list start-at duration p4 pch)
+                          rest))))))))
 
 (defmethod playcsound
     ((i cinstrument) (keynum list) (duration number) (p4 number) &rest rest)
@@ -124,7 +127,7 @@
          f3 0 8192 -12 20.0"
  :orc "
 sr          =           44100
-ksmps       =           64 ; 100
+ksmps       =           100
 nchnls      =           2
 ;--------------------------------------------------------
 ;Instrument 1 : plucked strings chorused left/right and
@@ -220,7 +223,7 @@ f21  0  16   -2    0   20  15  10  9   8   7   6   5   4  3  2  1  0  0
 f22  0  9    -2   .001 .004 .007 .003 .002 .005 .009 .006"
  :orc "
 sr     =        44100  
-ksmps  =        64;;100
+ksmps  =        100
 nchnls =        2
 ;============================================================================;
 ;=============================== INITIALIZATION =============================;
