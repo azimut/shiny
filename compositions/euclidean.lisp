@@ -5,53 +5,19 @@
 ;; https://github.com/overtone/overtone/blob/master/src/overtone/examples/compositions/euclidean_rhythms.clj
 ;; ----------------------------
 
-(defvar *metro* nil)
-(setf *metro* (make-metro 90))
 (setf (bpm *tempo*) 60)
 
-(defun eu (beat time vel chan r rhythm notes)
-  (let ((n-beat (+ beat r))
-        (note   (first notes)))
-    (when (= (first rhythm) 1)
-      (p
-       time
-       note
-       (rcosr vel 3 1/2)
-       (cosr 1 .6 3/4)
-       chan))
-    (aat (funcall *metro* n-beat) #'eu
-         n-beat it vel chan r
-         (alexandria:rotate rhythm -1)
-         (alexandria:rotate notes -1))))
-
-(eu (funcall *metro* 'get-beat 4)
-    (funcall *metro* (funcall *metro* 'get-beat 4))
-    30
-    1
-    1
-    (bjorklund 4 4) '(60 62 64))
-
-(eu (funcall *metro* 'get-beat 4)
-    (funcall *metro* (funcall *metro* 'get-beat 4))
-    40
-    2
-    1/2
-    (bjorklund 3 8) '(66 68 70))
-
-(fluidsynth:program-change *synth* 1 1)
-
-(flush-pending)
-
-(eu (funcall *metro* 'get-beat 4)
-    (funcall *metro* (funcall *metro* 'get-beat 4))
-    40
-    2
-    1/2
-    (bjorklund 5 12) '(66 68 70))
-
-(eu (funcall *metro* 'get-beat 4)
-    (funcall *metro* (funcall *metro* 'get-beat 4))
-    40
-    2
-    1/2
-    (bjorklund 4 12) '(66 68 70))
+(defun f ())
+(defparameter *metro* (make-metro 60))
+(defparameter *metre* (make-metre '(2 3 2) 2))
+(let ((r (make-cycle (parse-pattern (bjorklund 3 8))))
+      (s (make-cycle (parse-pattern (bjorklund 5 12))))
+      (q (make-cycle (parse-pattern (bjorklund 4 12)))))
+  (defun f (time &optional (beat 0))
+    (when (funcall *metre* beat 1)
+      (play-crash 72 2))
+    (when (next r) (play-bass 60 .5 :amp .1 :bars 120))
+    (when (next s) (play-snare .5 :amp 5000))
+    (when (next q) (play-hihat 1 :amp 5000))
+    (aat (+ time #[.5 b]) #'f it (+ .5 beat))))
+(f (now))
