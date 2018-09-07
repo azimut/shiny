@@ -2,8 +2,6 @@
 
 > - Oh! Shiny!
 
-*famous last words*
-
 Experiments with music composition in lisp with some ocassional OpenGL interaction with CEPL.
 
 ## Demo(s)
@@ -33,8 +31,23 @@ You don't need to have all these, but some .asd files or examples will require t
 * https://github.com/ormf/cm/
 * https://github.com/gogins/csound-extended/tree/develop/nudruz
 
-WIP
-
 ## Usage
 
-WIP
+I assume that you know how to install/use Emacs, SLIME and Quicklisp. Run this on SLIME to have a basic setup with incudine and fluidsynth:
+```
+> (ql:quickload :shiny/fluidsynth)
+> (in-package :shiny)
+> (rt-start)
+> (fluidsynth:sfload *synth* "/usr/share/sounds/sf2/FluidR3_GM.sf2" 1)
+> (p (now) 60 60 1 0)
+```
+Other integrations cl-collider, csound are there too. (FIXME)
+
+And for visualizations with OpenGL/CEPL see:
+```
+> (ql:quickload :shiny-cepl)
+```
+
+### WHY?
+
+See [PAPER.md](PAPER.md)
