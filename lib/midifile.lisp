@@ -46,7 +46,7 @@
                 (list note time-seconds))
           nil))))
 
-(defun get-notes-duration
+(defun get-notes-durations
     (filename &optional (track-number 0) start-time coerce)
   "get notes and duration as pairs, ONLY useful for bars with only one note
    > (get-notes-duration *mf*)
@@ -72,7 +72,7 @@
                           start-time
                           coerce))))))
 
-(defun get-notes-list-duration
+(defun get-notes-durations-chords
     (filename &optional (track-number 0) start-time coerce)
   "sorts and groups get-notes-duration to get the notes on chords"
   (declare (string filename))
@@ -80,7 +80,7 @@
    #'null
    (loop
       :for (note duration time)
-      :in  (sort (get-notes-duration filename track-number t coerce)
+      :in  (sort (get-notes-durations filename track-number t coerce)
                  #'< :key #'caddr)
       :with queue
       :with last-time
@@ -102,7 +102,7 @@
                (setf queue `(,note ,duration))
                result))))))
 
-(defun get-notes-list (filename &optional (track-number 0))
+(defun get-notes-chords (filename &optional (track-number 0))
   "get notes grouped by time they were triggered
    > (get-notes-list *mf*)
    ((60 62 65) (60 62 69) (79)"
@@ -132,14 +132,14 @@
                    (setf queue nil)
                    (push now queue)))))))))
 
-(defun get-notes-durations-list-silences
+(defun get-notes-durations-chords-silences
     (filename &optional (track-number 0) start-time (coerce t))
   (declare (string filename))
   (remove-if
    #'null
    (loop
       :for (notes durations time)
-      :in  (get-notes-list-duration filename track-number t coerce)
+      :in  (get-notes-durations-chords filename track-number t coerce)
       :with next-time
       :appending
       (let ((current (list notes durations)))
