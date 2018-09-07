@@ -1,5 +1,3 @@
-*** This was originally written to be presented at [ICLC 2019](http://iclc.livecodenetwork.org/2019/) ***
-
 
 # Introduction
 
