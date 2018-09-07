@@ -143,6 +143,10 @@ Of course this is just the surface of what you can do visually with CEPL and Ope
 
 While both libraries can share the same lisp environment finding a way to show the changes on incudine on the screen is not as evident as defining a global variable. FFT(fast fourier transform), Wave (changes on frequency over time) and RMS (root mean square) are a couple of ways to represent that change. But the first 2 have N dimensions while the last one only 1. Uniforms, UBOs and textures make the passing of data possible: https://github.com/azimut/incudine-cepl
 
+## Csound integration
+
+Official CFFI bindings are operational. But rather raw for livecoding. I added some helpers that let me treat each instrument as a function that takes a pitch (if any) and a duration, plus any other parameter it might need. Missing feature is something to allow me to compose ORC files and pick instruments and tablewaves and combine them.
+
 ## Game Music Emu file read
 
 Supercollider, and incudine fallback into using [libsndfile](http://www.mega-nerd.com/libsndfile/) which provides an interface to read different audio files. These file are read into "buffers" which are nothing more than arrays of fixed size of values.
@@ -158,6 +162,10 @@ Regarding OpenCV, we can take the image frame from a video and send it to OpenGL
 Incudine also offers interfaces to process external audio data, like ladspa or just fluidsynth. I need to learn more about real music production and see what can use more programming into it.
 
 There are current pattern abstractions done by Tidal or FoxDot that reduce the singal-to-noise code ratio a lot. It should be possible re-create some of these features with an event system like [cl-patterns](https://github.com/defaultxr/cl-patterns).
+
+Set and beat detection are features offered environments like sonic-pi (through aubio) and ABletonLive. Cffi binding can be used to achieve the same features and extend them to other use cases like using it for live code the samples obtained from GME and get just a musically functional segment.
+
+[WordNet](https://github.com/phoe/wordnet) is being ported into CL either that or other NLP library available can used along with pre-processed audios to pick phrases or words with certain sentiment or similarity. That or along voice synthesis.
 
 # Other lispy environments
 
