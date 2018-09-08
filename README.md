@@ -50,4 +50,4 @@ And for visualizations with OpenGL/CEPL see:
 
 ### WHY?
 
-See [PAPER.md](PAPER.md)
+See [ABOUT.md](ABOUT.md)
