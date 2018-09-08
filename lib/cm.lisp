@@ -42,3 +42,13 @@
 ;; took from jazz.cm
 (defun rancyc (data prob)
   (list (make-cycle data) :weight prob))
+
+(defun markov-find-shortest (markov)
+  (declare (markov markov))
+  (let ((long-cycle (next markov 30)))
+    (loop
+       :for cycle :in long-cycle
+       :with queue
+       :while (not (position cycle queue))
+       :finally (return queue)
+       :do (push cycle queue))))

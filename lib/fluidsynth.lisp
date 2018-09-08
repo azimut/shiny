@@ -52,7 +52,7 @@
   (:method ((time double-float) (pitch symbol) (velocity integer) (duration symbol) (channel integer) &key pan)
     "Play given note on american notation, at CM rhythm"
     (unless (and (eql :_ pitch) (eql 'cm::r pitch))
-      (let ((n (note pitch))
+      (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch)))
             (d (cm:rhythm duration)))
         (when (> d 0)
           (at time #'fluidsynth:noteon
@@ -64,7 +64,7 @@
     (when (and (> duration 0)
                (not (eql :_ pitch))
                (not (eql 'cm::r pitch)))
-      (let ((n (note pitch)))
+      (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch))))
         (at time #'fluidsynth:noteon
                   *synth* channel n velocity)
         (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff
