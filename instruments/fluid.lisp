@@ -15,9 +15,7 @@
     `(let ((,it ,next))
        (at ,it ,function ,@arguments))))
 
-(defun quant (beats)
-  "returns the time (+ (now) beats), sc-collider like thing"
-  (+ (now) #[beats b]))
+
 ;; --------------------------------------------------
 
 
