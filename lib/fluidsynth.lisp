@@ -40,7 +40,7 @@
                (< pitch 127)
                (> duration 0))
       (when pan
-        (fluidsynth:cc *synth* channel 10 (min (max 0 pan) 127)))
+        (fluidsynth:cc *synth* channel 10 (alexandria:clamp pan 0 127)))
       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
       (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch)))
   (:method ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer) &key pan)
