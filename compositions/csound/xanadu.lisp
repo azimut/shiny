@@ -8,6 +8,9 @@
       :for frame = (csound:csoundperformksmps *c*)
       :while (= frame 0))))
 
+(csound:csoundcompileorc *c* (get-orc   :xanadu))
+(csound:csoundreadscore  *c* (get-table :xanadu))
+
 ;; XANADU
 (make-play plucke "i1" :p4 0 :keynum 60)
 (make-play pluck  "i2" :p4 0 :keynum 60)

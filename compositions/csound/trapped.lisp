@@ -4,17 +4,15 @@
 
 (bt:make-thread
  (lambda ()
-   (loop (let ((frame (csound:csoundperformksmps *c*)))
-           (when (not (= frame 0))
-             (return))))))
+   (loop
+      :for frame = (csound:csoundperformksmps *c*)
+      :while (= frame 0))))
 
-(csound:csoundcompileorc *c* (slot-value (gethash :trapped *orcs*) 'orc))
-(csound:csoundreadscore *c* (slot-value (gethash :trapped *orcs*) 'table))
-
-
+(csound:csoundcompileorc *c* (get-orc :trapped))
+(csound:csoundreadscore *c*  (get-table :trapped))
 
 ;; TRAPPED
-(make-play ivory  "i1" :p4 0 :keynum 60 :amp 200 :vibrate .001 :glis 17.8 :drop .99)
+(make-play ivory  "i1" :p4 0 :keynum 60 :amp 200 :vib .001 :glis 17.8 :drop .99)
 (make-play blue   "i2" :p4 0 :keynum 60 :amp 600 :reverb .6 :lfo 23 :harm 10 :sweep .52)
 (make-play violet "i3" :p4 0 :keynum 60 :amp 800 :reverb .8 :rand 57)
 (make-play black  "i4" :p4 0 :keynum 60 :amp 800 :swp 4600 :eswp 6500 :band 33 :rev 0.6)
