@@ -1,10 +1,13 @@
 (uiop:define-package shiny
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
-  (:use #:cl 
-        #:arrow-macros
+  (:use #:cl
         #:cl-ppcre
         #:incudine)
+  (:import-from #:alexandria
+                #:flatten
+                #:iota
+                #:lastcar)
   (:import-from #:cm
                 #:eop?
                 #:rhythm
@@ -92,3 +95,11 @@
                 #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
                 #:+sample-zero+))
+
+(in-package :shiny)
+
+;; cl-collider like
+
+(defun quant (beats)
+  "returns the time (+ (now) beats), sc-collider like thing"
+  (+ (now) (* *sample-rate* (* (sample beats) (spb *tempo*)))))

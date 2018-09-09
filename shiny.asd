@@ -7,7 +7,6 @@
   :depends-on (#:swank
                #:cm
                #:incudine
-               #:arrow-macros
                #:cl-ppcre)
   :components ((:file "package")
                (:file "lib/musicutils")
