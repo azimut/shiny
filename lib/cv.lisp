@@ -67,7 +67,8 @@
 
 (defun skip-to (capture seconds)
   "skip video capture to seconds"
-  (declare (type integer seconds))
+  (declare (type alexandria:non-negative-integer seconds)
+           (type cffi:foreign-pointer capture))
   (cv:set-capture-property
    capture
    cv:+cap-prop-pos-msec+
@@ -165,6 +166,7 @@
   height)
 
 (defun get-props (capture)
+  (declare (cffi:foreign-pointer capture))
   "get all possible values from capture, for convenience"
   (let* ((nframes (round (cv:get-capture-property
                           capture
@@ -202,3 +204,20 @@
     (when connection
       (swank::handle-requests connection t))))
 
+(defun get-frame (capture &optional (restart-frame 0))
+  (declare (type cffi:foreign-pointer capture)
+           (type alexandria:non-negative-integer restart-frame))
+  (let ((frame (cv:query-frame capture)))
+    (if (cffi:null-pointer-p frame)
+        (progn
+          (skip-to capture restart-frame)
+          (cv:query-frame capture))
+        frame)))
+
+(defvar *capture-index* 0)
+(defun get-frame-captures (&rest captures)
+  (let* ((capture (nth *capture-index* captures))
+         (frame   (cv:query-frame capture)))
+    (if (cffi:null-pointer-p frame)
+        (cv:query-frame capture)
+        frame)))
