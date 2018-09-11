@@ -11,6 +11,7 @@
 ;; - Then parse the instrument part too might be to get good default values
 ;; - But like baggers said "when you get a string in lisp is like it insults you"
 ;; - Aaaaaaand test ORCAsync
+;; - CLOS object for the server: thread, status, reboot, load methods there
 
 ;; Copy csound's interfaces/csound.{lisp,asd} into
 ;; ~/.quicklisp/local-projects/csound/ then
@@ -110,11 +111,15 @@
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo"
   (declare (string s))
+  (if (cl-ppcre:scan "soundin" s)
+      (error "soundin required"))
   (if (cl-ppcre:scan "nchnls\\s+=\\s+1" s)
       ;; FIXME: flaky
       (cl-ppcre:regex-replace " out\\s+\(.+\)" s "outs \\1,\\1")
       s))
 
+;; NOTE: before running this try the sound on the CLI with:
+;; $ csound -odac 326a.{orc,sco}
 (defun make-orc (name &key sco orc filename filepath orc-path sco-path)
   "This function creates a new orchestra file, reading score wave tables too"
   (assert (keywordp name))
