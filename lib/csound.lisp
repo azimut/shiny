@@ -100,11 +100,20 @@
    (orc  :initarg :orc)
    (sco  :initarg :sco)))
 
-(defun get-wavetables (s)
+(defun parse-sco (s)
+  "returns only the fN wavetables on the sco"
   (declare (string s))
   (format nil
           "~{~A~% ~}"
           (cl-ppcre:all-matches-as-strings "f\\d+.*" s)))
+
+(defun parse-orc (s)
+  "returns the orc, changes mono to stereo"
+  (declare (string s))
+  (if (cl-ppcre:scan "nchnls\\s+=\\s+1" s)
+      ;; FIXME: flaky
+      (cl-ppcre:regex-replace " out\\s+\(.+\)" s "outs \\1,\\1")
+      s))
 
 (defun make-orc (name &key sco orc filename filepath orc-path sco-path)
   "This function creates a new orchestra file, reading score wave tables too"
@@ -118,8 +127,8 @@
     (assert (and (uiop:file-exists-p sco-path) (uiop:file-exists-p orc-path))))
   ;; Read into vars
   (when (and orc-path sco-path)
-    (setf orc (alexandria:read-file-into-string orc-path))
-    (setf sco (get-wavetables (alexandria:read-file-into-string sco-path))))
+    (setf orc (parse-orc (alexandria:read-file-into-string orc-path)))
+    (setf sco (parse-sco (alexandria:read-file-into-string sco-path))))
   (setf (gethash name *orcs*)
         (make-instance 'orc
                        :name name

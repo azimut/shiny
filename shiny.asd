@@ -32,3 +32,12 @@
   :serial t
   :depends-on (#:shiny #:common-cv)
   :components ((:file "lib/cv")))
+
+(asdf:defsystem "shiny/csound"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny #:csound)
+  :components ((:file "lib/csound")))
