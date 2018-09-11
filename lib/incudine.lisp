@@ -4,13 +4,25 @@
 
 (dsp! bplay
     ((buf buffer) rate start-pos
-     (loop-p boolean) attenuation left right)
+     (loop-p boolean) amp left right)
   (:defaults (incudine:incudine-missing-arg "BUFFER")
       1 0 nil 1 1 1)
   (with-samples
-      ((in (* attenuation
+      ((in (* amp
               (buffer-play
                buf rate start-pos loop-p #'incudine:free))))
+    (out (* left in) (* right in))))
+
+(dsp! bplay-downsamp
+    ((buf buffer) rate start-pos
+     (loop-p boolean) amp left right (downsamp fixnum))
+  (:defaults (incudine:incudine-missing-arg "BUFFER")
+      1 0 nil 1 1 1 1)
+  (with-samples
+      ((in (* amp
+              (buffer-play
+               buf (* downsamp rate) start-pos loop-p #'incudine:free)))
+       (in (incudine.vug:downsamp downsamp in)))
     (out (* left in) (* right in))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -83,10 +95,10 @@
 ;; Single buffer play
 
 (defun bbplay
-    (buf &key (rate 1d0 rate-p) (rpitch 0 rpitch-p) (beat-length 1f0 beat-length-p)
-           (start-pos 0d0) (loop-p nil) (attenuation 1d0) (id 2 id-p)
-           (left 1d0) (right 1d0))
-  (declare (integer rpitch id) (boolean loop-p))
+    (buf &key (rate 1d0 rate-p) (rpitch 1 rpitch-p) (beat-length 1f0 beat-length-p)
+           (start-pos 0d0) (loop-p nil) (amp 1d0) (id 2 id-p)
+           (left 1d0) (right 1d0) (downsamp 1 downsamp-p))
+  (declare (integer rpitch id downsamp) (boolean loop-p))
   "plays the provided buffer either by
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
@@ -111,14 +123,26 @@
     ;; "hack" to work with buffer-play vug
     (when (< rate 0)
       (setf start-pos (- frames (/ frames 20))))
-    (if id-p
-        (bplay buf rate start-pos loop-p
-               :attenuation attenuation
-               :left left :right right
-               :id id)
-        (bplay buf rate start-pos loop-p
-               :attenuation attenuation
-               :left left :right right))))
+
+    (if downsamp-p
+        (if id-p
+            (bplay-downsamp buf rate start-pos loop-p
+                            :amp amp
+                            :left left :right right
+                            :downsamp downsamp)
+            (bplay-downsamp buf rate start-pos loop-p
+                            :amp amp
+                            :left left :right right
+                            :downsamp downsamp
+                            :id id))
+        (if id-p
+            (bplay buf rate start-pos loop-p
+                   :amp amp
+                   :left left :right right
+                   :id id)
+            (bplay buf rate start-pos loop-p
+                   :amp amp
+                   :left left :right right)))))
 
 ;;------------------------------------------------------
 ;; Slice of a single buffer, dedicated to words or phrases
@@ -140,7 +164,7 @@
 
 (defun word-play
     (phrase &key (rate 1) (rpitch 1 rpitch-p) (beat-length 1 beat-length-p)
-              (loop-p nil) (attenuation 1f0) (id 2)
+              (loop-p nil) (amp 1f0) (id 2)
               corrupt
               (corrupt-center 1f0)
               (corrupt-radius .1)
@@ -172,7 +196,7 @@
         (incf start-pos (* dur sample-rate)))
       ;; start voice
       (bplay buf rate start-pos loop-p
-             :attenuation attenuation
+             :amp amp
              :id id)
       (when corrupt
         (corrupt-node (now)
