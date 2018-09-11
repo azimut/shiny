@@ -50,6 +50,7 @@ As I put (p) I could had put a function that plays a sample, a MIDI call. At the
 C Foreign Function Interface allows languages, in this case lisp, to interact with a C library, and with a proper wrapper a C++ library. This allows to re-use any code that runs at C speed within the live coding environment of lisp. For example, we can create C pointers to different types of data including structures.
 
 ![*CFFI - We load the binary blob of a C library, .so on Linux, and within our lisp program (the ghost in the illustration) we poke and call different functions defined on them.- Illustration by Keist Zenon https://youtu.be/lvHi5LyhxGk*](static/cffi.jpg)
+*CFFI - We load the binary blob of a C library, .so on Linux, and within our lisp program (the ghost in the illustration) we poke and call different functions defined on them.- Illustration by Keist Zenon https://youtu.be/lvHi5LyhxGk*
 
 # Libraries and tools
 
@@ -112,6 +113,7 @@ So you can go down to phasor, %phasor, until only bare lisp constructs are at si
 Open Source Computer Vision, is one of such libraries that provides a C API we can use. A wrapper was build already by [byulparan](https://github.com/byulparan/common-cv). Meaning we have now access to the image filters and transformations provided by opencv. Or might be better the video feed of our webcam or any video file as frames. Put it along with lisp and we can live-code an image recognition software or video sequencer.
 
 ![*OpenCV - Live editing video by scale it down and repeating it on a bigger canvas*](static/opencv2.jpg)
+*OpenCV - Live editing video by scale it down and repeating it on a bigger canvas*
 
 ## CEPL
 
@@ -132,6 +134,7 @@ Then, on the render loop, we change the values and push it again as a texture:
 (push-g *carr* (texref *tex*))
 ```
 ![*CEPL - left - We display a texture based on the content of a random C array. right - a visualization that receives the wave data through a uniform*](static/cepl.jpg)
+*CEPL - left - We display a texture based on the content of a random C array. right - a visualization that receives the wave data through a uniform*
 
 Of course this is just the surface of what you can do visually with CEPL and OpenGL. The important part here is that we never stopped, I can change an improvise on the moment what and how I display something without restarts or long compilations. Is just necessary find the right abstraction that works for you.
 
