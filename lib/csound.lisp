@@ -98,15 +98,27 @@
 
 (defclass orc ()
   ((name :initarg :name)
-   (orc  :initarg :orc)
-   (sco  :initarg :sco)))
+   (orc  :initarg :orc :reader orc)
+   (sco  :initarg :sco :reader sco)))
 
-(defun parse-sco (s)
+(defun parse-sco (score)
   "returns only the fN wavetables on the sco"
-  (declare (string s))
-  (format nil
-          "~{~A~% ~}"
-          (cl-ppcre:all-matches-as-strings "f\\d+.*" s)))
+  (declare (string score))
+  ;; First get ride of spaces between Fn and comments
+  (let* ((score (cl-ppcre:regex-replace-all ";.*" score ""))
+         (score (cl-ppcre:regex-replace-all
+                 "f[ ]+\(\\d+\)"
+                 score
+                 "f\\1"))
+         (score (cl-ppcre:regex-replace-all
+                 "f0+\(\\d+\)"
+                 score
+                 "f\\1"))
+         (score (format
+                 nil
+                 "~{~A~% ~}"
+                 (cl-ppcre:all-matches-as-strings "f\\d+ .*" score))))
+    score))
 
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo"
@@ -150,6 +162,10 @@
      (cffi:with-foreign-string (coption option)
        (csound:csoundsetoption *c* coption))))
 
+(defun get-orchestra (orc-name)
+  (assert (keywordp orc-name))
+  (gethash orc-name *orcs*))
+
 (defun get-orc (orc-name)
   (assert (keywordp orc-name))
   (with-slots (orc) (gethash orc-name *orcs*)
@@ -182,6 +198,62 @@
       ;; Init fN wave tables for this ORC
       (csound:csoundreadscore *c* sco))))
 
+
+;;--------------------------------------------------
+;; Merge utils
+
+(defun regex-count (regex s)
+  (declare (string regex s))
+  (let ((matches (length (cl-ppcre:all-matches regex s))))
+    (when matches
+      (/ matches 2))))
+
+(defun get-fn (score)
+  "returns a list of strings with each match of the form Fn,
+   where n is a number"
+  (declare (string score))
+  (let* ((score (cl-ppcre:all-matches-as-strings
+                 "f\\d+"
+                 score)))
+    score))
+
+(defun merge-orcs (&rest orchestras)
+  (let ((n-instruments 0)
+        (instruments)
+        (wavetables)
+        (n-wavetables 0)
+        (wavetables-hash (make-hash-table)))
+    (loop :for orchestra :in orchestras :do
+       (with-slots (orc sco) orchestra
+         ;; SCO
+         (loop
+            :for f :in (get-fn sco)
+            :for fn :from n-wavetables
+            :with temp-wavetable = sco
+            :finally (setf wavetables
+                           (concatenate 'string
+                                        wavetables
+                                        temp-wavetable))
+            :do
+            (setf temp-wavetable (cl-ppcre:regex-replace
+                                  f
+                                  temp-wavetable
+                                  (format nil "f~d" fn)))
+            (incf n-wavetables))
+         ;; ORC
+         (setf instruments (concatenate 'string instruments orc))
+         (incf n-instruments (regex-count "instr\\s+\\d+" orc))))
+    ;; FIXME: Ensure we support these many instruments
+    (assert (< n-instruments 10))
+    ;; Get the template of ORC's ready
+    (setf instruments (cl-ppcre:regex-replace-all "instr\\s+\\d+"
+                                                  instruments
+                                                  "instr ~a"))
+    (setf instruments (format nil instruments 1 2 3 4 5 6 7 8 9 10))
+    ;; RETURN both a new ORC and SCO
+    (values instruments
+            wavetables)))
+
 ;;--------------------------------------------------
 ;; TODO: xml/html parser to put all on a .csd
 ;; Partial definition of the ORCs, see lib/csound/*.orc for the source
@@ -192,5 +264,5 @@
 (make-orc :asynth  :filename "ASYNTH")
 (make-orc :bass    :filename "BASS")
 (make-orc :drumkit :filename "DRUMKIT")
-(make-orc :drumkit :filename "DRUMKIT")
+
 
