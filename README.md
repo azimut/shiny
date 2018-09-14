@@ -2,7 +2,7 @@
 
 > - Oh! Shiny!
 
-Experiments with music composition in lisp with some ocassional OpenGL interaction with CEPL.
+Experiments on music composition in Lisp with some ocassional OpenGL interaction with CEPL.
 
 ## Demo(s)
 * compositions/[molecularmusic.lisp](https://www.youtube.com/watch?v=ubgOlfUOztU) - music pattern with simple 3d graphics
@@ -30,6 +30,9 @@ You don't need to have all these, but some .asd files or examples will require t
 * https://github.com/titola/incudine
 * https://github.com/ormf/cm/
 * https://github.com/gogins/csound-extended/tree/develop/nudruz
+
+Non-lisp:
+* https://github.com/ReneNyffenegger/csound-instruments/
 
 ## Usage
 

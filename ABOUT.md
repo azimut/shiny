@@ -35,6 +35,7 @@ This, from the point of view of the live-coder, makes things easier as one only 
     (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch)))
 
 ```
+Moreover, we can create setup dependent, like what library we want to use, `:after` or `:before` methods to trigger actions elsewhere. For example a `:before` method to make an OSC call to an external program.
 
 ## Macros
 
