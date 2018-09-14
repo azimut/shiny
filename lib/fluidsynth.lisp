@@ -21,54 +21,62 @@
 
 ;;--------------------------------------------------
 
-(defgeneric p (time pitch velocity duration channel &key pan)
-  (:method ((time double-float) (pitch list) (velocity integer) (duration number) (channel integer) &key pan)
-    "Play chord of notes"
-    (if pan
-        (mapcar (lambda (x) (p time x velocity duration channel :pan pan))
-                pitch)
-        (mapcar (lambda (x) (p time x velocity duration channel))
-                pitch)))
-  (:method ((time double-float) (pitch list) (velocity integer) (duration number) (channel list) &key pan)
-    "Play chord of notes, on provided channels"
-    (mapcar (lambda (x y) (p time x velocity duration y))
-            pitch
-            channel))
-  (:method ((time double-float) (pitch integer) (velocity integer) (duration number) (channel integer) &key pan)
-    "Play given pitch"
-    (when (and (> pitch 0)
-               (< pitch 127)
-               (> duration 0))
-      (when pan
-        (fluidsynth:cc *synth* channel 10 (alexandria:clamp pan 0 127)))
+(defgeneric p (time pitch velocity duration channel &key pan))
+
+;; Stop reusing p here
+(defmethod p ((time double-float) (pitch list) (velocity integer) (duration number) (channel integer) &key pan)
+  "Play chord of notes"
+  (mapcar
+   (lambda (pitch)
+     (when (and (> pitch 0)
+                (< pitch 127)
+                (> duration 0))
+       (when pan
+         (fluidsynth:cc *synth* channel 10 (alexandria:clamp pan 0 127)))
+       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
+       (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch)))
+   pitch))
+
+(defmethod p ((time double-float) (pitch list) (velocity integer) (duration number) (channel list) &key pan)
+  "Play chord of notes, on provided channels"
+  (mapcar (lambda (x y) (p time x velocity duration y))
+          pitch
+          channel))
+(defmethod p ((time double-float) (pitch integer) (velocity integer) (duration number) (channel integer) &key pan)
+  "Play given pitch"
+  (when (and (> pitch 0)
+             (< pitch 127)
+             (> duration 0))
+    (when pan
+      (fluidsynth:cc *synth* channel 10 (alexandria:clamp pan 0 127)))
+    (at time #'fluidsynth:noteon *synth* channel pitch velocity)
+    (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch)))
+(defmethod p ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer) &key pan)
+  "Play given pitch, at CM rythm"
+  (let ((d (cm:rhythm duration)))
+    (when (> d 0)
       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
-      (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch)))
-  (:method ((time double-float) (pitch integer) (velocity integer) (duration symbol) (channel integer) &key pan)
-    "Play given pitch, at CM rythm"
-    (let ((d (cm:rhythm duration)))
+      (at (+ time (* *sample-rate* (* (sample d) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch))))
+(defmethod p ((time double-float) (pitch symbol) (velocity integer) (duration symbol) (channel integer) &key pan)
+  "Play given note on american notation, at CM rhythm"
+  (unless (and (eql :_ pitch) (eql 'cm::r pitch))
+    (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch)))
+          (d (cm:rhythm duration)))
       (when (> d 0)
-        (at time #'fluidsynth:noteon *synth* channel pitch velocity)
-        (at (+ time (* *sample-rate* (* (sample d) (spb *tempo*)))) #'fluidsynth:noteoff *synth* channel pitch))))
-  (:method ((time double-float) (pitch symbol) (velocity integer) (duration symbol) (channel integer) &key pan)
-    "Play given note on american notation, at CM rhythm"
-    (unless (and (eql :_ pitch) (eql 'cm::r pitch))
-      (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch)))
-            (d (cm:rhythm duration)))
-        (when (> d 0)
-          (at time #'fluidsynth:noteon
-                    *synth* channel n velocity)
-          (at (+ time (* *sample-rate* (* (sample d) (spb *tempo*)))) #'fluidsynth:noteoff
-                    *synth* channel n)))))
-  (:method ((time double-float) (pitch symbol) (velocity integer) (duration number) (channel integer) &key pan)
-    "Play given note on american notation"
-    (when (and (> duration 0)
-               (not (eql :_ pitch))
-               (not (eql 'cm::r pitch)))
-      (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch))))
         (at time #'fluidsynth:noteon
-                  *synth* channel n velocity)
-        (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff
-                  *synth* channel n)))))
+            *synth* channel n velocity)
+        (at (+ time (* *sample-rate* (* (sample d) (spb *tempo*)))) #'fluidsynth:noteoff
+            *synth* channel n)))))
+(defmethod p ((time double-float) (pitch symbol) (velocity integer) (duration number) (channel integer) &key pan)
+  "Play given note on american notation"
+  (when (and (> duration 0)
+             (not (eql :_ pitch))
+             (not (eql 'cm::r pitch)))
+    (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch))))
+      (at time #'fluidsynth:noteon
+          *synth* channel n velocity)
+      (at (+ time (* *sample-rate* (* (sample duration) (spb *tempo*)))) #'fluidsynth:noteoff
+          *synth* channel n))))
 
 ;;--------------------------------------------------
 
@@ -293,7 +301,7 @@
 (defun all-piano (&optional (sf 0))
   "set all the midi channels to ..."
   (dotimes (i 32)
-    (fluidsynth:program-change *synth* i sf) ))
+    (fluidsynth:program-change *synth* i sf)))
 
 (defun try-sounds (time chan sf &optional (beats 8) (bank 0 bank-set))
   "iterate over soundfonts to test sounds"
@@ -302,5 +310,9 @@
     (fluidsynth:bank-select *synth* chan bank))
   (fluidsynth:program-change *synth* chan (mod sf 100))
   (aat (+ time beats) #'try-sounds it chan (1+ sf) beats))
+
+(defun all-pan (&optional (pan 64) (up-to 10))
+  (dotimes (channel up-to)
+    (fluidsynth:cc *synth* channel 10 pan)))
 
 ;;--------------------------------------------------
