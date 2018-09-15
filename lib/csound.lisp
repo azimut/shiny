@@ -40,61 +40,75 @@
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
-    ((i cinstrument) (duration number) &rest rest)
+    ((iname string) (duration number) &rest rest)
   "plays a single note with INSTRUMENT"
   (when (> duration 0)
-    (with-slots (iname) i
-      ;; finally send only the parameter values
-      (let ((vars-only (remove-if #'keywordp rest)))
-        (csound:csoundreadscore
-         *c* 
-         (format nil "~{~A~^ ~}"
-                 (append (list iname 0 duration) vars-only)))))))
+    ;; finally send only the parameter values
+    (let ((vars-only (remove-if #'keywordp rest)))
+      (csound:csoundreadscore
+       *c*
+       (format nil "~a 0 ~a ~{~A~^ ~}"
+               iname duration vars-only)))))
 
-;; (defmethod playcsound
-;;     ((i cinstrument) (keynum list) (duration number) &rest rest)
-;;   "plays chord of KEYNUM list
-;;    (playcsound *ins* '(60 62 64) 1 2.0 .02)"
-;;   (mapcar
-;;    (lambda (x)
-;;      (playcsound i x ))
-;;    keynum))
+(defgeneric playcsound-key (instrument duration keynum &rest rest))
+(defmethod playcsound-key
+    ((iname string) (duration number) (keynum integer) &rest rest)
+  "plays a single note with INSTRUMENT"
+  (when (and (> duration 0) (> keynum 0))
+    (let ((kpos (1+ (position :keynum rest))))
+      (setf (nth kpos rest)
+            (keynum->pch keynum)))
+    ;; finally send only the parameter values
+    (let ((vars-only (remove-if #'keywordp rest)))
+      (csound:csoundreadscore
+       *c* 
+       (format nil "~a 0 ~a ~{~A~^ ~}"
+               iname duration vars-only)))))
+
+(defmethod playcsound-key
+    ((iname string) (duration number) (keynum list) &rest rest)
+  "plays a single note with INSTRUMENT"
+  (let ((kpos (1+ (position :keynum rest))))
+    (mapcar
+     (lambda (keynum)
+       (when (and (> duration 0) (> keynum 0))
+         (setf (nth kpos rest) (keynum->pch keynum))
+         ;; finally send only the parameter values
+         (let ((vars-only (remove-if #'keywordp rest)))
+           (csound:csoundreadscore
+            *c* 
+            (format nil "~a 0 ~a ~{~A~^ ~}"
+                    iname duration vars-only)))))
+     keynum)))
 
 (defmacro make-play (name i &rest rest)
   (assert (and (symbolp name) (not (keywordp name))))
   (let ((fname (intern (format nil "~A-~A" 'play name)))
         (keynum-exists (position :keynum rest)))
-    `(let ((c (make-instance 'cinstrument :iname ,i :params ',rest)))
-       ,(if keynum-exists
-            ;; Handles normal instrumentes with a single keynum that defines the
-            ;; instrument pitch in pch
-           `(defun ,fname (keynum duration &key ,@(remove-if
-                                                  #'null
-                                                  (loop :for (x y) :on rest :by #'cddr
-                                                     :collect
-                                                     (let* ((sn (symbol-name x))
-                                                            (k  (intern sn)))
-                                                       (when (not (eq :keynum x))
-                                                         (list k y))))))
-             (playcsound c duration
-                         ,@(loop :for (k v) :on rest :by #'cddr :append
-                              (if (eq :keynum k)
-                                  (list k '(incudine:keynum->pch keynum))
-                                  (list k (intern (symbol-name k)))))))
-           ;; Handles instruments without explicit frequency or without frequency
-           ;; in pch terms
-           `(defun ,fname (duration &key ,@(remove-if
-                                           #'null
-                                           (loop :for (x y) :on rest :by #'cddr
-                                              :collect
-                                              (let* ((sn (symbol-name x))
-                                                     (k  (intern sn)))
-                                                (list k y)))))
-             (playcsound c duration
-                         ,@(loop :for (k v) :on rest :by #'cddr :append
-                              (if (eq :keynum1 k)
-                                  (list k '(incudine:keynum->pch keynum))
-                                  (list k (intern (symbol-name k)))))))))))
+    (if keynum-exists
+        ;; Handles normal instrumentes with a single keynum
+        `(defun ,fname (keynum duration &key ,@(remove-if
+                                                #'null
+                                                (loop :for (x y) :on rest :by #'cddr
+                                                   :collect
+                                                   (let* ((sn (symbol-name x))
+                                                          (k  (intern sn)))
+                                                     (when (not (eq :keynum x))
+                                                       (list k y))))))
+           (playcsound-key ,i duration keynum
+                           ,@(loop :for (k v) :on rest :by #'cddr :append
+                                (if (eq k :keynum)
+                                    (list k 127)
+                                    (list k (intern (symbol-name k)))))))
+        ;; Handles instruments without keynum
+        `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
+                                           :collect
+                                           (let* ((sn (symbol-name x))
+                                                  (k  (intern sn)))
+                                             (list k y))))
+           (playcsound ,i duration
+                       ,@(loop :for (k v) :on rest :by #'cddr :append
+                            (list k (intern (symbol-name k)))))))))
 
 (defclass orc ()
   ((name :initarg :name)
@@ -102,9 +116,9 @@
    (sco  :initarg :sco :reader sco)))
 
 (defun parse-sco (score)
-  "returns only the fN wavetables on the sco"
+  "returns only the fN wavetables on the score, remove comments and spaces and
+   zeros from fN wavetable definitions"
   (declare (string score))
-  ;; First get ride of spaces, zeros in Fn and ";" comments
   (let* ((score (cl-ppcre:regex-replace-all ";.*" score ""))
          (score (cl-ppcre:regex-replace-all
                  "f[ ]+\(\\d+\)"
