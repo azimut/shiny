@@ -127,7 +127,7 @@
       (error "soundin required"))
   (if (cl-ppcre:scan "nchnls\\s+=\\s+1" s)
       ;; FIXME: flaky
-      (cl-ppcre:regex-replace " out\\s+\(.+\)" s "outs \\1,\\1")
+      (cl-ppcre:regex-replace " out\\s+\([^ ]+\)" s "outs \\1,\\1")
       s))
 
 ;; NOTE: before running this try the sound on the CLI with:
@@ -220,6 +220,29 @@
              l)))
     l))
 
+(defun replace-wavetables (orc wavetables-hash)
+  (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
+    (print indexes)
+    (loop :for index :in indexes :do
+       (let ((r (format nil "~a~a~a" "\\{1}" (gethash index wavetables-hash) "\\2")))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(oscil\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(oscili\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(table\\s+[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(tablei\\s+[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))))
+    orc))
+
 (defun merge-orcs (&rest orchestras)
   (let ((n-instruments 0)
         (instruments)
@@ -261,32 +284,6 @@
     ;; RETURN both a new ORC and SCO
     (values instruments
             wavetables)))
-
-(defun replace-hook ())
-
-;; ((1 2) (2 9))
-(defun replace-wavetables (orc wavetables-hash)
-  (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
-    (print indexes)
-    (loop :for index :in indexes :do
-       (let ((r (format nil "~a~a~a" "\\{1}" (gethash index wavetables-hash) "\\2")))
-         (setf orc (cl-ppcre:regex-replace-all
-                    "\(oscil\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    "\(oscili\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    "\(table\\s+[^,]+,\)[^,]+\(.*\)"
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    "\(tablei\\s+[^,]+,\)[^,]+\(.*\)"
-                    orc
-                    r))))
-    orc))
 
 ;;--------------------------------------------------
 ;; TODO: xml/html parser to put all on a .csd
