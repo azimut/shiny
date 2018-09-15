@@ -4,39 +4,48 @@
 ;; per score. And that won't change until all notes go to a common place
 ;; where they then can be converted into chords (events from different
 ;; sources happening at the same time).
+;; And might be not even that will help for livecoding. As there is no time
+;; index or anything being send on a stream so, everything happens serially
+;; a voice at the time, without a possible whole note followed by a quarted
+;; before the whole finish...
 
-;; https://resolume.com/download/Manual/OSC/OSC%20list.txt
 (defvar *oscout* nil)
-(defvar *bar-length* 0)
+(defvar *window-name* "scene")
+(defvar *layer-name* "l")
+(defparameter *bar-counter* (make-hash-table :test #'equal))
+(defvar *meter* "4/4")
+(defparameter *clef* "f")
+
+(defun inscore-reset
+    (&optional (window-name *window-name*) delete)
+  (let* ((root   (concatenate 'string "/ITL/" window-name))
+         (childs (concatenate 'string root "/*")))
+    (setf (gethash window-name *bar-counter*) 30)
+    (osc:message *oscout* childs "s" "del")
+    (when delete
+      (osc:message *oscout* root "s" "del"))))
+
+(defun inscore-init (&optional (window-name *window-name*) (layer-name *layer-name*))
+  (declare (string layer-name))
+  (let* ((root (concatenate 'string "/ITL/" window-name))
+         (layer (concatenate 'string root "/" layer-name))
+         (background (concatenate 'string layer "/background")))
+    (osc:message *oscout* root "s" "new")
+    (osc:message *oscout* layer "ss" "set" "layer")
+    (osc:message *oscout* background "ssff" "set" "rect" 10f0 10f0)
+    (osc:message *oscout* background "siii" "color" 0 0 0)))
 
 (defun make-inscore ()
   (setf *oscout*
         (osc:open :host "127.0.0.1"
                   :port 7000
-                  :direction :output)))
-
-(defun inscore-init ()
-  (osc:message *oscout* "/ITL/scene/l" "ss" "set" "layer")
-  (osc:message *oscout* "/ITL/scene/l/background" "ssff" "set" "rect" 10f0 10f0)
-  (osc:message *oscout* "/ITL/scene/l/background" "siii" "color" 0 0 0))
-
-
-(defun inscore-score
-    (score &key (meter "4/4") (clef "g") (key 0))
-  "static score"
-  (osc:message
-   *oscout* "/ITL/scene/score" "sss" "set" "gmn"
-   (format nil "[ \\meter<\"~a\"> \\clef<\"~a\"> \\key<~a> ~a ]"
-           meter clef key score)))
-
-(defun inscore-reset
-    (&optional (root "scene"))
-  (let ((s (format nil "/ITL/~a/*" root)))
-    (osc:message *oscout* s "s" "del")))
+                  :direction :output))
+  (inscore-reset)
+  (inscore-init))
 
 ;; GMNSTREAM
 ;; write: add the gmn code to the current gmn stream
-};; clear: reinitialize the stream
+;; clear: reinitialize the stream
 
 ;; EXAMPLE
 ;; Writing a score in 3 steps:
@@ -45,10 +54,23 @@
 ;; /ITL/scene/myScore write " d e";
 ;; /ITL/scene/myScore write " f]";
 
+(defun inscore-score
+    (score &key (meter *meter*) (clef *clef*) (key 0))
+  "static score"
+  (osc:message
+   *oscout* "/ITL/scene/score" "sss" "set" "gmn"
+   (format nil "[ \\meter<\"~a\"> \\clef<\"~a\"> \\key<~a> ~a ]"
+           meter clef key score)))
+
 (defun inscore-stream
-    (&key (meter "4/4" meter-p) (clef "g" clef-p) (key 0 key-p))
+    (&key
+       (meter *meter* meter-p) (clef *clef* clef-p) (key 0 key-p)
+       (window-name *window-name*) (layer-name *layer-name*))
   "stream score"
-  (let ((final-score "[ "))
+  (let* ((final-score "[ ")
+         (score-path
+          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
+    (inscore-init window-name layer-name)
     (when clef-p
       (setf final-score (concatenate 'string final-score
                                      (format nil "\\clef<\"~a\"> " clef))))
@@ -59,23 +81,32 @@
       (setf final-score (concatenate 'string final-score
                                      (format nil "\\key<~d> " key))))
     (osc:message
-     *oscout* "/ITL/scene/l/score" "sss" "set" "gmnstream"
+     *oscout* score-path "sss" "set" "gmnstream"
      final-score)
     ;;COLOR WHITE
     (osc:message *oscout*
-                 "/ITL/scene/l/score"
+                 score-path
                  "siii"
                  "color" 240 240 240)))
 
-(defun inscore-write (score)
+(defun inscore-write
+    (score &optional (window-name *window-name*) (layer-name *layer-name*))
   "stream score write"
-  (osc:message
-   *oscout* "/ITL/scene/l/score" "ss" "write"
-   (format nil " ~a " score)))
+  (let ((score-path
+         (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
+    (osc:message
+     *oscout* score-path "ss" "write"
+     (format nil " ~a " score))))
 
-(osc:message
- *oscout* "/ITL/scene/grid" "sf"
- "xborder" .1)
+;; (inscore-reset)
+;; (inscore-init)
+;; (inscore-stream :meter "4/4" :clef "g")
+;; (inscore-write (pick "_" "a" "b" "c" "d" "f" "g" "h"))
+;; (inscore-write "_/32")
+;; (inscore-write "a*1/4")
+;; (inscore-write "a/2")
+
+;;--------------------------------------------------
 
 (defvar *inscore-reverse-notes*
   (alexandria:alist-hash-table
@@ -90,15 +121,6 @@
   (format nil "~a~d"
           (gethash (mod n 12) *inscore-reverse-notes*)
           (+ -3 (cm:octave-number n))))
-
-;; (inscore-reset)
-;; (inscore-init)
-;; (inscore-stream :meter "4/4" :clef "g")
-;; (inscore-write (pick "_" "a" "b" "c" "d" "f" "g" "h"))
-;; (inscore-write "_/32")
-;; (inscore-write "a*1/4")
-;; (inscore-write "a/2")
-
 
 ;; a*1/4
 ;; Denominators: 1*1.5 1 2 4  8  16 32 64
@@ -116,49 +138,3 @@
         ((<= .0625 n) "/64")
         (t "/1")))
 
-;;----------------------------------------
-;; FLUIDSYNTH helpers
-(defmethod p :before
-    ((time double-float) (pitch integer)
-     (velocity integer) (duration number)
-     (channel integer) &key pan)
-  "single note helper"
-    (let ((keynum)
-          (rhythm))
-      (if (= pitch 0)
-          (setf keynum "_")
-          (progn
-            (setf keynum (inscore-reverse-notes pitch))
-            (setf rhythm (inscore-rhythm duration))))
-      (when (>= *bar-length* 4)
-        (inscore-stream :meter "4/4" :clef "g")
-        (setf *bar-length* 0))
-      (at time #'inscore-write
-          (format nil "~a~a" keynum rhythm))
-      (incf *bar-length* (read-from-string
-                          (format nil "1~d" rhythm)))))
-
-(defmethod p :before
-    ((time double-float) (pitch list)
-     (velocity integer) (duration number)
-     (channel integer) &key pan)
-  "chord helper"
-  ;; reset state
-  (when (>= *bar-length* 4)
-    (inscore-stream :meter "4/4" :clef "g")
-    (setf *bar-length* 0))
-  (let ((rhythm (inscore-rhythm duration))
-        (keynums))
-    ;; regardless of being a chord we only provide one length
-    (incf *bar-length* (read-from-string (format nil "1~d" rhythm)))
-    (setf keynums
-          (mapcar
-           (lambda (pitch)
-             (format nil "~a~a"
-                     (if (= pitch 0)
-                         "_"
-                         (inscore-reverse-notes pitch))
-                     rhythm))
-           pitch))
-    (at time #'inscore-write        
-        (format nil "{~{~a~^,~}}" keynums))))
