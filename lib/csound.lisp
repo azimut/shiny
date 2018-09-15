@@ -104,7 +104,7 @@
 (defun parse-sco (score)
   "returns only the fN wavetables on the sco"
   (declare (string score))
-  ;; First get ride of spaces between Fn and comments
+  ;; First get ride of spaces, zeros in Fn and ";" comments
   (let* ((score (cl-ppcre:regex-replace-all ";.*" score ""))
          (score (cl-ppcre:regex-replace-all
                  "f[ ]+\(\\d+\)"
@@ -209,21 +209,26 @@
       (/ matches 2))))
 
 (defun get-fn (score)
-  "returns a list of strings with each match of the form Fn,
+  "returns a list of string of integers with each match of the form Fn,
    where n is a number"
   (declare (string score))
-  (let* ((score (cl-ppcre:all-matches-as-strings
+  (let* ((l (cl-ppcre:all-matches-as-strings
                  "f\\d+"
-                 score)))
-    score))
+                 score))
+         (l (mapcar
+             (lambda (x) (subseq x 1))
+             l)))
+    l))
 
 (defun merge-orcs (&rest orchestras)
   (let ((n-instruments 0)
         (instruments)
-        (wavetables)
         (n-wavetables 0)
+        (wavetables)
         (wavetables-hash (make-hash-table)))
-    (loop :for orchestra :in orchestras :do
+    (loop
+       :for orchestra :in orchestras
+       :do
        (with-slots (orc sco) orchestra
          ;; SCO
          (loop
@@ -235,24 +240,53 @@
                                         wavetables
                                         temp-wavetable))
             :do
+            (setf (gethash f wavetables-hash) fn)
             (setf temp-wavetable (cl-ppcre:regex-replace
-                                  f
+                                  (format nil "~a~a" "f" f)
                                   temp-wavetable
                                   (format nil "f~d" fn)))
             (incf n-wavetables))
          ;; ORC
+         (setf orc (replace-wavetables orc wavetables-hash))
          (setf instruments (concatenate 'string instruments orc))
          (incf n-instruments (regex-count "instr\\s+\\d+" orc))))
-    ;; FIXME: Ensure we support these many instruments
-    (assert (< n-instruments 10))
-    ;; Get the template of ORC's ready
+    ;; ORC: Template instruments
     (setf instruments (cl-ppcre:regex-replace-all "instr\\s+\\d+"
                                                   instruments
                                                   "instr ~a"))
+    ;; ORC: New Instruments numbers
+    ;; FIXME: Ensure we support these many instruments
+    (assert (< n-instruments 10))    
     (setf instruments (format nil instruments 1 2 3 4 5 6 7 8 9 10))
     ;; RETURN both a new ORC and SCO
     (values instruments
             wavetables)))
+
+(defun replace-hook ())
+
+;; ((1 2) (2 9))
+(defun replace-wavetables (orc wavetables-hash)
+  (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
+    (print indexes)
+    (loop :for index :in indexes :do
+       (let ((r (format nil "~a~a~a" "\\{1}" (gethash index wavetables-hash) "\\2")))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(oscil\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(oscili\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(table\\s+[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    "\(tablei\\s+[^,]+,\)[^,]+\(.*\)"
+                    orc
+                    r))))
+    orc))
 
 ;;--------------------------------------------------
 ;; TODO: xml/html parser to put all on a .csd
