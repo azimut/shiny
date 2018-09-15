@@ -121,14 +121,14 @@
     score))
 
 (defun parse-orc (s)
-  "returns the orc, changes mono to stereo"
+  "returns the orc, changes mono to stereo, remove comments"
   (declare (string s))
-  (if (cl-ppcre:scan "soundin" s)
-      (error "soundin required"))
-  (if (cl-ppcre:scan "nchnls\\s+=\\s+1" s)
-      ;; FIXME: flaky
-      (cl-ppcre:regex-replace " out\\s+\([^ ]+\)" s "outs \\1,\\1")
-      s))
+  (let ((orc (cl-ppcre:regex-replace-all ";.*" s "")))
+    (if (cl-ppcre:scan "soundin" orc)
+        (error "soundin required"))
+    (if (cl-ppcre:scan "nchnls\\s+=\\s+1" orc)
+        (cl-ppcre:regex-replace " out\\s+\([^\\s]+\)" orc "outs \\1,\\1")
+        orc)))
 
 ;; NOTE: before running this try the sound on the CLI with:
 ;; $ csound -odac 326a.{orc,sco}
@@ -271,6 +271,7 @@
             (incf n-wavetables))
          ;; ORC
          (setf orc (replace-wavetables orc wavetables-hash))
+         (clrhash wavetables-hash)
          (setf instruments (concatenate 'string instruments orc))
          (incf n-instruments (regex-count "instr\\s+\\d+" orc))))
     ;; ORC: Template instruments
