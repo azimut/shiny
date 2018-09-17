@@ -19,9 +19,9 @@ A Read–Eval–Print Loop. Often referred as a "way to talk to the compiler" is
 
 ## CLOS - Common Lisp Object System
 
-Common Lisp includes an object system in which methods can be overloaded. For instance we can have a method (play) that does something for an object "percussion" but a different thing for an object "wind".
+Common Lisp includes an object system in which methods can be overloaded. For instance we can have a method `(play)` that does something for an object `percussion` but a different thing for an object "wind".
 
-This, from the point of view of the live-coder, makes things easier as one only has to think about (play) and the rest is leave to be implemented or take care offline. As an example, the method (play) below can take a list of notes (a chord) or a single note. The method can be extended to receive a symbol (like, 'C4) as the "pitch" argument and have the method look it up.
+This, from the point of view of the live-coder, makes things easier as one only has to think about `(play)` and the rest is leave to be implemented or take care offline. As an example, the method (play) below can take a list of notes (a chord) or a single note. The method can be extended to receive a symbol (like, 'C4) as the "pitch" argument and have the method look it up.
 
 ```
 (defgeneric play (time pitch velocity duration channel)
@@ -35,16 +35,16 @@ This, from the point of view of the live-coder, makes things easier as one only 
     (at (+ time #[duration b]) #'fluidsynth:noteoff *synth* channel pitch)))
 
 ```
-Moreover, we can create setup dependent, like what library we want to use, `:after` or `:before` methods to trigger actions elsewhere. For example a `:before` method to make an OSC call to an external program.
+Furthermore, we can specialize the `(play)` method above to trigger different actions based on our current setup by using the `:after` or `:before` CLOS method hooks . For example a `:before` method to make an OSC call to an external program.
 
 ## Macros
 
-Macros allows to change how the code is read by the compiler. It is hard separate the concept from the definition of a function. But I found it useful to put some code in between something else. Fore example, being `defbeat` a macro:
+Macros allow us to change how the code is read by the compiler. It is hard separate the concept from the definition of a function. But, in my eyes are just a way to define my own DSL for the problem that I have in that moment. Fore example, `defbeat` a macro like this:
 ```
 (defbeat kick ("x---x---" .5)
-  (p time 60 60 1 0))
+  (play time 60 60 1 0))
 ```
-As I put (p) I could had put a function that plays a sample, a MIDI call. At the same time "x---" Is read and translated (by a old defun function) on the macro into something else.
+As I put `(play)` I could had put a function that plays a sample, a MIDI call. At the same time "x---" is read and translated (by a regular function) on the macro into something else.
 
 ## CFFI
 
