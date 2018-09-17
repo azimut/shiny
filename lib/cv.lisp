@@ -219,5 +219,7 @@
   (let* ((capture (nth *capture-index* captures))
          (frame   (cv:query-frame capture)))
     (if (cffi:null-pointer-p frame)
-        (cv:query-frame capture)
+        (progn
+          (skip-to capture 0)
+          (cv:query-frame capture))
         frame)))
