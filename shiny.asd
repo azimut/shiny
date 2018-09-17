@@ -13,7 +13,9 @@
                (:file "lib/extempore")
                (:file "lib/cm")
                (:file "lib/overtone")
-               (:file "lib/drums")))
+               (:file "lib/drums")
+               (:file "lib/incudine")
+               (:file "lib/midifile")))
 
 (asdf:defsystem "shiny/fluidsynth"
   :author "azimut <azimut.github@protonmail.com>"
