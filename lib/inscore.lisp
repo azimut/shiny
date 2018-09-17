@@ -24,6 +24,9 @@
 
 (defun inscore-reset
     (&optional (window-name *window-name*) delete)
+  "delete elements under /ITL/WINDOW-NAME/*, or the whole window
+   thing if DELETE is set T"
+  (declare (string window-name) (boolean delete))
   (let* ((root   (concatenate 'string "/ITL/" window-name))
          (childs (concatenate 'string root "/*")))
     (setf (gethash window-name *bar-counter*) 30)
@@ -33,7 +36,9 @@
 
 (defun inscore-init
     (&optional (window-name *window-name*) (layer-name *layer-name*))
-  (declare (string layer-name))
+  "create WINDOW-NAME if not exists and a layer LAYER-NAME under it
+   with a black background"
+  (declare (string window-name layer-name))
   (let* ((root (concatenate 'string "/ITL/" window-name))
          (layer (concatenate 'string root "/" layer-name))
          (background (concatenate 'string layer "/background")))
@@ -43,6 +48,7 @@
     (osc:message *oscout* background "siii" "color" 0 0 0)))
 
 (defun make-inscore ()
+  "initialize *oscout* global variable and initialize window"
   (setf *oscout*
         (osc:open :host "127.0.0.1"
                   :port 7000
@@ -50,19 +56,10 @@
   (inscore-reset)
   (inscore-init))
 
-;; GMNSTREAM
-;; write: add the gmn code to the current gmn stream
-;; clear: reinitialize the stream
-
-;; EXAMPLE
-;; Writing a score in 3 steps:
-
-;; /ITL/scene/myScore set gmnstream "[ c";
-;; /ITL/scene/myScore write " d e";
-;; /ITL/scene/myScore write " f]";
-
 (defun inscore-score-debug
     (score &key (window-name *window-name*) (layer-name *layer-name*))
+  "write a whole static score into WINDOW-NAME under LAYER-NAME"
+  (declare (string score window-name layer-name))
   (let ((score-path
          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
     (osc:message
@@ -74,7 +71,7 @@
 (defun inscore-score
     (score &key
              (meter *meter*) (clef *clef*) (key 0)
-             (window-name *window-name*) (layer-name *layer-name*)             )
+             (window-name *window-name*) (layer-name *layer-name*))
   "static score"
   (let ((score-path
          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
@@ -90,19 +87,16 @@
        (meter *meter* meter-p) (clef *clef* clef-p) (key 0 key-p)
        (window-name *window-name*) (layer-name *layer-name*))
   "stream score"
-  (let* ((final-score "[ ")
-         (score-path
-          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
+  (let ((final-score "[ ")
+        (score-path
+         (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
     (inscore-init window-name layer-name)
     (when clef-p
-      (setf final-score (concatenate 'string final-score
-                                     (format nil "\\clef<\"~a\"> " clef))))
+      (setf final-score (format nil "~a\\clef<\"~a\"> " final-score clef)))
     (when meter-p
-      (setf final-score (concatenate 'string  final-score
-                                     (format nil "\\meter<\"~a\"> " meter))))
+      (setf final-score (format nil "~a\\meter<\"~a\"> " final-score meter)))
     (when key-p
-      (setf final-score (concatenate 'string final-score
-                                     (format nil "\\key<~d> " key))))
+      (setf final-score (format nil "~a\\key<~d> " final-score key)))
     (osc:message
      *oscout* score-path "sss" "set" "gmnstream"
      final-score)
@@ -113,22 +107,16 @@
 
 (defun inscore-write
     (score &optional (window-name *window-name*) (layer-name *layer-name*))
-  "stream score writer"
+  "add the gmn code to the current gmn stream"
+  (declare (string score window-name layer-name))
   (let ((score-path
          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
     (osc:message
      *oscout* score-path "ss" "write"
      (format nil " ~a " score))))
 
-;; (inscore-reset)
-;; (inscore-init)
-;; (inscore-stream :meter "4/4" :clef "g")
-;; (inscore-write (pick "_" "a" "b" "c" "d" "f" "g" "h"))
-;; (inscore-write "_/32")
-;; (inscore-write "a*1/4")
-;; (inscore-write "a/2")
-
 ;;--------------------------------------------------
+;; Music Notation Helpers
 
 (defvar *inscore-reverse-notes*
   (alexandria:alist-hash-table
@@ -140,6 +128,7 @@
      (10 . "b&") (11 . "b"))))
 
 (defun inscore-reverse-notes (n)
+  (declare (unsigned-byte n))
   (format nil "~a~d"
           (gethash (mod n 12) *inscore-reverse-notes*)
           (+ -3 (cm:octave-number n))))
