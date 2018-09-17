@@ -9,12 +9,18 @@
 ;; a voice at the time, without a possible whole note followed by a quarted
 ;; before the whole finish...
 
+;; TODO:
+;; - use more (par)
+
+;; Reference:
+;; http://www.grame.fr/ressources/publications/inscore-tenor-2016.pdf
+
 (defvar *oscout* nil)
 (defvar *window-name* "scene")
 (defvar *layer-name* "l")
-(defparameter *bar-counter* (make-hash-table :test #'equal))
+(defvar *bar-counter* (make-hash-table :test #'equal))
 (defvar *meter* "4/4")
-(defparameter *clef* "f")
+(defvar *clef* "f")
 
 (defun inscore-reset
     (&optional (window-name *window-name*) delete)
@@ -25,7 +31,8 @@
     (when delete
       (osc:message *oscout* root "s" "del"))))
 
-(defun inscore-init (&optional (window-name *window-name*) (layer-name *layer-name*))
+(defun inscore-init
+    (&optional (window-name *window-name*) (layer-name *layer-name*))
   (declare (string layer-name))
   (let* ((root (concatenate 'string "/ITL/" window-name))
          (layer (concatenate 'string root "/" layer-name))
@@ -54,13 +61,29 @@
 ;; /ITL/scene/myScore write " d e";
 ;; /ITL/scene/myScore write " f]";
 
+(defun inscore-score-debug
+    (score &key (window-name *window-name*) (layer-name *layer-name*))
+  (let ((score-path
+         (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
+    (osc:message
+     *oscout* score-path "sss" "set" "gmn"
+     score)
+    ;;COLOR WHITE
+    (osc:message *oscout* score-path "siii" "color" 240 240 240)))
+
 (defun inscore-score
-    (score &key (meter *meter*) (clef *clef*) (key 0))
+    (score &key
+             (meter *meter*) (clef *clef*) (key 0)
+             (window-name *window-name*) (layer-name *layer-name*)             )
   "static score"
-  (osc:message
-   *oscout* "/ITL/scene/score" "sss" "set" "gmn"
-   (format nil "[ \\meter<\"~a\"> \\clef<\"~a\"> \\key<~a> ~a ]"
-           meter clef key score)))
+  (let ((score-path
+         (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
+    (osc:message
+     *oscout* score-path "sss" "set" "gmn"
+     (format nil "[ \\meter<\"~a\"> \\clef<\"~a\"> \\key<~a> ~a ]"
+             meter clef key score))
+    ;;COLOR WHITE
+    (osc:message *oscout* score-path "siii" "color" 240 240 240)))
 
 (defun inscore-stream
     (&key
@@ -83,15 +106,14 @@
     (osc:message
      *oscout* score-path "sss" "set" "gmnstream"
      final-score)
+    ;; (osc:message *oscout* score-path "si" "tempo" 60)
+    ;; (osc:message *oscout* score-path "si" "date" 60)
     ;;COLOR WHITE
-    (osc:message *oscout*
-                 score-path
-                 "siii"
-                 "color" 240 240 240)))
+    (osc:message *oscout* score-path "siii" "color" 240 240 240)))
 
 (defun inscore-write
     (score &optional (window-name *window-name*) (layer-name *layer-name*))
-  "stream score write"
+  "stream score writer"
   (let ((score-path
          (concatenate 'string "/ITL/" window-name "/" layer-name "/score")))
     (osc:message
