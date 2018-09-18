@@ -27,8 +27,8 @@
 (defvar *csound-globals*
   ";; Initialize the global variables.
    sr = 44100
-   kr = 44100
-   ksmps = 1
+   kr = 4410
+   ksmps = 10
    nchnls = 2")
 ;; JACK?
 ;;(defvar *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
@@ -54,7 +54,7 @@
     (let ((vars-only (remove-if #'keywordp rest)))
       (csound:csoundreadscore
        *c*
-       (format nil "~a 1 ~a ~{~A~^ ~}"
+       (format nil "~a 0 ~a ~{~A~^ ~}"
                iname duration vars-only)))))
 
 (defgeneric playcsound-freq (instrument duration keynum &rest rest))
@@ -199,12 +199,6 @@
   (declare (string s))
   (let* ((start-instr (cl-ppcre:scan "instr\\s+\\d+" s))
          (globals (subseq s 0 start-instr)))
-    (loop
-       :for default :in '("sr" "kr" "ksmps" "nchnls")
-       :do
-       (setf globals (cl-ppcre:regex-replace-all
-                      (format nil "\\s*~a\\s*=\\s*.*\\n" default)
-                      globals "")))
     globals))
 
 ;; NOTE: before running this try the sound on the CLI with:
