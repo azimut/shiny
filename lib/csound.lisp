@@ -12,22 +12,32 @@
 ;; - But like baggers said "when you get a string in lisp is like it insults you"
 ;; - Aaaaaaand test ORCAsync
 ;; - CLOS object for the server: thread, status, reboot, load methods there
+;; - Support "<" ">" "+" on scores...whatever that is...
 
+;; Usage:
 ;; Copy csound's interfaces/csound.{lisp,asd} into
 ;; ~/.quicklisp/local-projects/csound/ then
 ;; I also re-defined :string instead of :pointer for csound:csoundreadscore and :orcproc
 
 ;;(ql:quickload :csound)
 
+(defvar *c* nil)
 (defvar *csound-globals*
   ";; Initialize the global variables.
    sr = 44100
    kr = 4410
    ksmps = 10
    nchnls = 2")
+;; JACK?
+;;(defvar *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
 (defvar *csound-options* '("-odac" "--nchnls=2" "-M0" "-+rtmidi=null"))
-(defvar *c* nil)
 (defvar *orcs* (make-hash-table))
+(defclass orc ()
+  ((name    :initarg :name)
+   (globals :initarg :globals :reader globals)
+   (orc     :initarg :orc :reader orc)
+   (sco     :initarg :sco :reader sco)))
+(defvar *tmporc* NIL)
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
@@ -73,6 +83,8 @@
      keynum)))
 
 (defmacro make-play (name i &rest rest)
+  "this macro will create a new (play-NAME) function wrapper of either
+   playcsound or playcsound-key, with each &key defined on the function"
   (assert (and (symbolp name) (not (keywordp name))))
   (let ((fname (intern (format nil "~A-~A" 'play name)))
         (keynum-exists (position :keynum rest)))
@@ -89,7 +101,7 @@
            (playcsound-key ,i duration keynum
                            ,@(loop :for (k v) :on rest :by #'cddr :append
                                 (if (eq k :keynum)
-                                    (list k 127)
+                                    (list k 127) ;; dummy value...
                                     (list k (intern (symbol-name k)))))))
         ;; Handles instruments without keynum
         `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
@@ -100,11 +112,6 @@
            (playcsound ,i duration
                        ,@(loop :for (k v) :on rest :by #'cddr :append
                             (list k (intern (symbol-name k)))))))))
-
-(defclass orc ()
-  ((name :initarg :name)
-   (orc  :initarg :orc :reader orc)
-   (sco  :initarg :sco :reader sco)))
 
 (defun parse-sco (score)
   "returns only the fN wavetables on the score, remove comments and spaces and
@@ -128,16 +135,25 @@
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo, remove comments"
   (declare (string s))
-  (let ((orc (cl-ppcre:regex-replace-all ";.*" s "")))
-    (if (cl-ppcre:scan "soundin" orc)
-        (error "soundin required"))
-    (if (cl-ppcre:scan "nchnls\\s+=\\s+1" orc)
-        (cl-ppcre:regex-replace " out\\s+\([^\\s]+\)" orc "outs \\1,\\1")
-        orc)))
+  (let* ((orc (cl-ppcre:regex-replace-all ";.*" s ""))
+         (soundin-p (cl-ppcre:scan "soundin" orc))
+         (mono-p (cl-ppcre:scan "nchnls\\s+=\\s+1" orc))
+         (start-instr (cl-ppcre:scan "instr\\s+\\d+" orc)))
+    (when soundin-p
+      (error "soundin required"))
+    (when mono-p
+      (setf orc (cl-ppcre:regex-replace
+                 " out\\s+\([^\\s]+\)" orc "outs \\1,\\1")))
+    (subseq orc start-instr)))
+
+(defun parse-globals (s)
+  (declare (string s))
+  (let ((start-instr (cl-ppcre:scan "instr\\s+\\d+" s)))
+    (subseq s 0 start-instr)))
 
 ;; NOTE: before running this try the sound on the CLI with:
 ;; $ csound -odac 326a.{orc,sco}
-(defun make-orc (name &key sco orc filename filepath orc-path sco-path)
+(defun make-orc (name &key sco orc globals filename filepath orc-path sco-path)
   "This function creates a new orchestra file, reading score wave tables too"
   (assert (keywordp name))
   ;; Find files if parameters provided
@@ -150,18 +166,19 @@
   ;; Read into vars
   (when (and orc-path sco-path)
     (setf orc (parse-orc (alexandria:read-file-into-string orc-path)))
+    (setf globals (parse-globals (alexandria:read-file-into-string orc-path)))
     (setf sco (parse-sco (alexandria:read-file-into-string sco-path))))
   (setf (gethash name *orcs*)
         (make-instance 'orc
                        :name name
+                       :globals globals
                        :sco sco
                        :orc orc)))
 
 (defun list-orcs ()
   (alexandria:hash-table-keys *orcs*))
 
-;; (set-csound-options '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
-(defun set-csound-options (&optional (options '("-odac" "--nchnls=2")))
+(defun set-csound-options (&optional (options *csound-options*))
   (declare (list options))
   (loop :for option :in options :when (stringp option) :do
      (cffi:with-foreign-string (coption option)
@@ -183,26 +200,38 @@
 
 (defun get-sco (orc-name)
   (assert (keywordp orc-name))
-  (slot-value (gethash orc-name *orcs*) 'sco))
+  (with-slots (sco) (gethash orc-name *orcs*)
+    (if sco
+        sco
+        (let* ((n (format nil "lib/csound/~a.sco" (symbol-name orc-name)))
+               (f (asdf:system-relative-pathname :shiny n))
+               (sco (alexandria:read-file-into-string f)))
+          sco))))
+
+(defun get-globals (orc-name)
+  (assert (keywordp orc-name))
+  (with-slots (globals) (gethash orc-name *orcs*)
+    globals))
 
 ;; TODO: ew
-(defun make-csound (orchestra)
+(defun start-csound (orchestra)
   (declare (type orc orchestra))
   (unless *c*
-    (with-slots (name) orchestra
+    (with-slots (name orc sco globals) orchestra
       ;; Set headless flags
       (csound:csoundinitialize 3)
       (setf *c* (csound:csoundcreate (cffi:null-pointer)))
       (set-csound-options *csound-options*)
       ;; Initialize ORC 
-      (csound:csoundcompileorc *c* (get-orc name))
+      (csound:csoundcompileorc *c* orc)
       ;; GOGOGO!
       (csound:csoundstart *c*)
       ;; Global vars init
       (csound:csoundreadscore *c* *csound-globals*)
+      (when globals
+        (csound:csoundreadscore *c* globals))
       ;; Init fN wave tables for this ORC
-      (csound:csoundreadscore *c* (get-sco name)))))
-
+      (csound:csoundreadscore *c* sco))))
 
 ;;--------------------------------------------------
 ;; Merge utils
@@ -225,25 +254,30 @@
              l)))
     l))
 
+;; NOTE: this was so weird and annoying...regex...i didn't miss you
 (defun replace-wavetables (orc wavetables-hash)
   (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
-    (print indexes)
     (loop :for index :in indexes :do
-       (let ((r (format nil "~a~a~a" "\\{1}" (gethash index wavetables-hash) "\\2")))
+       (let ((r (format nil "~a~a~a~%" "\\{1}"
+                        (gethash index wavetables-hash) "\\{2}")))
          (setf orc (cl-ppcre:regex-replace-all
-                    "\(oscil\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
                     orc
                     r))
          (setf orc (cl-ppcre:regex-replace-all
-                    "\(oscili\\s+[^,]+,[^,]+,\)[^,]+\(.*\)"
+                    (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
                     orc
                     r))
          (setf orc (cl-ppcre:regex-replace-all
-                    "\(table\\s+[^,]+,\)[^,]+\(.*\)"
+                    (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
                     orc
                     r))
          (setf orc (cl-ppcre:regex-replace-all
-                    "\(tablei\\s+[^,]+,\)[^,]+\(.*\)"
+                    (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
                     orc
                     r))))
     orc))
@@ -253,7 +287,8 @@
         (instruments)
         (n-wavetables 0)
         (wavetables)
-        (wavetables-hash (make-hash-table :test #'equal)))
+        (wavetables-hash (make-hash-table :test #'equal))
+        (globals))
     (loop
        :for orchestra :in orchestras
        :do
@@ -274,6 +309,8 @@
                                   temp-wavetable
                                   (format nil "f~d" fn)))
             (incf n-wavetables))
+         ;; GLOBALS
+         (setf globals (concatenate 'string globals (globals orchestra)))
          ;; ORC
          (setf orc (replace-wavetables orc wavetables-hash))
          (clrhash wavetables-hash)
@@ -288,12 +325,18 @@
     (assert (< n-instruments 10))    
     (setf instruments (format nil instruments 1 2 3 4 5 6 7 8 9 10))
     ;; RETURN both a new ORC and SCO
-    (values instruments
-            wavetables)))
+    (setf *tmporc*
+          (make-instance
+           'orc
+           :globals nil
+           :name :tmporc
+           :orc (format nil "~a~%~a~%~a" *csound-globals* globals instruments)
+           :sco wavetables))
+    *tmporc*))
 
 ;;--------------------------------------------------
 ;; TODO: xml/html parser to put all on a .csd
-;; Partial definition of the ORCs, see lib/csound/*.orc for the source
+;; Partial definition of the ORCs, see lib/csound/*.{sco,orc} for the source
 
 (make-orc :xanadu  :filename "XANADU")
 (make-orc :trapped :filename "TRAPPED")
