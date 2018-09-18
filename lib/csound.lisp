@@ -13,6 +13,8 @@
 ;; - Aaaaaaand test ORCAsync
 ;; - CLOS object for the server: thread, status, reboot, load methods there
 ;; - Support "<" ">" "+" on scores...whatever that is...
+;; - score debug helper to send messages
+;; - debug more to show messages send
 
 ;; Usage:
 ;; Copy csound's interfaces/csound.{lisp,asd} into
@@ -51,6 +53,37 @@
        (format nil "~a 0 ~a ~{~A~^ ~}"
                iname duration vars-only)))))
 
+(defgeneric playcsound-freq (instrument duration keynum &rest rest))
+(defmethod playcsound-freq
+    ((iname string) (duration number) (keynum integer) &rest rest)
+  "plays a single note with INSTRUMENT"
+  (when (and (> duration 0) (> keynum 0))
+    (let ((kpos (1+ (position :freq rest))))
+      (setf (nth kpos rest)
+            (midihz keynum)))
+    ;; finally send only the parameter values
+    (let ((vars-only (remove-if #'keywordp rest)))
+      (csound:csoundreadscore
+       *c* 
+       (format nil "~a 0 ~a ~{~A~^ ~}"
+               iname duration vars-only)))))
+(defmethod playcsound-freq
+    ((iname string) (duration number) (keynum list) &rest rest)
+  "plays a single note with INSTRUMENT"
+  (let ((kpos (1+ (position :freq rest))))
+    (mapcar
+     (lambda (keynum)
+       (when (and (> duration 0) (> keynum 0))
+         (setf (nth kpos rest) (midihz keynum))
+         ;; finally send only the parameter values
+         (let ((vars-only (remove-if #'keywordp rest)))
+           (csound:csoundreadscore
+            *c* 
+            (format nil "~a 0 ~a ~{~A~^ ~}"
+                    iname duration vars-only)))))
+     keynum)))
+
+
 (defgeneric playcsound-key (instrument duration keynum &rest rest))
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum integer) &rest rest)
@@ -86,32 +119,46 @@
   "this macro will create a new (play-NAME) function wrapper of either
    playcsound or playcsound-key, with each &key defined on the function"
   (assert (and (symbolp name) (not (keywordp name))))
-  (let ((fname (intern (format nil "~A-~A" 'play name)))
-        (keynum-exists (position :keynum rest)))
-    (if keynum-exists
-        ;; Handles normal instrumentes with a single keynum
-        `(defun ,fname (keynum duration &key ,@(remove-if
-                                                #'null
-                                                (loop :for (x y) :on rest :by #'cddr
-                                                   :collect
-                                                   (let* ((sn (symbol-name x))
-                                                          (k  (intern sn)))
-                                                     (when (not (eq :keynum x))
-                                                       (list k y))))))
-           (playcsound-key ,i duration keynum
-                           ,@(loop :for (k v) :on rest :by #'cddr :append
-                                (if (eq k :keynum)
-                                    (list k 127) ;; dummy value...
-                                    (list k (intern (symbol-name k)))))))
-        ;; Handles instruments without keynum
-        `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
-                                           :collect
-                                           (let* ((sn (symbol-name x))
-                                                  (k  (intern sn)))
-                                             (list k y))))
-           (playcsound ,i duration
-                       ,@(loop :for (k v) :on rest :by #'cddr :append
-                            (list k (intern (symbol-name k)))))))))
+  (let ((fname (intern (format nil "~A-~A" 'play name))))
+    (cond ((position :keynum rest)
+           ;; Handles normal instrumentes with a single keynum
+           `(defun ,fname (keynum duration &key ,@(remove-if
+                                                   #'null
+                                                   (loop :for (x y) :on rest :by #'cddr
+                                                      :collect
+                                                      (let* ((sn (symbol-name x))
+                                                             (k  (intern sn)))
+                                                        (when (not (eq :keynum x))
+                                                          (list k y))))))
+              (playcsound-key ,i duration keynum
+                              ,@(loop :for (k v) :on rest :by #'cddr :append
+                                   (if (eq k :keynum)
+                                       (list k 127) ;; dummy value...
+                                       (list k (intern (symbol-name k))))))))
+          ((position :freq rest)
+           `(defun ,fname (keynum duration &key ,@(remove-if
+                                                   #'null
+                                                   (loop :for (x y) :on rest :by #'cddr
+                                                      :collect
+                                                      (let* ((sn (symbol-name x))
+                                                             (k  (intern sn)))
+                                                        (when (not (eq :freq x))
+                                                          (list k y))))))
+              (playcsound-freq ,i duration keynum
+                               ,@(loop :for (k v) :on rest :by #'cddr :append
+                                    (if (eq k :freq)
+                                        (list k 440) ;; dummy value...
+                                        (list k (intern (symbol-name k))))))))
+          (t 
+           ;; Handles instruments without keynum
+           `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
+                                              :collect
+                                              (let* ((sn (symbol-name x))
+                                                     (k  (intern sn)))
+                                                (list k y))))
+              (playcsound ,i duration
+                          ,@(loop :for (k v) :on rest :by #'cddr :append
+                               (list k (intern (symbol-name k))))))))))
 
 (defun parse-sco (score)
   "returns only the fN wavetables on the score, remove comments and spaces and
