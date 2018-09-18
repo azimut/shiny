@@ -7,18 +7,15 @@
      (velocity integer) (duration number)
      (channel integer) &key pan)
   "single note helper"
-  (unless (gethash *window-name* *bar-counter*)
-    (setf (gethash *window-name* *bar-counter*) 100))
+  (let ((c (gethash *window-name* *bar-counter*)))
+    (when (or (not c) (>= c 4))
+      (inscore-stream :meter *meter*)
+      (setf (gethash *window-name* *bar-counter*) 0)))
   (let ((keynum)
-        (rhythm))
+        (rhythm (inscore-rhythm duration)))
     (if (= pitch 0)
         (setf keynum "_")
-        (progn
-          (setf keynum (inscore-reverse-notes pitch))
-          (setf rhythm (inscore-rhythm duration))))
-    (when (>= (gethash *window-name* *bar-counter*) 4)
-      (inscore-stream :meter "4/4" :clef *clef*)
-      (setf (gethash *window-name* *bar-counter*) 0))
+        (setf keynum (inscore-reverse-notes pitch)))
     (inscore-write (format nil "~a~a" keynum rhythm))
     (incf (gethash *window-name* *bar-counter*)
           (read-from-string
@@ -29,15 +26,12 @@
      (velocity integer) (duration number)
      (channel integer) &key pan)
   "chord helper"
-  ;; reset state
-  (when (>= (gethash *window-name* *bar-counter*) 4)
-    (inscore-stream)
-    (setf (gethash *window-name* *bar-counter*) 0))
+  (let ((c (gethash *window-name* *bar-counter*)))
+    (when (or (not c) (>= c 4))
+      (inscore-stream :meter *meter*)
+      (setf (gethash *window-name* *bar-counter*) 0)))  
   (let ((rhythm (inscore-rhythm duration))
         (keynums))
-    ;; regardless of being a chord we only provide one length
-    (incf (gethash *window-name* *bar-counter*)
-          (read-from-string (format nil "1~d" rhythm)))
     (setf keynums
           (mapcar
            (lambda (pitch)
@@ -48,4 +42,7 @@
                      rhythm))
            pitch))
     (at time #'inscore-write        
-        (format nil "{~{~a~^,~}}" keynums))))
+        (format nil "{~{~a~^,~}}" keynums))
+    ;; regardless of being a chord we only provide one length
+    (incf (gethash *window-name* *bar-counter*)
+          (read-from-string (format nil "1~d" rhythm)))))
