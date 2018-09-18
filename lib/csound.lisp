@@ -25,18 +25,9 @@
    kr = 4410
    ksmps = 10
    nchnls = 2")
+(defvar *csound-options* '("-odac" "--nchnls=2" "-M0" "-+rtmidi=null"))
 (defvar *c* nil)
 (defvar *orcs* (make-hash-table))
-
-;; Assumes only that "i1 0 10" will be the only constant params
-(defclass cinstrument ()
-  ((iname  :initarg :iname)
-   (params :initarg :params :reader params)))
-
-;; FIXME: meh, needs to be a macro (?
-(defmethod print-object ((obj cinstrument) out)
-  (print-unreadable-object (obj out :type t)
-    (format out "~s" (params obj))))
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
@@ -195,14 +186,14 @@
   (slot-value (gethash orc-name *orcs*) 'sco))
 
 ;; TODO: ew
-(defun start-csound (orchestra)
+(defun make-csound (orchestra)
   (declare (type orc orchestra))
   (unless *c*
-    (with-slots (name sco) orchestra
+    (with-slots (name) orchestra
       ;; Set headless flags
       (csound:csoundinitialize 3)
       (setf *c* (csound:csoundcreate (cffi:null-pointer)))
-      (set-csound-options '("-odac" "--nchnls=2" "-M0" "-+rtmidi=null"))
+      (set-csound-options *csound-options*)
       ;; Initialize ORC 
       (csound:csoundcompileorc *c* (get-orc name))
       ;; GOGOGO!
@@ -210,7 +201,7 @@
       ;; Global vars init
       (csound:csoundreadscore *c* *csound-globals*)
       ;; Init fN wave tables for this ORC
-      (csound:csoundreadscore *c* sco))))
+      (csound:csoundreadscore *c* (get-sco name)))))
 
 
 ;;--------------------------------------------------
@@ -262,7 +253,7 @@
         (instruments)
         (n-wavetables 0)
         (wavetables)
-        (wavetables-hash (make-hash-table)))
+        (wavetables-hash (make-hash-table :test #'equal)))
     (loop
        :for orchestra :in orchestras
        :do
