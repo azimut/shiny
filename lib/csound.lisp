@@ -27,8 +27,8 @@
 (defvar *csound-globals*
   ";; Initialize the global variables.
    sr = 44100
-   kr = 4410
-   ksmps = 10
+   kr = 44100
+   ksmps = 1
    nchnls = 2")
 ;; JACK?
 ;;(defvar *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
@@ -39,7 +39,11 @@
    (globals :initarg :globals :reader globals)
    (orc     :initarg :orc :reader orc)
    (sco     :initarg :sco :reader sco)))
+(defclass csound-server ()
+  ((thread)
+   (server)))
 (defvar *tmporc* NIL)
+(defvar *thread* NIL)
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
@@ -50,7 +54,7 @@
     (let ((vars-only (remove-if #'keywordp rest)))
       (csound:csoundreadscore
        *c*
-       (format nil "~a 0 ~a ~{~A~^ ~}"
+       (format nil "~a 1 ~a ~{~A~^ ~}"
                iname duration vars-only)))))
 
 (defgeneric playcsound-freq (instrument duration keynum &rest rest))
@@ -83,7 +87,6 @@
                     iname duration vars-only)))))
      keynum)))
 
-
 (defgeneric playcsound-key (instrument duration keynum &rest rest))
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum integer) &rest rest)
@@ -98,7 +101,6 @@
        *c* 
        (format nil "~a 0 ~a ~{~A~^ ~}"
                iname duration vars-only)))))
-
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum list) &rest rest)
   "plays a single note with INSTRUMENT"
@@ -195,8 +197,15 @@
 
 (defun parse-globals (s)
   (declare (string s))
-  (let ((start-instr (cl-ppcre:scan "instr\\s+\\d+" s)))
-    (subseq s 0 start-instr)))
+  (let* ((start-instr (cl-ppcre:scan "instr\\s+\\d+" s))
+         (globals (subseq s 0 start-instr)))
+    (loop
+       :for default :in '("sr" "kr" "ksmps" "nchnls")
+       :do
+       (setf globals (cl-ppcre:regex-replace-all
+                      (format nil "\\s*~a\\s*=\\s*.*\\n" default)
+                      globals "")))
+    globals))
 
 ;; NOTE: before running this try the sound on the CLI with:
 ;; $ csound -odac 326a.{orc,sco}
@@ -263,22 +272,32 @@
 ;; TODO: ew
 (defun start-csound (orchestra)
   (declare (type orc orchestra))
-  (unless *c*
-    (with-slots (name orc sco globals) orchestra
-      ;; Set headless flags
-      (csound:csoundinitialize 3)
-      (setf *c* (csound:csoundcreate (cffi:null-pointer)))
-      (set-csound-options *csound-options*)
+  (with-slots (name orc sco globals) orchestra
+    (let ((server-up-p *c*))
+      (unless server-up-p
+        ;; Set headless flags
+        (csound:csoundinitialize 3)
+        (setf *c* (csound:csoundcreate (cffi:null-pointer)))
+        (set-csound-options *csound-options*))
       ;; Initialize ORC 
-      (csound:csoundcompileorc *c* orc)
+      (csound:csoundcompileorc
+       *c*
+       (format nil "~a~%~a~%~a~%" *csound-globals* globals orc))
       ;; GOGOGO!
-      (csound:csoundstart *c*)
-      ;; Global vars init
-      (csound:csoundreadscore *c* *csound-globals*)
-      (when globals
-        (csound:csoundreadscore *c* globals))
+      (unless server-up-p
+        (csound:csoundstart *c*))
       ;; Init fN wave tables for this ORC
       (csound:csoundreadscore *c* sco))))
+
+(defun load-csound (orchestra)
+  "one can load sco and orc without stop the perfomance thread
+   or restart the server"
+  (declare (type orc orchestra))
+  (with-slots (orc sco) orchestra
+    ;; Initialize ORC 
+    (csound:csoundcompileorc *c* orc)
+    ;; Init fN wave tables for this ORC
+    (csound:csoundreadscore *c* sco)))
 
 ;;--------------------------------------------------
 ;; Merge utils
@@ -380,6 +399,17 @@
            :orc (format nil "~a~%~a~%~a" *csound-globals* globals instruments)
            :sco wavetables))
     *tmporc*))
+
+(defun start-thread ()
+  (setf *thread*
+        (bt:make-thread
+         (lambda ()
+           (loop
+              :for frame = (csound:csoundperformksmps *c*)
+              :while (= frame 0))))))
+
+(defun stop-thread ()
+  (bt:destroy-thread *thread*))
 
 ;;--------------------------------------------------
 ;; TODO: xml/html parser to put all on a .csd
