@@ -238,15 +238,30 @@
   (assert (keywordp orc-name))
   (gethash orc-name *orcs*))
 
-(defun get-orc (orc-name)
+(defun get-orc (orc-name &optional n-instr)
   (assert (keywordp orc-name))
-  (with-slots (orc) (gethash orc-name *orcs*)
-    (if orc
-        orc
-        (let* ((n (format nil "lib/csound/~a.orc" (symbol-name orc-name)))
-               (f (asdf:system-relative-pathname :shiny n))
-               (orc (alexandria:read-file-into-string f)))
-          orc))))
+  (let ((result))
+    (with-slots (orc) (gethash orc-name *orcs*)
+      ;; Load it from Disk
+      (if orc
+          (setf result orc)
+          (let* ((n (format nil "lib/csound/~a.orc" (symbol-name orc-name)))
+                 (f (asdf:system-relative-pathname :shiny n)))
+            (setf result (alexandria:read-file-into-string f))))
+      ;; Pick N-TH: not even sure if this is a good idea, but I "need" it
+      (when n-instr
+        (let* ((i-list (cl-ppcre:split "\(instr\\s+\\d+\)" orc
+                                       :with-registers-p t
+                                       :omit-unmatched-p t))
+               ;; remove empty strings
+               (i-list (remove-if (lambda (x) (= (length x) 0)) i-list)))
+          (setf result
+                (nth n-instr
+                     (loop
+                        :for (x y) :on i-list
+                        :by #'cddr
+                        :collect (concatenate 'string x y))))))
+      result)))
 
 (defun get-sco (orc-name)
   (assert (keywordp orc-name))
