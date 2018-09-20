@@ -15,6 +15,9 @@
 ;; - Support "<" ">" "+" on scores...whatever that is...
 ;; - score debug helper to send messages
 ;; - debug more to show messages send
+;; - seems like some instruments only work with determined global values of:
+;;   sr,kr,ksmps,chnls...great!...
+
 
 ;; Usage:
 ;; Copy csound's interfaces/csound.{lisp,asd} into
@@ -186,13 +189,13 @@
   (declare (string s))
   (let* ((orc (cl-ppcre:regex-replace-all ";.*" s ""))
          (soundin-p (cl-ppcre:scan "soundin" orc))
-         (mono-p (cl-ppcre:scan "nchnls\\s+=\\s+1" orc))
+         (mono-p (cl-ppcre:scan "nchnls\\s*=\\s*1" orc))
          (start-instr (cl-ppcre:scan "instr\\s+\\d+" orc)))
     (when soundin-p
       (error "soundin required"))
     (when mono-p
-      (setf orc (cl-ppcre:regex-replace
-                 " out\\s+\([^\\s]+\)" orc "outs \\1,\\1")))
+      (setf orc (cl-ppcre:regex-replace-all
+                 " out\\s+\(.*\)" orc "outs \\1,\\1")))
     (subseq orc start-instr)))
 
 (defun parse-globals (s)
