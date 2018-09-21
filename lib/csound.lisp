@@ -276,10 +276,18 @@
                (sco (alexandria:read-file-into-string f)))
           sco))))
 
-(defun get-globals (orc-name)
+(defun get-globals (orc-name &optional filter-globals)
   (assert (keywordp orc-name))
   (with-slots (globals) (gethash orc-name *orcs*)
-    globals))
+    (if filter-globals
+        (loop
+           :for default :in '("sr" "kr" "ksmps" "nchnls")
+           :finally (return result)
+           :with result = globals :do
+           (setf result (cl-ppcre:regex-replace-all
+                          (format nil "\\s*~a\\s*=\\s*.*\\n" default)
+                          result (format nil "~%"))))
+        globals)))
 
 ;; TODO: ew
 (defun start-csound (orchestra)
