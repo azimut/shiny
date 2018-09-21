@@ -1,15 +1,6 @@
 (in-package :shiny)
 
-(start-csound (gethash :xanadu *orcs*))
-
-(bt:make-thread
- (lambda ()
-   (loop
-      :for frame = (csound:csoundperformksmps *c*)
-      :while (= frame 0))))
-
-(csound:csoundcompileorc *c* (get-orc   :xanadu))
-(csound:csoundreadscore  *c* (get-table :xanadu))
+(load-csound (get-orchestra :xanadu))
 
 ;; XANADU
 (make-play plucke "i1" :p4 0 :keynum 60)
@@ -30,7 +21,8 @@
 
 (let ((notes (make-cycle (lorenz))))
   (defun f (time)
-    (play-pluck (next notes) .5)
+    (let ((n (next notes)))
+      (play-pluck n .5))
     (aat (+ time #[.5 b]) #'f it)))
 
 (defun f ())

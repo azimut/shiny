@@ -1,15 +1,6 @@
 (in-package :shiny)
 
-(start-csound (gethash :bass *orcs*))
-
-(bt:make-thread
- (lambda ()
-   (loop
-      :for frame = (csound:csoundperformksmps *c*)
-      :while (= frame 0))))
-
-(csound:csoundcompileorc *c* (get-orc :bass))
-(csound:csoundreadscore  *c* (get-table :bass))
+(load-csound (get-orchestra :bass))
 
 (make-play bass "i1"
            :fco1 .1  :fco2 .3
@@ -25,13 +16,13 @@
 (play-bass 60 1 :bars 1)
 
 ;;--------------------------------------------------
-(csound:csoundcompileorc *c* (get-orc :asynth))
-(csound:csoundreadscore  *c* (get-table :asynth))
+
+(load-csound (merge-orcs (get-orchestra :bass) (get-orchestra :asynth)))
 ;; https://github.com/AbletonTriCitiesUserGroup/Gallery/
 ;;                    -----VCOs------ ------VCF------ ---VCOs-- ------LFOs------
 ;;     Strt Leng Levl Pitch Semi Fine Vcf1  Vcf2  Rez Wav1 Wav2 Wave Rate1 Rate2 Ring
 ;;i1.1  0    -2   .7   06.00 1    1    1000  200   10  2    2    2   .25   .3     .75
-(make-play asynth "i1" :amp .7 :keynum 60 :semi 1 :fine 1 :vcf1 1000 :vcf2 200 :rez 10 :wav1 2 :wav2 2 :wave 2 :rate1 .25 :rate2 .3 :ring .75)
+(make-play asynth "i2" :amp .7 :keynum 60 :semi 1 :fine 1 :vcf1 1000 :vcf2 200 :rez 10 :wav1 2 :wav2 2 :wave 7 :rate1 .25 :rate2 .3 :ring .75)
 (play-asynth 60 .5 :amp .2)
 (let ((note (make-cycle (make-chord-fixed 66 3 (scale 0 'ryukyu)))))
   (defun f (time)
@@ -44,10 +35,8 @@
 (defun f ())
 
 ;;--------------------------------------------------
-(start-csound (gethash :drumkit *orcs*))
-
-(csound:csoundcompileorc *c* (get-orc :drumkit))
-(csound:csoundreadscore  *c* (get-table :drumkit))
+(start-csound (get-orchestra :drumkit))
+(start-thread)
 
 (make-play bass "i1"
            :amp 10000  :wave 1
