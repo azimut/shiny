@@ -55,7 +55,7 @@
 (defvar *thread* NIL)
 
 (defun stich (&rest rest)
-  (format nil "~{~%~a~%~}" rest))
+  (format nil "~{~%~a~%~}" (remove-if #'null rest)))
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
@@ -449,10 +449,11 @@
 
 ;; NOTE: this was so weird and annoying...regex...i didn't miss you
 (defun replace-wavetables (orc wavetables-hash)
+  (declare (string orc))
   (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
     (loop :for index :in indexes :do
-       (let ((r (format nil "~a~a~a~%" "\\{1}"
-                        (gethash index wavetables-hash) "\\{2}")))
+       (let ((r (format nil "~a~a~a~%"
+                        "\\{1}" (gethash index wavetables-hash) "\\{2}")))
          (setf orc (cl-ppcre:regex-replace-all
                     (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
                             index)
@@ -470,6 +471,11 @@
                     r))
          (setf orc (cl-ppcre:regex-replace-all
                     (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
                             index)
                     orc
                     r))))
@@ -507,7 +513,7 @@
          ;; ORC
          (setf orc (replace-wavetables orc wavetables-hash))
          (clrhash wavetables-hash)
-         (setf instruments (concatenate 'string instruments orc))
+         (setf instruments (stich instruments orc))
          (incf n-instruments (regex-count "instr\\s+\\d+" orc))))
     ;; ORC: Template instruments
     (setf instruments (cl-ppcre:regex-replace-all "instr\\s+\\d+"
@@ -523,7 +529,7 @@
            'orc
            :globals nil
            :name :tmporc
-           :orc (format nil "~a~%~a~%~a" *csound-globals* globals instruments)
+           :orc (stich *csound-globals* globals instruments)
            :sco wavetables))
     *tmporc*))
 
