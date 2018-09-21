@@ -12,12 +12,16 @@
 ;; - But like baggers said "when you get a string in lisp is like it insults you"
 ;; - Aaaaaaand test ORCAsync
 ;; - CLOS object for the server: thread, status, reboot, load methods there
+;; - I get a freeze state (? when doing (reset), might be due stop handling sigs
 ;; - Support "<" ">" "+" on scores...whatever that is...
 ;; - score debug helper to send messages
 ;; - debug more to show messages send
 ;; - seems like some instruments only work with determined global values of:
 ;;   sr,kr,ksmps,chnls...great!...
-
+;; - add panning parameters when converting from mono to stereo (or always)
+;; - everything crashes with an invalid float point operation when I do weird
+;;   things with (some) params, appears to happen on the perform thread
+;; - boy oh boy...might be this is why it never got popular...
 
 ;; Usage:
 ;; Copy csound's interfaces/csound.{lisp,asd} into
@@ -34,14 +38,15 @@
    ksmps = 10
    nchnls = 2")
 ;; JACK?
-;;(defvar *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null"))
-(defvar *csound-options* '("-odac" "--nchnls=2" "-M0" "-+rtmidi=null"))
+;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null" "--sample-rate=44100"))
+(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtmidi=null"))
 (defvar *orcs* (make-hash-table))
 (defclass orc ()
   ((name    :initarg :name)
    (globals :initarg :globals :reader globals)
    (orc     :initarg :orc :reader orc)
-   (sco     :initarg :sco :reader sco)))
+   (sco     :initarg :sco :reader sco)
+   (file    :initarg :file)))
 (defclass csound-server ()
   ((thread)
    (server)))
@@ -225,6 +230,7 @@
         (make-instance 'orc
                        :name name
                        :globals globals
+                       :file filepath
                        :sco sco
                        :orc orc)))
 
