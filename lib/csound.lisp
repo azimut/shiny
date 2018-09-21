@@ -266,13 +266,32 @@
   (let* ((orc (cl-ppcre:regex-replace-all ";.*" s ""))
          (soundin-p (cl-ppcre:scan "soundin" orc))
          (mono-p (cl-ppcre:scan "nchnls\\s*=\\s*1" orc))
-         (start-instr (cl-ppcre:scan "instr\\s+\\d+" orc)))
+         (start-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
+         (orc (subseq orc start-instr)))
     (when soundin-p
       (error "soundin required"))
     (when mono-p
-      (setf orc (cl-ppcre:regex-replace-all
-                 " out\\s+\(.*\)" orc "outs \\1,\\1")))
-    (subseq orc start-instr)))
+      (let* ((inst-pos (cl-ppcre:all-matches "instr\\s+\\d+" orc))
+             (inst-pos (loop for i in inst-pos by #'cddr collect i)))
+        (setf
+         orc
+         (format
+          nil "~{~a~%~}"
+          (loop
+             :for (start end) :on inst-pos
+             :collect
+             (let* ((instr (subseq orc start end))
+                    (pos (print (cl-ppcre:all-matches-as-strings "p\\d+" instr)))
+                    (pos (mapcar (lambda (x) (parse-integer (subseq x 1))) pos))
+                    (pos (sort pos #'>))
+                    (last-pos (car pos)))
+               (cl-ppcre:regex-replace
+                " out\\s+\(.*\)"
+                instr
+                (format nil "outs (\\{1})*p~d,(\\{1})*p~d"
+                        (+ 1 last-pos)
+                        (+ 2 last-pos)))))))))
+    orc))
 
 (defun parse-globals (s)
   (declare (string s))
