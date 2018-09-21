@@ -51,7 +51,11 @@
   ((thread)
    (server)))
 (defvar *tmporc* NIL)
+(defvar *tmppartialorc* NIL)
 (defvar *thread* NIL)
+
+(defun stich (&rest rest)
+  (format nil "~{~%~a~%~}" rest))
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
@@ -333,9 +337,16 @@
      (cffi:with-foreign-string (coption option)
        (csound:csoundsetoption *c* coption))))
 
-(defun get-orchestra (orc-name)
+(defun get-orchestra (orc-name &optional n-instr)
   (assert (keywordp orc-name))
-  (gethash orc-name *orcs*))
+  (if n-instr
+      (setf *tmppartialorc*
+            (make-instance 'orc
+                           :sco (get-sco orc-name)
+                           :orc (get-orc orc-name n-instr)
+                           :globals (get-globals orc-name)
+                           :name "slice"))
+      (gethash orc-name *orcs*)))
 
 (defun get-orc (orc-name &optional n-instr)
   (assert (keywordp orc-name))
@@ -359,7 +370,7 @@
                      (loop
                         :for (x y) :on i-list
                         :by #'cddr
-                        :collect (concatenate 'string x y))))))
+                        :collect (stich x y))))))
       result)))
 
 (defun get-sco (orc-name)
