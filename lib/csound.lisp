@@ -54,13 +54,16 @@
 (defvar *tmppartialorc* NIL)
 (defvar *thread* NIL)
 
+;; A really useful helper!
 (defun stich (&rest rest)
-  (format nil "~{~%~a~%~}" (remove-if #'null rest)))
+  "takes either several arguments or a list, puts them together
+   in a string separated by new lines"
+  (format nil "~{~%~a~%~}"
+          (alexandria:flatten (remove-if #'null rest))))
 
 (defgeneric playcsound (instrument duration &rest rest))
 (defmethod playcsound
     ((iname string) (duration number) &rest rest)
-  "plays a single note with INSTRUMENT"
   (when (> duration 0)
     ;; finally send only the parameter values
     (let ((vars-only (remove-if #'keywordp rest)))
@@ -72,7 +75,6 @@
 (defgeneric playcsound-freq (instrument duration keynum &rest rest))
 (defmethod playcsound-freq
     ((iname string) (duration number) (keynum integer) &rest rest)
-  "plays a single note with INSTRUMENT"
   (when (and (> duration 0) (> keynum 0))
     (let ((kpos (1+ (position :freq rest))))
       (setf (nth kpos rest)
@@ -102,7 +104,6 @@
 (defgeneric playcsound-key (instrument duration keynum &rest rest))
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum integer) &rest rest)
-  "plays a single note with INSTRUMENT"
   (when (and (not (= duration 0)) (> keynum 0))
     (let ((kpos (1+ (position :keynum rest))))
       (setf (nth kpos rest)
@@ -115,7 +116,6 @@
                iname duration vars-only)))))
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum list) &rest rest)
-  "plays a single note with INSTRUMENT"
   (let ((kpos (1+ (position :keynum rest))))
     (mapcar
      (lambda (keynum)
@@ -337,17 +337,6 @@
      (cffi:with-foreign-string (coption option)
        (csound:csoundsetoption *c* coption))))
 
-(defun get-orchestra (orc-name &optional n-instr)
-  (assert (keywordp orc-name))
-  (if n-instr
-      (setf *tmppartialorc*
-            (make-instance 'orc
-                           :sco (get-sco orc-name)
-                           :orc (get-orc orc-name n-instr)
-                           :globals (get-globals orc-name)
-                           :name "slice"))
-      (gethash orc-name *orcs*)))
-
 (defun get-orc (orc-name &optional n-instr)
   (assert (keywordp orc-name))
   (let ((result))
@@ -360,20 +349,23 @@
             (setf result (alexandria:read-file-into-string f))))
       ;; Pick N-TH: not even sure if this is a good idea, but I "need" it
       (when n-instr
+        (setf n-instr (alexandria:ensure-list n-instr))
         (let* ((i-list (cl-ppcre:split "\(instr\\s+\\d+\)" orc
                                        :with-registers-p t
                                        :omit-unmatched-p t))
                ;; remove empty strings
                (i-list (remove-if (lambda (x) (= (length x) 0)) i-list)))
           (setf result
-                (nth n-instr
-                     (loop
-                        :for (x y) :on i-list
-                        :by #'cddr
-                        :collect (stich x y))))))
+                (stich
+                 (nths n-instr
+                       (loop
+                          :for (x y) :on i-list
+                          :by #'cddr
+                          :collect (stich x y)))))))
       result)))
 
 (defun get-sco (orc-name)
+  "returns the score string"
   (assert (keywordp orc-name))
   (with-slots (sco) (gethash orc-name *orcs*)
     (if sco
@@ -384,6 +376,7 @@
           sco))))
 
 (defun get-globals (orc-name &optional filter-globals)
+  "returns the string with the global definitions"
   (assert (keywordp orc-name))
   (with-slots (globals) (gethash orc-name *orcs*)
     (if filter-globals
@@ -395,6 +388,18 @@
                           (format nil "\\s*~a\\s*=\\s*.*\\n" default)
                           result (format nil "~%"))))
         globals)))
+
+(defun get-orchestra (orc-name &optional n-instr)
+  "returns an orchestra object"
+  (assert (keywordp orc-name))
+  (if n-instr
+      (setf *tmppartialorc*
+            (make-instance 'orc
+                           :sco (get-sco orc-name)
+                           :orc (get-orc orc-name n-instr)
+                           :globals (get-globals orc-name)
+                           :name "slice"))
+      (gethash orc-name *orcs*)))
 
 ;; TODO: ew
 (defun start-csound (orchestra)
@@ -450,36 +455,38 @@
 ;; NOTE: this was so weird and annoying...regex...i didn't miss you
 (defun replace-wavetables (orc wavetables-hash)
   (declare (string orc))
-  (let ((indexes (alexandria:hash-table-keys wavetables-hash)))
-    (loop :for index :in indexes :do
-       (let ((r (format nil "~a~a~a~%"
-                        "\\{1}" (gethash index wavetables-hash) "\\{2}")))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))))
-    orc))
+  (loop
+     :for index :being :each :hash-key :of wavetables-hash
+     :using (hash-value v)
+     :do
+     (let ((r (format nil "~a~a~a~%"
+                      "\\{1}" v "\\{2}")))
+       (setf orc (cl-ppcre:regex-replace-all
+                  (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                          index)
+                  orc
+                  r))
+       (setf orc (cl-ppcre:regex-replace-all
+                  (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                          index)
+                  orc
+                  r))
+       (setf orc (cl-ppcre:regex-replace-all
+                  (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                          index)
+                  orc
+                  r))
+       (setf orc (cl-ppcre:regex-replace-all
+                  (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                          index)
+                  orc
+                  r))
+       (setf orc (cl-ppcre:regex-replace-all
+                  (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                          index)
+                  orc
+                  r))))
+  orc)
 
 (defun merge-orcs (&rest orchestras)
   (let ((n-instruments 0)
