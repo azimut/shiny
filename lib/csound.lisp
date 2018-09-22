@@ -103,7 +103,7 @@
 (defmethod playcsound-key
     ((iname string) (duration number) (keynum integer) &rest rest)
   "plays a single note with INSTRUMENT"
-  (when (and (> duration 0) (> keynum 0))
+  (when (and (not (= duration 0)) (> keynum 0))
     (let ((kpos (1+ (position :keynum rest))))
       (setf (nth kpos rest)
             (keynum->pch keynum)))
@@ -285,7 +285,7 @@
              :for (start end) :on inst-pos
              :collect
              (let* ((instr (subseq orc start end))
-                    (pos (print (cl-ppcre:all-matches-as-strings "p\\d+" instr)))
+                    (pos (cl-ppcre:all-matches-as-strings "p\\d+" instr))
                     (pos (mapcar (lambda (x) (parse-integer (subseq x 1))) pos))
                     (pos (sort pos #'>))
                     (last-pos (car pos)))
@@ -409,7 +409,7 @@
       ;; Initialize ORC 
       (csound:csoundcompileorc
        *c*
-       (format nil "~a~%~a~%~a~%" *csound-globals* globals orc))
+       (stich *csound-globals* globals orc))
       ;; GOGOGO!
       (unless server-up-p
         (csound:csoundstart *c*))
@@ -420,9 +420,9 @@
   "one can load sco and orc without stop the perfomance thread
    or restart the server"
   (declare (type orc orchestra))
-  (with-slots (orc sco) orchestra
+  (with-slots (orc sco globals) orchestra
     ;; Initialize ORC 
-    (csound:csoundcompileorc *c* orc)
+    (csound:csoundcompileorc *c* (stich globals orc))
     ;; Init fN wave tables for this ORC
     (csound:csoundreadscore *c* sco)))
 
@@ -484,7 +484,7 @@
 (defun merge-orcs (&rest orchestras)
   (let ((n-instruments 0)
         (instruments)
-        (n-wavetables 0)
+        (n-wavetables 1)
         (wavetables)
         (wavetables-hash (make-hash-table :test #'equal))
         (globals))
@@ -511,10 +511,10 @@
          ;; GLOBALS
          (setf globals (concatenate 'string globals (globals orchestra)))
          ;; ORC
-         (setf orc (replace-wavetables orc wavetables-hash))
-         (clrhash wavetables-hash)
-         (setf instruments (stich instruments orc))
-         (incf n-instruments (regex-count "instr\\s+\\d+" orc))))
+         (let ((tmporc (replace-wavetables orc wavetables-hash)))
+           (clrhash wavetables-hash)
+           (setf instruments (stich instruments tmporc))
+           (incf n-instruments (regex-count "instr\\s+\\d+" tmporc)))))
     ;; ORC: Template instruments
     (setf instruments (cl-ppcre:regex-replace-all "instr\\s+\\d+"
                                                   instruments
