@@ -31,6 +31,7 @@
          (childs (concatenate 'string root "/*")))
     (setf (gethash window-name *bar-counter*) 30)
     (osc:message *oscout* childs "s" "del")
+    (clrhash *bar-counter*)
     (when delete
       (osc:message *oscout* root "s" "del"))))
 
