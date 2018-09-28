@@ -97,8 +97,8 @@
 (defun bbplay
     (buf &key (rate 1d0 rate-p) (rpitch 1 rpitch-p) (beat-length 1f0 beat-length-p)
            (start-pos 0d0) (loop-p nil) (amp 1d0) (id 2 id-p)
-           (left 1d0) (right 1d0) (downsamp 1 downsamp-p))
-  (declare (integer rpitch id downsamp) (boolean loop-p))
+           (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p))
+  (declare (integer rpitch id downsamp) (boolean loop-p) (float pan))
   "plays the provided buffer either by
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
@@ -124,6 +124,11 @@
     (when (< rate 0)
       (setf start-pos (- frames (/ frames 20))))
 
+    (when pan-p
+      (setf pan (alexandria:clamp pan 0f0 1f0))
+      (cond ((> pan .5) (decf left  (* 2 (- pan .5))))
+            ((< pan .5) (decf right (* 2 (abs (- pan .5)))))))
+    
     (if downsamp-p
         (if id-p
             (bplay-downsamp buf rate start-pos loop-p
@@ -166,6 +171,8 @@
     (phrase &key (rate 1) (rpitch 1 rpitch-p) (beat-length 1 beat-length-p)
               (loop-p nil) (amp 1f0) (id 2)
               corrupt
+              (downsamp 1 downsamp-p)
+              (left 1f0) (right 1f0) (pan 1f0 pan-p)
               (corrupt-center 1f0)
               (corrupt-radius .1)
               (corrupt-period 1))
@@ -194,10 +201,25 @@
       ;; change where to start when played backwards
       (when (< rate 0)
         (incf start-pos (* dur sample-rate)))
+
+      (when pan-p
+        (setf pan (alexandria:clamp pan 0f0 1f0))
+        (cond ((> pan .5) (decf left  (* 2 (- pan .5))))
+              ((< pan .5) (decf right (* 2 (abs (- pan .5)))))))
+          
       ;; start voice
-      (bplay buf rate start-pos loop-p
-             :amp amp
-             :id id)
+      (if downsamp-p
+          (bplay-downsamp buf rate start-pos loop-p
+                          :left left
+                          :right right
+                          :amp amp
+                          :downsamp downsamp
+                          :id id)
+          (bplay buf rate start-pos loop-p
+                 :left left
+                 :right right
+                 :amp amp
+                 :id id))
       (when corrupt
         (corrupt-node (now)
                       id
@@ -206,7 +228,8 @@
                       :period corrupt-period))
       ;; kill voice
       (let ((dur (* (/ (abs rate)) dur)))
-        (at (+ (now) (* *sample-rate* dur)) #'incudine:free (node id))))))
+        (at (+ (now) (* *sample-rate* dur)) #'incudine:free (node id)))
+      T)))
 
 
 ;;--------------------------------------------------
@@ -286,4 +309,6 @@
   (with-slots (keys) (gethash name *instruments*)
     (with-slots (filename loopend loopstart) (aref keys keynum)
       (let ((buf (gethash filename *buffers*)))
-        (play-lsample-f buf dur amp loopstart loopend rate)))))
+        (if (> rate 0)
+            (play-lsample-f buf dur amp loopstart loopend rate)
+            (play-lsample-f buf dur amp loopend loopstart rate))))))
