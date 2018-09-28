@@ -182,7 +182,8 @@
   (word-play \"time\" :rate 2)
   (word-play \"time\" :rpitch 7)
   (word-play \"time\" :beat-length 4)"
-  (when phrase
+  (when (or (and phrase (stringp phrase))
+            (and phrase (not (eq phrase :end-of-data))))
     (let* ((obj (gethash phrase *sample-words*))
            (dur (phrase-dur obj))
            (buf (gethash (phrase-filename obj)
