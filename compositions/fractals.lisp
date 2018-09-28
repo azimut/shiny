@@ -88,6 +88,7 @@
 ;; Play
 ;;; -------------------------------------------
 
+;;(ql:quickload :arrow-macros)
 
 (defvar *n1* nil)
 (defvar *t1* nil)
