@@ -12,18 +12,22 @@
            :amp .2
            :keynum 60)
 
-(play-bass 50 1 :bars 120 :amp .1 :res1 .9 :res2 .2)
+(play-bass 50 1 :bars 120 :amp .8 :res1 .9 :res2 .2)
 (play-bass 60 1 :bars 1)
 
+(start-thread)
 ;;--------------------------------------------------
 
+(start-csound (merge-orcs (get-orchestra :bass) (get-orchestra :asynth)))
 (load-csound (merge-orcs (get-orchestra :bass) (get-orchestra :asynth)))
+(start-thread)
+(start-csound (get-orchestra :bass))
 ;; https://github.com/AbletonTriCitiesUserGroup/Gallery/
 ;;                    -----VCOs------ ------VCF------ ---VCOs-- ------LFOs------
 ;;     Strt Leng Levl Pitch Semi Fine Vcf1  Vcf2  Rez Wav1 Wav2 Wave Rate1 Rate2 Ring
 ;;i1.1  0    -2   .7   06.00 1    1    1000  200   10  2    2    2   .25   .3     .75
-(make-play asynth "i2" :amp .7 :keynum 60 :semi 1 :fine 1 :vcf1 1000 :vcf2 200 :rez 10 :wav1 2 :wav2 2 :wave 7 :rate1 .25 :rate2 .3 :ring .75)
-(play-asynth 60 .5 :amp .2)
+(make-play asynth "i1.1" :amp .7 :keynum 60 :semi 1 :fine 1 :vcf1 1000 :vcf2 200 :rez 10 :wav1 2 :wav2 2 :wave 2 :rate1 .25 :rate2 .3 :ring .75)
+(play-asynth 60 .2 :amp .1)
 (let ((note (make-cycle (make-chord-fixed 66 3 (scale 0 'ryukyu)))))
   (defun f (time)
     (if (odds .8) (play-hihat 1) (play-snare 1))

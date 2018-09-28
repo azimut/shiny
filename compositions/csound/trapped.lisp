@@ -1,15 +1,8 @@
 (in-package :shiny)
 
-(start-csound (gethash :trapped *orcs*))
-
-(bt:make-thread
- (lambda ()
-   (loop
-      :for frame = (csound:csoundperformksmps *c*)
-      :while (= frame 0))))
-
-(csound:csoundcompileorc *c* (get-orc :trapped))
-(csound:csoundreadscore *c*  (get-table :trapped))
+(start-csound (get-orchestra :trapped))
+(load-csound (get-orchestra :trapped))
+(start-thread)
 
 ;; TRAPPED
 (make-play ivory  "i1" :p4 0 :keynum 60 :amp 200 :vib .001 :glis 17.8 :drop .99)
@@ -27,6 +20,7 @@
 (make-play foam   "i13" :p4 0 :keynum 60 :amp 1000 :vib 40 :glis 7)
 (make-play swirl "i99" :pan 2)
 
+;; requires nudruz
 (defparameter *expwarp*
   (loop :for n :from 1 :to 3 :by .1 :collect
      (mapcar #'round (cm:expwarp '(36 55 64) n))))

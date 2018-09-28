@@ -1,6 +1,8 @@
 (in-package :shiny)
 
+(start-csound (get-orchestra :xanadu))
 (load-csound (get-orchestra :xanadu))
+(start-thread)
 
 ;; XANADU
 (make-play plucke "i1" :p4 0 :keynum 60)
@@ -9,6 +11,8 @@
 
 (play-newfm 90 5 :p4 .9)
 (play-pluck 90 2)
+
+(play-pluck-arp '(60 62) 1 1)
 
 ;; Csound tutorial
 (defun lorenz ()
