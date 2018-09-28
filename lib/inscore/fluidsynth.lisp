@@ -7,8 +7,9 @@
      (velocity integer) (duration number)
      (channel integer) &key pan)
   "single note helper"
+  (declare (optimize speed))
   (let ((c (gethash *window-name* *bar-counter*)))
-    (when (or (not c) (>= c 4))
+    (when (or (not c) (>= c *bar-length*))
       (inscore-stream :meter *meter*)
       (setf (gethash *window-name* *bar-counter*) 0)))
   (let ((keynum)
@@ -27,7 +28,7 @@
      (channel integer) &key pan)
   "chord helper"
   (let ((c (gethash *window-name* *bar-counter*)))
-    (when (or (not c) (>= c 4))
+    (when (or (not c) (>= c *bar-length*))
       (inscore-stream :meter *meter*)
       (setf (gethash *window-name* *bar-counter*) 0)))  
   (let ((rhythm (inscore-rhythm duration))
@@ -41,7 +42,7 @@
                          (inscore-reverse-notes pitch))
                      rhythm))
            pitch))
-    (at time #'inscore-write        
+    (inscore-write        
         (format nil "{~{~a~^,~}}" keynums))
     ;; regardless of being a chord we only provide one length
     (incf (gethash *window-name* *bar-counter*)
