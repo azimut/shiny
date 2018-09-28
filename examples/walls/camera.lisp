@@ -1,3 +1,5 @@
+(in-package :shiny)
+
 (defclass camera ()
   ((pos :initarg :pos :initform (v! 0 0 0)   :accessor rot)
    (rot :initarg :rot :initform (q:identity) :accessor pos)
@@ -51,6 +53,7 @@
 
 (defparameter *crotate* nil)
 (defparameter *head* nil)
+(defparameter *wave* 1f0)
 (defmethod update ((camera pers))
   (if *head*
       (setf (pos camera) *head*)
