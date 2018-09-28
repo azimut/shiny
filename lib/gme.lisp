@@ -12,7 +12,7 @@
 
 ;; TODO: shorted hash keys
 
-(ql:quickload :cl-gme/incudine)
+;;(ql:quickload :cl-gme/incudine)
 
 ;; Flip-flop buffer to avoid cuts while loading AND
 ;; ...still being able to free old cuts
@@ -54,7 +54,7 @@
 
 (defun gmeplay
     (filename node track-number
-     &key (attenuation 1) (rate 1f0) (start-pos 0)
+     &key (amp 1) (rate 1f0) (start-pos 0)
        (fade-curve 3) (fade-time 0f0)
        (length 1) (offset 0) (voices '())
        (load-only nil))
@@ -65,7 +65,7 @@
    LOAD-ONLY just put the buffer in the global hash, do not play it
 
    (gmeplay \"/home/sendai/Downloads/sf2/ff3.nsf\" 2 15
-         :attenuation .1
+         :amp .1
          :length 20
          :offset 10
          :voices '(2)
@@ -88,12 +88,12 @@
            :rate rate
            :fade-curve fade-curve
            :fade-time fade-time
-           :attenuation attenuation)
+           :amp amp)
           (bplay (gethash hashkey *loading*) rate 0 t
                  :id node
                  :fade-curve fade-curve
                  :fade-time fade-time
-                 :attenuation attenuation)))
+                 :amp amp)))
     (rotatef (gethash hashkey *loading*)
              (gethash hashkey *playing*))
     (incudine:free (gethash hashkey *loading*))))
