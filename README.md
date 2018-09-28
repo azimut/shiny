@@ -30,6 +30,7 @@ You don't need to have all these, but some .asd files or examples will require t
 * https://github.com/titola/incudine
 * https://github.com/ormf/cm/
 * https://github.com/gogins/csound-extended/tree/develop/nudruz
+* https://github.com/azimut/viseq
 
 Non-lisp:
 * https://github.com/ReneNyffenegger/csound-instruments/
