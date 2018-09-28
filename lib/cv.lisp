@@ -1,33 +1,11 @@
-(in-package :cv)
-
-(cffi:defcstruct ipl-image
-  (n-size :int)
-  (id :int)
-  (n-channels :int)
-  (alpha-channel :int)
-  (depth :int)
-  (color-model :char :count 4)
-  (channel-seq :char :count 4)
-  (data-order :int)
-  (origin :int)
-  (align :int)
-  (width :int)
-  (height :int)
-  (roi :pointer)
-  (mask-roi :pointer)
-  (image-id :pointer)
-  (tile-info :pointer)
-  (image-size :int)
-  (image-data :pointer)
-  (width-step :int)  
-  (border-mode :int :count 4)
-  (border-const :int :count 4)
-  (image-data-origin :pointer))
-
 (in-package :shiny)
 
 (defconstant +window-freeratio+ #x00000100)
 (defconstant +window-gui-normal+ #x00000010)
+(defvar *cvfont* (cffi:foreign-alloc :pointer))
+
+(defun make-font ()
+  (cv:init-font *cvfont* cv:+font-hershey-simplex+ 1f0 1f0))
 
 (defmacro with-captured-file ((capture filename) &body body)
   `(let ((,capture (cv:create-file-capture ,filename)))
@@ -67,12 +45,14 @@
 
 (defun skip-to (capture seconds)
   "skip video capture to seconds"
-  (declare (type alexandria:non-negative-integer seconds)
-           (type cffi:foreign-pointer capture))
+  (declare (optimize (speed 3))
+           (type cffi:foreign-pointer capture)
+           (type integer seconds))
   (cv:set-capture-property
    capture
    cv:+cap-prop-pos-msec+
-   (round (* 1000 seconds))))
+   (* 1000 seconds))
+  NIL)
 
 (defun current-pos (capture)
   "current pos in seconds"
@@ -135,25 +115,24 @@
               (cv:scalar blue green red 255)))
 
 (defun make-rectangle
-    (img x1 y1 x2 y2
-     &key (blue 0) (green 0) (red 0))
+    (img x1 y1 x2 y2 &key (blue 0) (green 0) (red 0))
   "cv:rectangle wrapper"
   (declare (type integer x1 y1 x2 y2 blue green red))
   (cv:rectangle img
                 (cv:point x1 y1) (cv:point x2 y2)
                 (cv:scalar blue green red)))
 
-(defun make-text (img font text x y
-                  &key (red 0) (green 0) (blue 0))
+(defun make-text
+    (img text x y &key (red 0) (green 0) (blue 0))
   "cv:put-text wrapper"
-  (declare (type integer red green blue x y)
-           (type string text))
-  (cffi:with-foreign-string (s text)
-    (cv:put-text img
-                 s
-                 (cv:point x y)
-                 font
-                 (cv:scalar red green blue))))
+  (declare (type fixnum red green blue x y)
+           (type string text)
+           (optimize speed (debug 0) (safety 0)))
+  (cv:put-text img
+               text
+               (cv:point x y)
+               *cvfont*
+               (cv:scalar red green blue)))
 
 ;;--------------------------------------------------
 
@@ -191,9 +170,12 @@
 
 ;;--------------------------------------------------
 
-(defun 2d-rotate (mat center-x center-y &optional (angle 0f0) (scale 1f0))
-  (declare (type integer center-x center-y)
-           (type float angle scale))
+(defun 2d-rotate
+    (mat center-x center-y &optional (angle 0f0) (scale 1f0))
+  (declare (type cffi:foreign-pointer mat)
+           (type integer center-x center-y)
+           (type float angle scale)
+           (optimize (speed 3)))
   (cv:2d-rotation-matrix (cv:point2d-32f center-x center-y)
                          angle scale
                          mat))
@@ -204,10 +186,16 @@
     (when connection
       (swank::handle-requests connection t))))
 
-(defun get-frame (capture &optional (restart-frame 0))
+(defun get-frame
+    (capture &optional (restart-frame 0) (skip-to-frame 0))
   (declare (type cffi:foreign-pointer capture)
-           (type alexandria:non-negative-integer restart-frame))
-  (let ((frame (cv:query-frame capture)))
+           (type fixnum restart-frame skip-to-frame)
+           (optimize (speed 3) (safety 0) (debug 0)))
+  (let ((frame (if (= 0 skip-to-frame)
+                   (cv:query-frame capture)
+                   (progn
+                     (skip-to capture skip-to-frame)
+                     (cv:query-frame capture)))))
     (if (cffi:null-pointer-p frame)
         (progn
           (skip-to capture restart-frame)
