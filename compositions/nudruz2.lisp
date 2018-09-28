@@ -63,7 +63,7 @@
 (freverb-toggle 1)
 (freverb-preset 5)
 (fchorus-toggle 1)
-
+(f (now))
 (defun f ())
 
 (fp 0 20)
@@ -88,9 +88,9 @@
   (defun f (time)
     (let ((d (next rhythms)))
       (p time (next notes) 40 d 0)
-      ;; (if (zmodt 20)
-      ;;     (p time (pickl '(24 28 37 46 50 59 68 77 81 90 99 103))
-      ;;        60 1 1 :pan (next pan)))
+      (if (zmodt 10)
+          (p time (pickl '(24 28 37 46 50 59 68 77 81 90 99 103))
+             60 1 1 :pan (next pan)))
       (aat (+ time #[d b]) #'f it))))
 
 (defun f ())
@@ -137,9 +137,53 @@
 
 (f (now))
 
-(let ((rhythm (parse-patternc (cm:flatter (cm:fromto-stepper '(0 1 1 0 1 0 0 0) '(1 0 0 1 0 1 0 0))))))
+(let ((rhythm
+       (parse-patternc
+        (cm::flatter
+         (cm::fromto-stepper '(0 1 1 0 1 0 0 0) '(1 0 0 1 0 1 0 0))))))
   (defun f (time)
     (when (next rhythm)
-      (p time 60 60 1 2))
-    (aat (+ time #[1 b])
+      (p time 60 60 .2 2))
+    (aat (+ time #[.2 b])
          #'f it)))
+
+;;--------------------------------------------------
+
+
+(let ((rhythm (make-weighting '(1 .9) .5))
+      (notes
+       (make-cycle
+        (cm::smoothlist (cm::entropy (make-chord 40 60 3 (scale 0 'minor)))))))
+  (defun f (time)
+    (let* ((n (next notes))
+           (l (length n))
+           (r (next rhythm)))
+      (if (= l 1)
+          (pa time n r 60 1 r)
+          (pa time n (* r .3333) 60 0 (* r .3333)))
+      (aat (+ time #[r b]) #'f it))))
+
+(defun f ())
+(fp 0 38)
+(fp 1 20)
+
+(f (now))
+
+
+;;--------------------------------------------------
+(defun f ())
+(let ((notes (make-cycle
+              (cm::make-poly
+               (cm::transp
+                (cm::flatten
+                 (loop for y in (cm::entropy '(0 1 3 5))
+                    collect
+                      (cm::give-contour-to-mel '(1 2 0 3) y))) 52) '(2 1 3 1 1)))))
+  (defun f (time)
+    (let* ((r 1f0)
+           (n (next notes))
+           (l (if (listp n) (length n) 1)))
+      (pa time n (print (/ r l)) 60 0 (/ r l))
+      (aat (+ time #[r b]) #'f it))))
+
+(f (now))
