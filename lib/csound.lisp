@@ -38,7 +38,7 @@
    ksmps = 10
    nchnls = 2")
 ;; JACK?
-;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-M0" "-b128" "-B1048" "-+rtmidi=null" "--sample-rate=44100"))
+;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-b128" "-B1048" "-+rtmidi=null" "--sample-rate=44100"))
 (defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtmidi=null"))
 (defvar *orcs* (make-hash-table))
 (defclass orc ()
@@ -136,57 +136,9 @@
   (let ((fname (intern (format nil "~A-~A" 'play name)))
         (fnamearp (intern (format nil "~A-~A-~A" 'play name 'arp))))
     (cond ((position :keynum rest)
-           ;; Handles normal instrumentes with a single note in PCH
-           ;; A function for notes and chords, and other for arpeggios
-           `(progn
-             (defun ,fname (keynum duration &key ,@(remove-if
-                                                    #'null
-                                                    (loop :for (x y) :on rest :by #'cddr
-                                                       :collect
-                                                       (let* ((sn (symbol-name x))
-                                                              (k  (intern sn)))
-                                                         (when (not (eq :keynum x))
-                                                           (list k y))))))
-               (playcsound-key ,i duration keynum
-                               ,@(loop :for (k v) :on rest :by #'cddr :append
-                                    (if (eq k :keynum)
-                                        (list k 127) ;; dummy value...
-                                        (list k (intern (symbol-name k)))))))
-             (defun ,fnamearp (keynums offset &key ,@(remove-if
-                                                    #'null
-                                                    (loop :for (x y) :on rest :by #'cddr
-                                                       :collect
-                                                       (let* ((sn (symbol-name x))
-                                                              (k  (intern sn)))
-                                                         (when (not (eq :keynum x))
-                                                           (list k y))))))
-               (loop
-                  :for keynum :in (cdr keynums)
-                  :with i = 0
-                  :initially (,fname (car keynums) offset
-                                     ,@(remove-if
-                                        #'null
-                                        (loop :for (x y) :on rest :by #'cddr
-                                           :append
-                                           (let* ((sn (symbol-name x))
-                                                  (k  (intern sn)))
-                                             (when (not (eq :keynum x))
-                                               (list x k))))))
-                  :collect
-                  (progn
-                    (incf i offset)
-                    (at (+ (now) (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
-                        #',fname keynum offset
-                        ,@(remove-if
-                                       #'null
-                                       (loop :for (x y) :on rest :by #'cddr
-                                          :append
-                                          (let* ((sn (symbol-name x))
-                                                 (k  (intern sn)))
-                                            (when (not (eq :keynum x))
-                                              (list x k)))))))))))
-          ;; Handles normal instruments with a single note in Hz
-          ((position :freq rest)
+           ;;--------------------------------------------------
+           ;; CPH - Handles normal instrumentes with a single note in PCH
+           ;;--------------------------------------------------
            `(progn
               (defun ,fname (keynum duration &key ,@(remove-if
                                                      #'null
@@ -194,46 +146,98 @@
                                                         :collect
                                                         (let* ((sn (symbol-name x))
                                                                (k  (intern sn)))
-                                                          (when (not (eq :freq x))
+                                                          (when (not (eq :keynum x))
                                                             (list k y))))))
+                (declare (type (or integer list) keynum) (number duration)
+                         (optimize speed))
+                (playcsound-key ,i duration keynum
+                                ,@(loop :for (k v) :on rest :by #'cddr :append
+                                     (if (eq k :keynum)
+                                         (list k 127) ;; dummy value...
+                                         (list k (intern (symbol-name k)))))))
+              (defun ,fnamearp (keynums duration offset
+                                &key ,@(remove-if
+                                        #'null
+                                        (loop :for (x y) :on rest :by #'cddr
+                                           :collect
+                                           (let* ((sn (symbol-name x))
+                                                  (k  (intern sn)))
+                                             (when (not (eq :keynum x))
+                                               (list k y))))))
+                (declare (list keynums) (number duration offset)
+                         (optimize speed))
+                (loop
+                   :for keynum :in (cdr keynums)
+                   :for i :from offset :by offset
+                   :with now = (now)
+                   :initially (playcsound-key
+                               ,i duration (car keynums)
+                               ,@(loop :for (k v) :on rest :by #'cddr :append
+                                    (if (eq k :keynum)
+                                        (list k 127) ;; dummy value...
+                                        (list k (intern (symbol-name k))))))
+                   :do
+                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                       #'playcsound-key ,i duration keynum
+                       ,@(loop :for (k v) :on rest :by #'cddr :append
+                                     (if (eq k :keynum)
+                                         (list k 127) ;; dummy value...
+                                         (list k (intern (symbol-name k)))))))
+                NIL)))
+          ;;--------------------------------------------------
+          ;; FREQ - Handles normal instruments with a single note in Hz
+          ;;--------------------------------------------------
+          ((position :freq rest)
+           `(progn
+              (defun ,fname (keynum duration
+                             &key ,@(remove-if
+                                     #'null
+                                     (loop :for (x y) :on rest :by #'cddr
+                                        :collect
+                                        (let* ((sn (symbol-name x))
+                                               (k  (intern sn)))
+                                          (when (not (eq :freq x))
+                                            (list k y))))))
+                (declare (integer keynum) (number duration))
                 (playcsound-freq ,i duration keynum
                                  ,@(loop :for (k v) :on rest :by #'cddr :append
                                       (if (eq k :freq)
                                           (list k 440) ;; dummy value...
                                           (list k (intern (symbol-name k)))))))
-              (defun ,fnamearp (keynums offset &key ,@(remove-if
-                                                    #'null
-                                                    (loop :for (x y) :on rest :by #'cddr
-                                                       :collect
-                                                       (let* ((sn (symbol-name x))
-                                                              (k  (intern sn)))
-                                                         (when (not (eq :freq x))
-                                                           (list k y))))))
-               (loop
-                  :for keynum :in (cdr keynums)
-                  :with i = 0
-                  :initially (,fname (car keynums) offset
-                                     ,@(remove-if
+              (defun ,fnamearp (keynums duration offset
+                                &key ,@(remove-if
                                         #'null
                                         (loop :for (x y) :on rest :by #'cddr
-                                           :append
+                                           :collect
                                            (let* ((sn (symbol-name x))
                                                   (k  (intern sn)))
                                              (when (not (eq :freq x))
-                                               (list x k))))))
-                  :collect
-                  (progn
-                    (incf i offset)
-                    (at (+ (now) (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
-                        #',fname keynum offset
-                        ,@(remove-if
-                                       #'null
-                                       (loop :for (x y) :on rest :by #'cddr
-                                          :append
-                                          (let* ((sn (symbol-name x))
-                                                 (k  (intern sn)))
-                                            (when (not (eq :freq x))
-                                              (list x k)))))))))))
+                                               (list k y))))))
+                (loop
+                   :for keynum :in (cdr keynums)
+                   :for i :from offset :by offset
+                   :with now = (now)
+                   :initially (,fname (car keynums) duration
+                                      ,@(remove-if
+                                         #'null
+                                         (loop :for (x y) :on rest :by #'cddr
+                                            :append
+                                            (let* ((sn (symbol-name x))
+                                                   (k  (intern sn)))
+                                              (when (not (eq :freq x))
+                                                (list x k))))))
+                   :do
+                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                       #',fname keynum duration
+                       ,@(remove-if
+                          #'null
+                          (loop :for (x y) :on rest :by #'cddr
+                             :append
+                             (let* ((sn (symbol-name x))
+                                    (k  (intern sn)))
+                               (when (not (eq :freq x))
+                                 (list x k)))))))
+                NIL)))
           (t 
            ;; Handles instruments without keynum
            `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
@@ -241,6 +245,7 @@
                                               (let* ((sn (symbol-name x))
                                                      (k  (intern sn)))
                                                 (list k y))))
+              (declare (number duration) (optimize speed))
               (playcsound ,i duration
                           ,@(loop :for (k v) :on rest :by #'cddr :append
                                (list k (intern (symbol-name k))))))))))
