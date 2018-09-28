@@ -6,7 +6,6 @@
 (defparameter *size* .01)
 (defparameter *stop* nil)
 
-
 ;; Simple show grid of 1st video
 (defun render
     (frame1 frame2 capture1 capture2 mat)

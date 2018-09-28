@@ -4,7 +4,9 @@
   (make-cycle '("don't" "you" "ever" "let" "me" "go")))
 
 (defun render
-    (frame1 frame2 mat)
+    (frame1 frame2
+     ;mat
+     )
   (let ((mysize (cv:size 200 200)))
     (if (= (cv:wait-key 30) 27)
         'done
@@ -15,10 +17,10 @@
              (cimg mysize cv:+ipl-depth-8u+ 1))
           (cv:resize frame1 img1)
           (cv:resize frame2 img2)
-          (2d-rotate mat 30 90 0d0 .5d0)
-          (cv:warp-affine img1 img1 mat)
-          (2d-rotate mat 70 120 0d0 .5d0)
-          (cv:warp-affine img2 img2 mat)
+;;          (2d-rotate mat 30 90 0d0 .5d0)
+;;          (cv:warp-affine img1 img1 mat)
+;;          (2d-rotate mat 70 120 0d0 .5d0)
+;;          (cv:warp-affine img2 img2 mat)
           (cv:add-weighted img1 .8 img2 (- 1 .5) 0f0 img3)          
           (cv:show-image "multi" img3))
         )))
@@ -48,7 +50,9 @@
                      (skip-to capture2 30)
                      (return-from continue)))
              
-               (when (eq 'done (render frame1 frame2 mat))
+               (when (eq 'done (render frame1 frame2
+                                       ;mat
+                                       ))
                  (return))
                ;; repeat video ad-infinitum
                )))))))
