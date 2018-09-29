@@ -33,9 +33,11 @@
       (p time
        (cm:transpose (cm:keynum (next p)) -12)
        40 r 0)
-      (aat (+ time r) #'f it))))
+      (aat (+ time #[r b]) #'f it))))
 
-(f (quant 4))
+(all-piano 0)
+(flush-pending)
+(f (tempo-sync #[1 b]))
 ;;--------------------------------------------------
 
 (let* ((d (pval *c0*))
@@ -63,13 +65,13 @@
        40
        r
        chan)
-      (aat (+ time r) #'f it chan offset))))
+      (aat (+ time #[r b]) #'f it chan offset))))
 
 (defun f ())
 
-(f (quant 4) 0 -12)
-(f (quant 4) 1 0)
-(f (quant 4) 2 12)
+(f (tempo-sync #[4 b]) 0 -12)
+(f (tempo-sync #[4 b]) 1 0)
+(f (tempo-sync #[4 b]) 2 12)
 ;;--------------------------------------------------
 
 (defun bird ())
