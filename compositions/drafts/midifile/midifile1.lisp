@@ -3,16 +3,15 @@
 (defparameter *mf*
   "/home/sendai/Downloads/Radiohead_-_Daydreaming.mid")
 
-(defparameter *notes*  (subseq (get-notes *mf*) 3 30))
-
+(defparameter *notes*  (subseq (get-notes *mf*) 0 29))
 (defparameter *mnotes* (cm:markov-analyze (mapcar #'car *notes*) :order 2))
-(defparameter *notes*  (subseq (get-notes-duration *mf*) 30 60))
+(defparameter *notes*  (subseq (get-notes-durations *mf*) 30 60))
 
 
 
-(defparameter *notes*  (subseq (get-notes *mf*) 1000 1160))
+(defparameter *notes*  (subseq (get-notes *mf*) 0 29))
 (defparameter *mnotes*
-  (cm:markov-analyze (get-notes-list *mf* 1) :order 2))
+  (cm:markov-analyze (get-notes-durations-chords-silences *mf* 1) :order 2))
 
 (defun f ())
 (defparameter *metre* (make-metre '(4) 1))
@@ -24,7 +23,7 @@
           (r .5))
       (p time (+ -12 n) (rcosr 60 5 5) (+ 1 r) 0)
       (when (and (not ps) (= 1 (funcall *metre* beat)))
-        (p time (cm:transpose (print (next *mnotes*)) +24) 50 2 1))
+        (p time (cm:transpose (print (round (next *mnotes*))) +24) 50 2 1))
       (and ps (play-sand (+ 12 n) 2 :amp (rcosr 100 50 5)))
       (aat (+ time #[r b]) #'f it (+ .5 beat)))))
 

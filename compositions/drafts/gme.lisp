@@ -50,7 +50,7 @@
 (incudine:free (node 0))
 
 (gmeplay "/home/sendai/Downloads/sf2/ff3.nsf" 2 15
-         :attenuation .0001
+         :attenuation .1
          :length 20
          :offset 10
          :voices '(2)
@@ -62,7 +62,7 @@
          :length 18
          :offset 89
          :rate 1
-         :attenuation .00004
+         :attenuation .2
          :voices '(0 7 5)
          :fade-time 10
          :fade-curve 2
@@ -73,8 +73,19 @@
          :length 9
          :offset 30
          :rate 1.
-         :attenuation .00001
-         :voices '(1 0 7)
+         :attenuation .1
+         :voices '(1 0 7 2)
+         :fade-time 20f0
+         :fade-curve 2
+;;         :load-only t
+         )
+
+(gmeplay "/home/sendai/Downloads/chrono/213 Brink of Time.spc" 5 0
+         :length 9
+         :offset 30
+         :rate 1.
+         :attenuation .1
+;;         :voices '(1 0 7 2)
          :fade-time 20f0
          :fade-curve 2
 ;;         :load-only t
@@ -95,7 +106,7 @@
     (let ((buf (gethash
                  "/home/sendai/Downloads/chrono/108 A Strange Happening.spc3"
                  *playing*)))
-      (bbplay buf :beat-length 4 :attenuation .0001)
+      (bbplay buf :beat-length 4 :attenuation .1)
 ;;      (p time 48 80 3 2)
 ;;      (p (+ #[3 b] time) 48 80 3 2)
       ;; ?
@@ -127,8 +138,6 @@
   (let ((cvalue (control-value 2 'rms))
         (ccvalue (control-value 3 'rms))
         (cccvalue (control-value 4 'rms)))
-
-
     (when (numberp cvalue)
       (if (> (abs (lin->db cvalue)) 90)
           (setf *status* 1)
