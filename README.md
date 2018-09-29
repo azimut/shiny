@@ -5,6 +5,7 @@
 Experiments on music composition in Lisp with some ocassional OpenGL interaction with CEPL.
 
 ## Demo(s)
+
 * compositions/[molecularmusic.lisp](https://www.youtube.com/watch?v=ubgOlfUOztU) - music pattern with simple 3d graphics
 * compositions/[snow_world.lisp](https://www.youtube.com/watch?v=vUjnlnctdDI) - game sprite based animation
 * compositions/[notalent.lisp](https://www.youtube.com/watch?v=Unc9Hx3KdGU) - 2d sdf functions based on the pixelshader cards
@@ -12,6 +13,8 @@ Experiments on music composition in Lisp with some ocassional OpenGL interaction
 * compositions/[gme.lisp](https://www.youtube.com/watch?v=DasB0di7iAw) - opencv multi video sequencing, with live nsf (nintento sound format) sequencing
 * compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
 * compositions/[empty.lisp](https://www.youtube.com/watch?v=bybN395ssVQ) - csound through cffi, 3d scene and some fluidsynth
+* compositions/[otomata.lisp](https://www.youtube.com/watch?v=ocUyPuTSQbA) - using OSC calls to create a sheet score with inscore on the fly
+* compositions/[cc.lisp](https://www.youtube.com/watch?v=gJM-q3yq7SU) - using [viseq](https://github.com/azimut/viseq) to sequence a video 
 
 ## Goals
 I found both libraries really interesting and the only sane way to do livecoding.
