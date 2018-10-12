@@ -265,13 +265,20 @@
       ((frame (phasor-loop rate start-pos loopstart loopend)))
     (buffer-read buffer frame :interpolation :cubic)))
 
-(dsp! play-lsample-f
-    ((buf buffer) dur amp loopstart loopend rate)
-  (:defaults nil 1 1 0 0 1)
-  (with-samples ((in (buffer-loop-play buf rate 0 loopstart loopend))
+(dsp! play-lsample
+    ((buf buffer) amp start-pos loopend rate)
+  (:defaults nil 1 0 0 1)
+  (with-samples ((in (buffer-loop-play buf rate start-pos start-pos loopend))
                  (in (+ (* .6 in)
-                        (incudine.vug:resonr in 400 .9)
-                        )))
+                        (incudine.vug:resonr in 400 .9))))
+    (stereo (* amp in))))
+
+(dsp! play-lsample-f
+    ((buf buffer) dur amp start-pos loopstart loopend rate)
+  (:defaults nil 1 1 0 0 0 1)
+  (with-samples ((in (buffer-loop-play buf rate start-pos loopstart loopend))
+                 (in (+ (* .6 in)
+                        (incudine.vug:resonr in 400 .9))))
     (stereo (* amp
                (envelope (make-envelope '(0 1 1 0) '(0 .9 .1))
                          1 dur #'incudine:free)
