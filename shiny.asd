@@ -43,3 +43,12 @@
   :serial t
   :depends-on (#:shiny #:cl-gme/incudine)
   :components ((:file "lib/gme")))
+
+(asdf:defsystem "shiny/aubio"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny #:aubio/double)
+  :components ((:file "lib/aubio")))
