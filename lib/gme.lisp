@@ -50,12 +50,12 @@
                                  (cffi:mem-ref gmefile :pointer)
                                  frames
                                  offset))
-    (incudine:normalize-buffer buf 1f0)))
+    (incudine:normalize-buffer buf .5)))
 
 (defun gmeplay
     (filename node track-number
      &key (amp 1) (rate 1f0) (start-pos 0)
-       (fade-curve 3) (fade-time 0f0)
+       (fade-curve 3) (fade-time 0f0) (loop-p t)
        (length 1) (offset 0) (voices '())
        (load-only nil))
   (declare (integer node track-number length offset) (boolean load-only))
@@ -86,10 +86,11 @@
            node
            :buf (gethash hashkey *loading*)
            :rate rate
+           :loop loop-p
            :fade-curve fade-curve
            :fade-time fade-time
            :amp amp)
-          (bplay (gethash hashkey *loading*) rate 0 t
+          (bplay (gethash hashkey *loading*) rate 0 loop-p
                  :id node
                  :fade-curve fade-curve
                  :fade-time fade-time
