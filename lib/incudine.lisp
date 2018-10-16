@@ -4,25 +4,43 @@
 
 (dsp! bplay
     ((buf buffer) rate start-pos
-     (loop-p boolean) amp left right)
+     (loop-p boolean) amp left right custom-id
+     lpf hpf bpf)
   (:defaults (incudine:incudine-missing-arg "BUFFER")
-      1 0 nil 1 1 1)
+      1 0 nil 1 1 1 1
+      0 0 0)
   (with-samples
       ((in (* amp
               (buffer-play
                buf rate start-pos loop-p #'incudine:free))))
+    (incudine.vug:maybe-expand in)
+    (unless (= 0d0 lpf)
+      (setf in (incudine.vug:lpf in lpf 2)))
+    (unless (= 0d0 hpf)
+      (setf in (incudine.vug:hpf in hpf 2)))
+    (unless (= 0d0 bpf)
+      (setf in (incudine.vug:hpf in bpf 2)))
     (out (* left in) (* right in))))
 
 (dsp! bplay-downsamp
     ((buf buffer) rate start-pos
-     (loop-p boolean) amp left right (downsamp fixnum))
+     (loop-p boolean) amp left right (downsamp fixnum)
+     lpf hpf bpf)
   (:defaults (incudine:incudine-missing-arg "BUFFER")
-      1 0 nil 1 1 1 1)
+      1 0 nil 1 1 1 1
+      0 0 0)
   (with-samples
       ((in (* amp
               (buffer-play
                buf (* downsamp rate) start-pos loop-p #'incudine:free)))
        (in (incudine.vug:downsamp downsamp in)))
+        (incudine.vug:maybe-expand in)
+    (unless (= 0d0 lpf)
+      (setf in (incudine.vug:lpf in lpf 2)))
+    (unless (= 0d0 hpf)
+      (setf in (incudine.vug:hpf in hpf 2)))
+    (unless (= 0d0 bpf)
+      (setf in (incudine.vug:hpf in bpf 2)))
     (out (* left in) (* right in))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,6 +118,7 @@
            (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p))
   (declare (integer rpitch id downsamp) (boolean loop-p) (float pan))
   "plays the provided buffer either by
+   PAN value between 0f0 and 1f0
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
    BEAT-LENGTH stretch the whole buffer to play for N beats"
