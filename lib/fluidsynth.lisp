@@ -311,6 +311,10 @@
   (fluidsynth:program-change *synth* chan (mod sf 100))
   (aat (+ time beats) #'try-sounds it chan (1+ sf) beats))
 
+(defun fpan (channel pan)
+  (declare (unsigned-byte channel) ((integer 0 127)))
+  (fluidsynth:cc *synth* channel 10 pan))
+
 (defun all-pan (&optional (pan 64) (up-to 10))
   (dotimes (channel up-to)
     (fluidsynth:cc *synth* channel 10 pan)))
