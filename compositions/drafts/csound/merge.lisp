@@ -216,6 +216,8 @@ i4  +  .1     300    7.07   .8     1      2
           :filepath "/home/sendai/projects/csound-instruments/pinkston/")
 
 (load-csound (get-orchestra :ourvoice))
+(start-csound (get-orchestra :ourvoice))
+(start-thread)
 
 (make-play voice-a "i1"
            :amp 10000 :keynum 60 :fmt1 609 :db1 0 :fmt2 1000 :db2 -6
