@@ -101,13 +101,14 @@
       (gethash n +notes+)
       (error "not a keyword")))
 
-(defvar *reverse-notes* (alexandria:alist-hash-table
-                         '((0  . :C)   (1 . :C#)
-                           (2  . :D)   (3 . :Eb)
-                           (4  . :E)   (5 . :F)
-                           (6  . :F#)  (7 . :F#)
-                           (8  . :Ab)  (9 . :A)
-                           (10 . :Bb) (11 . :B))))
+(defvar *reverse-notes*
+  (alexandria:alist-hash-table
+   '((0  . :C)   (1 . :C#)
+     (2  . :D)   (3 . :Eb)
+     (4  . :E)   (5 . :F)
+     (6  . :F#)  (7 . :F#)
+     (8  . :Ab)  (9 . :A)
+     (10 . :Bb) (11 . :B))))
 
 (defun reverse-notes (n)
   (if (and (< n 12) (>= n 0))
@@ -257,7 +258,9 @@
         (:purvi             . (1 3 2 1 1 3 1))
         (:chinese           . (4 2 1 4 1))
         (:lydian-minor      . (2 2 2 1 1 2 2))
-        (:ryukyu            . (4 1 2 4 1))))))
+        (:ryukyu            . (4 1 2 4 1))
+        (:blues-major       . (2 1 1 3 2 3))
+        (:blues-minor       . (3 2 1 1 3 2))))))
 
 (defvar +degree+
   (let ((degrees '((:i   . 1) (:ii . 2) (:iii . 3)
@@ -463,7 +466,9 @@
 (defun resolve-chord (chord)
   "Either looks the chord up in the map of CHORDs if it's a keyword or
   simply returns it unnmodified. Allows users to specify a chord
-  either with a set such as #{0 4 7} or by keyword such as :major"
+  either with a set such as #{0 4 7} or by keyword such as :major
+  SHINY> (resolve-chord :m9)
+  (0 3 7 10 14)"
   (if (keywordp chord)
       (gethash chord +chord+)
       chord))
