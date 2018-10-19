@@ -1,144 +1,277 @@
 (in-package :shiny)
-;; Only works when aubio is compiled to use double for samples
-(ql:quickload :aubio/double)
-(ql:quickload :cl-gme/incudine)
+
+;;--------------------------------------------------
+;;(ql:quickload :cl-gme/incudine)
+
+(defun gmeplay-beat
+    (filename node track-number
+     &key (amp 1) (rate 1f0) (start-pos 0)
+       (fade-curve 3) (fade-time 0f0) (loop-p t)
+       (left 1f0) (right 1f0)
+       (length 1) (offset 0) (voices '())
+       ;; Filters
+       (lpf 0d0) (hpf 0d0) (bpf 0d0)
+       ;; controlers
+       load-only control-only aubio-p)
+  (declare (integer node track-number length offset) (boolean load-only))
+  (let ((alive   (node-id (node node)))
+        (hashkey (concatenate 'string filename (write-to-string node))))
+    ;; fill empty slot
+    (unless control-only
+      (setf (gethash hashkey *loading*)
+            (gmebuffer filename
+                       :track-number track-number
+                       :len length
+                       :voices voices
+                       :offset offset))
+      (when aubio-p
+        (multiple-value-bind (_ frames)
+            (test-beats (gethash hashkey *loading*))
+          (declare (ignore _))
+          (let* ((frames (remove-sides frames))
+                 (start-frame (first frames))
+                 (end-frame (lastcar frames)))
+            (setf (gethash hashkey *loading*)
+                  (slice-buffer (gethash hashkey *loading*)
+                                start-frame end-frame))))))
+
+    (when alive 
+      (if control-only
+          (at (tempo-sync #[1 b])
+              #'set-controls
+              node
+              :rate rate
+              :loop loop-p
+              :left left
+              :right right
+              :lpf lpf
+              :hpf hpf
+              :bpf bpf
+              :fade-curve fade-curve
+              :fade-time fade-time
+              :amp amp)
+          (at (tempo-sync #[1 b])
+              #'set-controls
+              node
+              :buf (gethash hashkey *loading*)
+              :rate rate
+              :loop loop-p
+              :left left
+              :right right
+              :lpf lpf
+              :hpf hpf
+              :bpf bpf
+              :fade-curve fade-curve
+              :fade-time fade-time
+              :amp amp)))
+    
+    (unless load-only
+      (at (tempo-sync #[1 b])
+          #'bplay
+          (gethash hashkey *loading*) rate 0 loop-p
+          :id node
+          :left left
+          :hpf hpf
+          :lpf lpf
+          :bpf bpf
+          :custom-id node
+          :right right
+          :fade-curve fade-curve
+          :fade-time fade-time
+          :amp amp))
+    
+    (unless control-only
+      (rotatef (gethash hashkey *loading*)
+               (gethash hashkey *playing*))
+      (incudine:free (gethash hashkey *loading*)))))
+
+
+(progn
+  (incudine.external:foreign-zero-sample (buffer-data *buf1*) 512)
+  (incudine.external:foreign-zero-sample (buffer-data *buf2*) 512)
+  (incudine.external:foreign-zero-sample (buffer-data *buf3*) 512)
+  (incudine.external:foreign-zero-sample (buffer-data *buf4*) 512))
 
 (incudine:free (node 0))
-(bbuffer-load "/home/sendai/quicklisp/local-projects/aubio/static/loop_amen.wav")
-(gmeplay "/home/sendai/Downloads/sf2/ff3.nsf" 2 2
-         :amp .01
-         :load-only t
-;;         :loop-p nil
-         :length 20
-         :offset 20
-         :voices '(2 3 1)
-         :rate 1
-         :fade-time 1
-         :fade-curve 2)
+(gmeclean)
+(defparameter *gmesong*
+  "/home/sendai/Downloads/sf2/contra.nsf")
+(defparameter *gmetrack* 2)
+(defparameter *gmerate* .7)
 
-(cffi:defcstruct fvec_t
-	(length :unsigned-int)
-	(data :pointer))
+(gmeplay-beat
+ *gmesong* 1 *gmetrack*
+ :amp .1
+ :aubio-p t
+ :length 40 :offset 70
+ :voices '(0)
+ :rate *gmerate*)
 
-(defparameter *fvec*
-  (cffi:foreign-alloc '(:pointer (:struct fvec_t))))
+(gmeplay-beat
+ *gmesong* 2 *gmetrack*
+ :amp .1 :aubio-p t :length 40 :offset 70
+ :voices '(1)
+ :rate *gmerate*)
 
-(setf (cffi:foreign-slot-value *fvec* '(:struct fvec_t) 'data)
-      (buffer-data (gethash "/home/sendai/Downloads/sf2/ff3.nsf2" *playing*)))
+(gmeplay-beat
+ *gmesong* 3 *gmetrack*
+ :amp .4 :aubio-p t
+ :length 40 :offset 30 :left .2
+ :voices '(2)
+ :rate *gmerate*)
 
-(setf (cffi:foreign-slot-value *fvec* '(:struct fvec_t) 'length)
-      (buffer-size (gethash "/home/sendai/Downloads/sf2/ff3.nsf2" *playing*)))
+(gmeplay-beat
+ *gmesong* 4 *gmetrack*
+ :amp .3 :aubio-p t :length 40 :offset 30 :right .2
+ :voices '(3)
+ :rate *gmerate*)
 
-(defun test-onset (source-buffer)
-  "returns a list of the seconds where a set is found"
-  (declare (incudine:buffer source-buffer))
-  (let* ((buffer-frames (buffer-frames source-buffer))
-         (slices (loop :for slice :from 0 :by 512 :to buffer-frames
-                    :collect slice))
-         (sets '())
-         (total-seconds (/ buffer-frames 44100d0)))
-    (assert (= 44100d0 (buffer-sample-rate source-buffer)))
-    (aubio:with-onset (onset :buf-size 1024 :hop-size 512)
-      (aubio:with-fvec (out-fvec 1)
-        (cffi:with-foreign-object (fvec '(:pointer (:struct fvec_t)))
-          (cffi:with-foreign-slots ((data length) fvec (:struct fvec_t))
-            (setf length 512)
-            (loop
-               :for slice :in slices
-               :with times = '()
-               :finally (setf sets (reverse times))
-               :do
-               (setf data (cffi:inc-pointer (buffer-data source-buffer)
-                                            (* 8 2 slice)))
-               ;; Perform onset calculation
-               (sb-int:with-float-traps-masked (:divide-by-zero)
-                 (aubio:aubio_onset_do onset fvec out-fvec))
-               ;; Retrieve result
-               (let ((onset-new-peak (aubio:fvec_get_sample out-fvec 0)))
-                 (when (> onset-new-peak 0)
-                   (push (aubio:aubio_onset_get_last_s onset) times))))
-            (when(< (alexandria:lastcar sets) total-seconds)
-              (alexandria:appendf sets (list total-seconds)))))))))
+;;--------------------------------------------------
+;;--------------------------------------------------
+;;--------------------------------------------------
+(gmeplay-beat
+ "/home/sendai/Downloads/sf2/mother.nsf" 3 19
+ :amp .01
+ :aubio-p t
+ :length 30
+ :offset 20
+ :right .2
+ :voices '(1)
+ :rate .7)
 
-(defun test-beats (source-buffer)
-  "returns a list of the seconds where a set is found"
-  (declare (incudine:buffer source-buffer))
-  (let* ((buffer-frames (buffer-frames source-buffer))
-         (slices (loop :for slice :from 0 :by 512 :to buffer-frames
-                    :collect slice))
-         (sets '())
-         (total-seconds (/ buffer-frames 44100d0)))
-    (aubio::with-tempo (tempo :buf-size 1024 :hop-size 512)
-      (aubio:with-fvec (out-fvec 1)
-        (cffi:with-foreign-object (fvec '(:pointer (:struct fvec_t)))
-          (cffi:with-foreign-slots ((data length) fvec (:struct fvec_t))
-            (setf length 512)
-            (loop
-               :for slice :in slices
-               :with times = '()
-               :finally (setf sets (reverse times))
-               :do
-               (setf data (cffi:inc-pointer (buffer-data source-buffer)
-                                            (* 8 2 slice)))
-               ;; Perform onset calculation
-               (sb-int:with-float-traps-masked (:divide-by-zero)
-                 (aubio:aubio_tempo_do tempo fvec out-fvec))
-               ;; Retrieve result
-               (let ((in-beat (aubio:fvec_get_sample out-fvec 0)))
-                 (when (> in-beat 0)
-                   (push (aubio:aubio_tempo_get_last_s tempo) times))))
-            (when (< (alexandria:lastcar sets) total-seconds)
-              (alexandria:appendf sets (list total-seconds)))))))))
+;;--------------------------------------------------
+
+(gmeplay-beat
+ "/home/sendai/Downloads/sf2/ff3.nsf" 3 13
+ :amp .05
+ :aubio-p t
+ ;;         :load-only t
+ ;;         :loop-p nil
+ :length 20
+ :offset 10
+ :left .2
+ :voices '(2)
+ :rate .7)
+
+(gmeplay-beat
+ "/home/sendai/Downloads/sf2/ff3.nsf" 2 13
+ :amp .01
+ :aubio-p t
+ :load-only t
+ ;;         :loop-p nil
+ :length 20
+ :offset 70
+ :voices '(3 1)
+ :rate .7)w
+
+;;--------------------------------------------------
 
 
-(defun get-sets (l)
-  (declare (list l))
-  (assert (>= (length l) 4))
-  (let* ((sets (butlast (cdr l))) ;; remove non-real sets
-         (set-pairs
-          (loop
-             :for (x y) :on sets :by #'cddr
-             :collect (list x y))))
-    (mapcar (lambda (x)
-              (destructuring-bind (sec1 sec2) x
-                  (list (round (* 44100 2 sec1)) (round (* 44100 2 sec2)))))
-            set-pairs)))
+(incudine:free (node 0))
 
-(defun get-longest-set (l)
-  (let* ((sets (butlast (cdr l)))
-         (sec1 (car sets))
-         (sec2 (lastcar sets)))
-    (mapcar (lambda (x) (round (* x 44100))) (list sec1 sec2))))
+(gmeplay-beat
+ "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc" 2 1
+ :amp .5
+ :aubio-p t
+ :control-only t
+;; :load-only t
+ :length 20
+ :offset 80
+ :lpf 200
+;; :right .2
+;; :left .3
+;; :voices '(4 5 6 7)
+ :voices '(0 1 2 3)
+ :rate .5)
 
-(defun play-n-set (buffer sets n)
-  (declare (incudine:buffer buffer) (list sets) (integer n))
-  (assert (< n (length sets)))
-  (let* ((set (nth n sets))
-        (frame-start (first set))
-        (frame-end (lastcar set)))
-    (play-lsample-f
-     buffer
-     :id 100
-     :dur (/ (- frame-end frame-start) 44100)
-     :amp .01
-     :start-pos frame-start
-     :loopstart frame-start
-     :loopend frame-end)))
+(incudine:free (node 2))
+(gmeplay-beat
+ "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc" 3 9
+ :amp .2
+;; :control-only t
+;; :aubio-p t
+ :load-only t
+ :length 30
+ :hpf 400
+ :lpf 400
+ :offset 120
+ :left .9
+ :voices '(0)
+ :rate 1)
 
-(defun play-set (buffer frame-start frame-end)
-  (declare (incudine:buffer buffer))
-  (play-lsample
-   buffer
-   :id 100
-   :amp .01
-   :start-pos frame-start
-   :loopend frame-end))
+(gmeplay-beat
+ "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc" 4 9
+ :amp .2
+ :control-only t
+;; :aubio-p t
+;; :load-only t
+ :length 30
+ :hpf 400
+ :lpf 800
+ :offset 120
+ :left .9
+ :voices '(6 7)
+ :rate 1)
 
-(defun f (time)
-  (play-n-set (gethash "/home/sendai/Downloads/sf2/ff3.nsf2" *playing*)
-            *sets* (pick 2 3 4))
-  (aat (+ time #[.2 b]) #'f it))
+;;----------------------------------------
+(incudine:free (node 0))
+(gmeplay-beat
+ "/home/sendai/Downloads/sf2/ff3.nsf" 2 7
+ :amp .2
+ :aubio-p t
+ ;;         :load-only t
+ ;;         :loop-p nil
+ :length 40
+ :offset 10
+;; :left .2
+ :voices '(2 3)
+ :rate .7)
 
+(gmeplay-beat
+ "/home/sendai/Downloads/sf2/ff3.nsf" 3 7
+ :amp .2
+ :aubio-p t
+ ;;         :load-only t
+ ;;         :loop-p nil
+ :length 40
+ :offset 70
+;; :left .2
+ :voices '(2)
+ :rate .7)
+
+(gmeclean)
+(defparameter *buf*
+  (gethash "loop_amen.wav" *buffers*))
+(defparameter *buf*
+  (gethash "/home/sendai/Downloads/sf2/ff3.nsf3" *playing*))
+(defparameter *buf*
+  (gethash "/home/sendai/Downloads/chrono/111 Secret of the Forest.spc2" *playing*))
+
+(defparameter *buf*
+  (bbuffer-load "/home/sendai/quicklisp/local-projects/aubio/static/loop_amen.wav"))
+
+(defparameter *sets*
+  (loop :for (x y)
+     :on (multiple-value-bind (_ frames)
+             (test-onset *buf*)
+           (declare (ignore _))
+           (remove-sides frames))
+     :when (and x y)
+     :collect (list x y)))
+
+(let ((sets (make-heap *sets*)))
+  (defun f (time)
+    (let* ((set (next sets))
+           (start-pos (car set))
+           (loopend (lastcar set))
+           (rate 1)
+           (dur (* (/ 1 rate) (/ (- loopend start-pos) 44100f0))))
+      (play-lsample-f
+       *buf*
+       :amp .1 :start-pos start-pos :loopend loopend
+       :dur dur :rate rate)
+      (aat (+ time #[dur b]) #'f it))))
+
+(incudine:free (node 0))
 (defun f ())
-(incudine:free (node 0))
 (f (now))
