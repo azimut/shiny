@@ -69,3 +69,26 @@
              :y-segments y)
           (setf (gethash key *meshes*)
                 (make-buffer-stream vert :index-array index))))))
+
+
+;;----------------------------------------
+
+(defvar *samplers* (make-hash-table :test #'equal))
+
+(defun get-tex (path &optional (force nil) (mipmap t))
+  (when force
+    (let ((s (gethash path *samplers*)))
+      (when s
+        (free (sampler-texture s)))
+      (remhash path *samplers*)))
+  (let ((absolutep (uiop:absolute-pathname-p path)))
+    (or (gethash path *samplers*)
+        (setf (gethash path *samplers*)
+              (cepl:sample
+               (dirt:load-image-to-texture
+                (if absolutep
+                    path
+                    (asdf:system-relative-pathname :shiny path))
+                :rgba8
+                mipmap
+                t))))))
