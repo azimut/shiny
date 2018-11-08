@@ -4,6 +4,9 @@
   (:use #:cl
         #:cl-ppcre
         #:incudine)
+  (:import-from #:with-setf
+                #:with-setf
+                #:with-setf*)
   (:import-from #:alexandria
                 #:flatten
                 #:iota

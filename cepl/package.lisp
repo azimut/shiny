@@ -13,6 +13,9 @@
         #:incudine
         #:cepl.skitter
         #:livesupport)
+  (:import-from #:with-setf
+                #:with-setf
+                #:with-setf*)
   (:import-from #:incudine.external
                 #:foreign-copy-samples)
   (:import-from #:cm
