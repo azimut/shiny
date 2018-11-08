@@ -40,16 +40,17 @@
          ;;                ;;(* 4 (+ .5 (* .5 (sin time))))
          ;;                2))
          (light-pos (v! 0
-                        3
+                        4
                         0))
-         (light-color (v! 1 1 1))
+         (light-color (v! 1 .7 .4))
          (light-strength 1f0)         
          ;;--------------------
          (vec-to-light (- light-pos frag-pos))
          (dir-to-light (normalize vec-to-light))
          ;;--------------------
          (direc-light-strength
-          (* .1f0
+          (* .2f0
+             light-color
              (saturate
               (dot frag-norm
                    (normalize (- (v! 40 30 40) frag-pos))))))
@@ -64,8 +65,15 @@
                        (* .07 (pow (length vec-to-light)
                                     2))))))
          (final-color (+ (* color point-light-strength)
-                         (* color direc-light-strength))))
-    (v! final-color 1)))
+                         (* color direc-light-strength)))
+         (dist (/ (z gl-frag-coord) (w gl-frag-coord)) )
+         ;;(fog (clamp (/ (- 80 dist) (- 80 20)) 0f0 1f0))
+         ;;(fog (clamp (/ 1f0 (exp (* dist .05))) 0 1))
+         ;;(fog (clamp (/ 1f0 (exp (* (* dist .05) (* dist .05)))) 0 1))
+         )
+    (values
+     (v! final-color 1)
+     (v! 0 0 0 1))))
 
 ;;--------------------------------------------------
 
@@ -87,16 +95,18 @@
            ;; uvs
             )))
 
-(defparameter *exposure* .4f0)
+(defparameter *exposure* .6f0)
 (defun-g frag-2d ((uv :vec2) &uniform (sam :sampler-2d))
   (let* ((color (s~ (texture sam uv) :xyz))
-         ;;(color (nineveh.anti-aliasing:fxaa3 uv sam (v2! (/ 1 320f0))))
+         ;;(color (s~ (nineveh.anti-aliasing:fxaa3 uv sam (v2! (/ 1 320f0)))
+         ;;            :xyz))
          (ldr (nineveh.tonemapping:tone-map-reinhard color *exposure*))
          ;;(luma (rgb->luma-bt601 ldr))
          )
-        ;;(pow ldr (vec3 2.2)) 
+    (v! (pow ldr (vec3 2.2)) 1)
+    
     ;;(v! ldr luma)
-    color
+    ;;(v! color 1)
     ))
 ;;--------------------------------------------------
 
@@ -112,13 +122,50 @@
   :vertex (vert g-pnt)
   :fragment (frag-tex :vec2 :vec3 :vec3))
 
-(defun-g bloom-frag
-    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3) &uniform
-     (time :float) (color :vec3))
-  (v! color 1))
+;;--------------------------------------------------
 
-(defpipeline-g bloom-pipe ()
+(defun-g light-frag
+    ((uv :vec2) (frag-norm :vec3) (frag-pos :vec3)
+     &uniform (time :float) (color :vec3))
+  (values (v! color 1)
+          (v! color 1)))
+
+;; 3d - solid color frag
+(defpipeline-g light-pipe ()
   :vertex (vert g-pnt)
-  :fragment (bloom-frag :vec2 :vec3 :vec3))
+  :fragment (light-frag :vec2 :vec3 :vec3))
+
+;;--------------------------------------------------
+
+(defun-g sample-box
+    ((uv :vec2) (delta :float) (sam :sampler-2d) (x :float) (y :float))
+  (let* ((o (* (v! x y x y) (v! (- delta) (- delta) delta delta)))
+         (s (+ (texture sam (+ uv (s~ o :xy)))
+               (texture sam (+ uv (s~ o :zy)))
+               (texture sam (+ uv (s~ o :xw)))
+               (texture sam (+ uv (s~ o :zw))))))
+    (* s .18)))
+
+(defun-g some-frag
+    ((uv :vec2) &uniform (sam :sampler-2d) (x :float) (y :float) (delta :float))
+  (let ((color (sample-box uv delta sam x y))
+        ;;(color (texture sam uv))
+        )
+    color))
+
+(defpipeline-g bloom-pipe (:points)
+  :fragment (some-frag :vec2))
 
 
+(defun-g other-frag
+    ((uv :vec2)
+     &uniform (light-sam :sampler-2d) (sam :sampler-2d)
+     (x :float) (y :float) (delta :float))
+  (let* ((c (texture light-sam uv))
+         (c (v! (+ (s~ (sample-box uv delta sam x y) :xyz)
+                   (s~ c :xyz))
+                (w c))))
+    c))
+
+(defpipeline-g dobloom-pipe (:points)
+  :fragment (other-frag :vec2))
