@@ -33,80 +33,80 @@
 (defun initialize ()
   ;; Buffer stream for single stage pipelines
   (unless *bs* (setf *bs* (make-buffer-stream nil :primitive :points)))
-  (setf *mesh*
-        (elt
-         (slot-value
-          (ai:import-into-lisp
-           "/home/sendai/untitled.3ds"
-           :processing-flags '(:ai-process-triangulate
-                               :ai-process-calc-tangent-space))
-          'ai:meshes)
-         0))
-  (setf *mesh-light*
-        (elt
-         (slot-value
-          (ai:import-into-lisp
-           "/home/sendai/untitled-light.3ds"
-           :processing-flags '(:ai-process-triangulate
-                               :ai-process-calc-tangent-space))
-          'ai:meshes)
-         0))
-  (when *ass* (cepl:free (slot-value *ass* 'buf)))
-  (when *ass-light* (cepl:free (slot-value *ass-light* 'buf)))
-  (setf *ass*
-        (make-instance 'assimp-thing
-;;                       :pos (v! 4 0 4)
-                       :rot (q:from-axis-angle (v! 1 0 0)
-                                       (radians -90))
-                       :buf (assimp-mesh-to-stream *mesh*)))
-  (setf *ass-light*
-        (make-instance 'assimp-bloom
-;;                       :pos (v! 4 0 4)
-                       :rot (q:from-axis-angle (v! 1 0 0)
-                                       (radians -90))
-                       :buf (assimp-mesh-to-stream *mesh-light*)))
+  (unless *mesh*
+    (setf *mesh*
+          (elt
+           (slot-value
+            (ai:import-into-lisp
+             "/home/sendai/untitled.3ds"
+             :processing-flags '(:ai-process-triangulate
+                                 :ai-process-calc-tangent-space))
+            'ai:meshes)
+           0))
+    (setf *mesh-light*
+          (elt
+           (slot-value
+            (ai:import-into-lisp
+             "/home/sendai/untitled-light.3ds"
+             :processing-flags '(:ai-process-triangulate
+                                 :ai-process-calc-tangent-space))
+            'ai:meshes)
+           0))
+    (when *ass* (cepl:free (slot-value *ass* 'buf)))
+    (when *ass-light* (cepl:free (slot-value *ass-light* 'buf)))
+    (setf *ass*
+          (make-instance 'assimp-thing
+                         ;;                       :pos (v! 4 0 4)
+                         :rot (q:from-axis-angle (v! 1 0 0)
+                                                 (radians -90))
+                         :buf (assimp-mesh-to-stream *mesh*)))
+    (setf *ass-light*
+          (make-instance 'assimp-bloom
+                         ;;                       :pos (v! 4 0 4)
+                         :rot (q:from-axis-angle (v! 1 0 0)
+                                                 (radians -90))
+                         :buf (assimp-mesh-to-stream *mesh-light*))))
   ;; HDR fbo
   (when *fbo* (free *fbo*))
   (setf *fbo* (make-fbo (list 0 :element-type :rgba16f)
                         (list 1 :element-type :rgba16f)
                         :d))
   (setf *dimensions-fbo* (dimensions (attachment-tex *fbo* 0)))
-  (setf *sam* (cepl:sample (attachment-tex *fbo* 0)))
-  (setf *sam1* (cepl:sample (attachment-tex *fbo* 1)))
+  (setf *sam* (cepl:sample (attachment-tex *fbo* 0) :wrap :clamp-to-edge))
+  (setf *sam1* (cepl:sample (attachment-tex *fbo* 1) :wrap :clamp-to-edge))
   ;; Sec FBO
   (setf *fbo-secondary*
         (make-fbo (list 0 :element-type :rgba16f)))
   (setf *sam-secondary*
-        (cepl:sample (attachment-tex *fbo-secondary* 0)))
+        (cepl:sample (attachment-tex *fbo-secondary* 0) :wrap :clamp-to-edge))
   (setf *fbo-terciary*
         (make-fbo (list 0 :element-type :rgba16f)))
   (setf *sam-terciary*
-        (cepl:sample (attachment-tex *fbo-terciary* 0)))
+        (cepl:sample (attachment-tex *fbo-terciary* 0) :wrap :clamp-to-edge))
   ;;--------------------------------------------------
   ;; BLUR
   (when *half-fbo*
     (free *half-fbo*)
     (free *fourth-fbo*)
     (free *eighth-fbo*)
-    (free *sixteen-fbo*)
-    (free *sixteen-fbo-2*))
+    (free *sixteen-fbo*))
   (flet ((f (d) (mapcar (lambda (x) (round (/ x d)))
                         *dimensions-fbo*)))
     (setf *half-fbo* (make-fbo
                       (list 0 :element-type :rgba16f :dimensions (f 2))))
-    (setf *sam-half-fbo* (cepl:sample (attachment-tex *half-fbo* 0)))
+    (setf *sam-half-fbo* (cepl:sample (attachment-tex *half-fbo* 0) :wrap :clamp-to-edge))
     (setf *fourth-fbo* (make-fbo
                       (list 0 :element-type :rgba16f :dimensions (f 4))))
-    (setf *sam-fourth-fbo* (cepl:sample (attachment-tex *fourth-fbo* 0)))
+    (setf *sam-fourth-fbo* (cepl:sample (attachment-tex *fourth-fbo* 0) :wrap :clamp-to-edge))
     (setf *eighth-fbo* (make-fbo
                       (list 0 :element-type :rgba16f :dimensions (f 8))))
-    (setf *sam-eighth-fbo* (cepl:sample (attachment-tex *eighth-fbo* 0)))
+    (setf *sam-eighth-fbo* (cepl:sample (attachment-tex *eighth-fbo* 0) :wrap :clamp-to-edge))
     (setf *sixteen-fbo* (make-fbo
                       (list 0 :element-type :rgba16f :dimensions (f 16))))
-    (setf *sam-sixteen-fbo* (cepl:sample (attachment-tex *sixteen-fbo* 0))))
+    (setf *sam-sixteen-fbo* (cepl:sample (attachment-tex *sixteen-fbo* 0) :wrap :clamp-to-edge)))
   ;;--------------------------------------------------
-  ;;(setf (clear-color) (v! .2 .2 .9 0))
-  (setf (clear-color) (v! 1 1 1 1))
+  (setf (clear-color) (v! .1 .1 .14 1))
+  ;;(setf (clear-color) (v! 0 0 0 1))
   (setf *actors* nil)
   ;;(make-box)
   (make-cement)
@@ -127,6 +127,8 @@
       (loop :for actor :in *actors* :do
          (draw actor *currentcamera*)))
 
+    ;; Really poor implementation of the awesome and more effective bloom from:
+    ;; https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
     (with-setf* ((depth-mask) nil
                  (cull-face) nil
                  (clear-color) (v! 0 0 0 1)
@@ -193,6 +195,7 @@
                  :y (/ 1f0 (car (last *dimensions-fbo*)))
                  :delta .5)))
       (with-fbo-bound (*fbo-terciary*)
+        (clear-fbo *fbo-terciary*)
         (map-g #'dobloom-pipe *bs*
                :sam *sam*
                :light-sam *sam-secondary*
@@ -200,10 +203,8 @@
                :x (/ 1f0 (car *dimensions-fbo*))
                :y (/ 1f0 (car (last *dimensions-fbo*))))))
     (as-frame
-
       (map-g #'generic-2d-pipe *bs*
-             :sam *sam-terciary*)
-      )))
+             :sam *sam-terciary*))))
 
 (def-simple-main-loop runplay
     (:on-start #'initialize)

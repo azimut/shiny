@@ -60,10 +60,12 @@
 (defparameter *head* nil)
 (defparameter *wave* 1f0)
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 2 9))
+  ;;(setf (pos camera) (v! 0 2 9))
+  (setf (pos camera) (v! 0 .5 1))
   (setf (rot camera)
         (q:from-axis-angle (v! .2 1 .3)
-                           (radians (* 360 (sync (* .2 (mynow))))))))
+                           (radians (* 360 (sync (* .2 (mynow)))))
+                           )))
 
 
 

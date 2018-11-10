@@ -47,9 +47,10 @@
 (defclass sphere (actor)
   ((buf :initform (sphere 2))))
 (defclass cement (actor)
-  ((buf :initform (box 2 2 2))
+  ((buf :initform (box 2 2 2 t))
    (albedo :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_albedo.jpg"))
-   (normal :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_normal.jpg"))))
+   (normal :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_normal.jpg"))
+   (height :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_height.jpg"))))
 
 (defun make-box ()
   (let ((obj (make-instance 'box)))
