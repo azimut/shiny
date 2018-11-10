@@ -8,6 +8,65 @@
   (/ (get-internal-real-time)
      1000f0))
 
+;;------------------------------------------------------------
+;; Helpers for tangent-space calculations
+
+(defstruct-g tb-data
+  (tangent :vec3)
+  (bitangent :vec3))
+
+;; From play-with-verts, based on:
+;; https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+(defun calc (verts i0 i1 i2)
+  "returns a list pair of tangent and bitangent"
+  (let* ((pos1 (pos (aref-c verts i0)))
+         (pos2 (pos (aref-c verts i1)))
+         (pos3 (pos (aref-c verts i2)))
+         (uv1  (tex (aref-c verts i0)))
+         (uv2  (tex (aref-c verts i1)))
+         (uv3  (tex (aref-c verts i2)))
+         ;;
+         (edge1 (v3:- pos2 pos1))
+         (edge2 (v3:- pos3 pos1))
+         (delta-uv1 (v3:- uv2 uv1))
+         (delta-uv2 (v3:- uv3 uv1))
+         ;;
+         (f (/ 1.0 (- (* (x delta-uv1) (y delta-uv2))
+                      (* (x delta-uv2) (y delta-uv1)))))
+         ;;
+         (tangent1
+          (v3:normalize
+           (v! (* f (- (* (y delta-uv2) (x edge1))
+                       (* (y delta-uv1) (x edge2))))
+               (* f (- (* (y delta-uv2) (y edge1))
+                       (* (y delta-uv1) (y edge2))))
+               (* f (- (* (y delta-uv2) (z edge1))
+                       (* (y delta-uv1) (z edge2)))))))
+         (bitangent1
+          (v3:normalize
+           (v! (* f (+ (* (- (x delta-uv2)) (x edge1))
+                       (* (x delta-uv1) (x edge2))))
+               (* f (+ (* (- (x delta-uv2)) (y edge1))
+                       (* (x delta-uv1) (y edge2))))
+               (* f (+ (* (- (x delta-uv2)) (z edge1))
+                       (* (x delta-uv1) (z edge2))))))))
+    (list tangent1 bitangent1)))
+
+(defun tbdata-from-vertex-and-indices (g-verts g-indices)
+  (let* ((verts (pull1-g g-verts))
+         (indices (pull-g g-indices))
+         (result (make-gpu-array
+                  nil :dimensions (first (dimensions verts))
+                  :element-type 'tb-data)))
+    (with-gpu-array-as-c-array (data result)
+      (loop :for (i0 i1 i2)
+         :on indices
+         :by #'cdddr
+         :do (let ((pair (calc verts i0 i1 i2)))
+               (setf (aref-c data i0) pair)
+               (setf (aref-c data i1) pair)
+               (setf (aref-c data i2) pair))))
+    result))
 
 ;;------------------------------------------------------------
 ;; Meshes
@@ -18,8 +77,11 @@
 (defvar *meshes* (make-hash-table :test #'equal))
 
 (defun sphere
-    (&optional (radius 1f0) (lines-of-latitude 30) (lines-of-longitude 30))
-  (let ((key radius))
+    (&optional (radius 1f0)
+       (lines-of-latitude 30)
+       (lines-of-longitude 30) has-tangents)
+  (declare (boolean has-tangents))
+  (let ((key (list radius has-tangents)))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
             (nineveh.mesh.data.primitives:sphere-gpu-arrays
@@ -27,39 +89,59 @@
              :lines-of-latitude lines-of-latitude
              :lines-of-longitude lines-of-longitude)
           (setf (gethash key *meshes*)
-                (make-buffer-stream vert :index-array index))))))
+                (if has-tangents
+                    (make-buffer-stream
+                     (list vert (tbdata-from-vertex-and-indices vert index))
+                     :index-array index)
+                    (make-buffer-stream vert :index-array index)))))))
 
-(defun box (&optional (w 1f0) (h 1f0) (d 1f0))
-  (let ((key (list w h d)))
+(defun box (&optional (w 1f0) (h 1f0) (d 1f0) has-tangents)
+  (declare (boolean has-tangents))
+  (let ((key (list w h d has-tangents)))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
             (nineveh.mesh.data.primitives:box-gpu-arrays :width w
                                                          :height h
                                                          :depth d)
           (setf (gethash key *meshes*)
-                (make-buffer-stream vert :index-array index))))))
+                (if has-tangents
+                    (make-buffer-stream
+                     (list vert (tbdata-from-vertex-and-indices vert index))
+                     :index-array index)
+                    (make-buffer-stream vert :index-array index)))))))
 
-(defun cylinder (&optional (radius 1f0) (height 1f0))
-  (let ((key (list radius height)))
+(defun cylinder (&optional (radius 1f0) (height 1f0) has-tangents)
+  (declare (boolean has-tangents))
+  (let ((key (list radius height has-tangents)))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
             (nineveh.mesh.data.primitives:cylinder-gpu-arrays :radius radius
                                                               :height height)
           (setf (gethash key *meshes*)
-                (make-buffer-stream vert :index-array index))))))
+                (if has-tangents
+                    (make-buffer-stream
+                     (list vert (tbdata-from-vertex-and-indices vert index))
+                     :index-array index)
+                    (make-buffer-stream vert :index-array index)))))))
 
-(defun cone (&optional (radius 1f0) (height 1f0))
-  (let ((key (list radius height)))
+(defun cone (&optional (radius 1f0) (height 1f0) has-tangents)
+  (declare (boolean has-tangents))
+  (let ((key (list radius height has-tangents)))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
             (nineveh.mesh.data.primitives:cone-gpu-arrays :radius radius
                                                           :height height)
           (setf (gethash key *meshes*)
-                (make-buffer-stream vert :index-array index))))))
+                (if has-tangents
+                    (make-buffer-stream
+                     (list vert (tbdata-from-vertex-and-indices vert index))
+                     :index-array index)
+                    (make-buffer-stream vert :index-array index)))))))
 
 (defun lattice
-    (&optional (width 100f0) (height 100f0) (x 500) (y 500))
-  (let ((key (list :lat width height x y)))
+    (&optional (width 100f0) (height 100f0) (x 500) (y 500) has-tangents)
+  (declare (boolean has-tangents))
+  (let ((key (list :lat width height x y has-tangents)))
     (or (gethash key *meshes*)
         (destructuring-bind (vert index)
             (nineveh.mesh.data.primitives:lattice-gpu-arrays
@@ -68,7 +150,11 @@
              :x-segments x
              :y-segments y)
           (setf (gethash key *meshes*)
-                (make-buffer-stream vert :index-array index))))))
+                (if has-tangents
+                    (make-buffer-stream
+                     (list vert (tbdata-from-vertex-and-indices vert index))
+                     :index-array index)
+                    (make-buffer-stream vert :index-array index)))))))
 
 
 ;;----------------------------------------
@@ -98,6 +184,7 @@
 ;; Assimp - 3d object loader
 
 (defun assimp-mesh-to-stream (mesh)
+  (declare (ai:mesh mesh))
   (with-slots ((vertices ai:vertices)
                (normals ai:normals)
                (tangents ai:tangents)
