@@ -43,13 +43,13 @@
        (far camera)))))
 
 (defmethod update ((camera orth))
-  (setf (pos camera) (v! 0 1 0))
-  (setf (frame-size camera) (v2! 30))
+  (setf (pos camera) (v! 0 0 0))
+  (setf (frame-size camera) (v2! 5))
 ;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera)
         ;; TOP
-        (q:from-axis-angle (v! 1 1 0)
-                           (radians 270))
+        (q:from-axis-angle (v! 1 0 0)
+                           (radians -90))
         ;; FRONT
 ;        (q:identity)
         ;; (q:from-axis-angle (v! 1 0 0)
@@ -61,11 +61,14 @@
 (defparameter *wave* 1f0)
 (defmethod update ((camera pers))
   ;;(setf (pos camera) (v! 0 2 9))
-  (setf (pos camera) (v! 0 .5 1))
+  ;; (setf (far camera) 10f0)
+   (setf (pos camera) (v! 0 1 2))
   (setf (rot camera)
-        (q:from-axis-angle (v! .2 1 .3)
-                           (radians (* 360 (sync (* .2 (mynow)))))
-                           )))
+        (q:from-axis-angle (v! -.2 1 0)
+                           (radians (mod (* 20 (mynow)) 360))
+                           ;;(radians (+ 130 (mod (* 20 (mynow)) 90)))
+                           )
+        ))
 
 
 

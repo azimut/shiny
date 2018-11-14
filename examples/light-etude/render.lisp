@@ -1,13 +1,25 @@
 (in-package :shiny)
 
-(defparameter *exposure* 3f0)
+(defparameter *exposure* 1f0)
+(defun-g parallax-mapping ((tex-coords :vec2)
+                           (view-dir :vec3)
+                           (depth-map :sampler-2d)
+                           (height-scale :float))
+  (let* ((height (x (texture depth-map tex-coords)))
+         (p      (* (/ (s~ view-dir :xy) (z view-dir))
+                    (* height height-scale))))
+    (- tex-coords p)))
 
-(defstruct-g assimp-mesh
-  (pos :vec3)
-  (normal :vec3)
-  (uv :vec2)
-  (tangent :vec3)
-  (bitangent :vec3))
+(defun-g treat-uvs ((uv :vec2))
+  (v! (x uv) (- 1.0 (y uv))))
+
+(defun-g norm-from-map ((normal-map :sampler-2d) (uv :vec2))
+  (let* ((norm-from-map (s~ (texture normal-map uv) :xyz))
+         (norm-from-map (normalize
+                         (- (* norm-from-map 2.0) 1.0))))
+    (v! (x norm-from-map)
+        (- (y norm-from-map))
+        (z norm-from-map))))
 
 ;;--------------------------------------------------
 ;; (defun-g assimp-norm-geom ((normals (:vec3 3)))
@@ -72,29 +84,53 @@
 ;;   :vertex (assimp-norm-vert g-pnt tb-data)
 ;;   :geometry (assimp-norm-geom (:vec3 3))
 ;;   :fragment (assimp-norm-frag))
+
+;; 3D - assimp-mesh with textures
+(defstruct-g assimp-mesh
+  (pos :vec3)
+  (normal :vec3)
+  (uv :vec2)
+  (tangent :vec3)
+  (bitangent :vec3))
+
+(defstruct-g (random-kernel :layout :std-140)
+  (random-v3 (:vec3 64)))
+
+(defun-g assimp-vert
+    ((assimp assimp-mesh)
+     &uniform
+     (model-world :mat4)
+     (world-view :mat4)
+     (view-clip :mat4)
+     (scale :float)
+     ;; Parallax vars
+     (light-pos :vec3)
+     (cam-pos :vec3))
+  (with-slots (pos normal uv tangent bitangent) assimp
+    (let* ((pos       (* scale pos))
+           (uv        (treat-uvs uv))
+           (norm      (* (m4:to-mat3 model-world) normal))
+           (world-pos (* model-world (v! pos 1)))
+           (view-pos  (* world-view  world-pos))
+           (clip-pos  (* view-clip   view-pos))
+           (tbn (mat3 tangent bitangent norm)))
+      (values clip-pos
+              uv
+              norm
+              (s~ world-pos :xyz)
+              tbn
+              (* tbn light-pos)
+              (* tbn cam-pos)
+              (* tbn (s~ world-pos :xyz))))))
+
+(defpipeline-g assimp-pipe ()
+  :vertex (assimp-vert assimp-mesh)
+  :fragment (frag-tex :vec2 :vec3 :vec3 :mat3
+                      ;; Parallax
+                      :vec3 :vec3 :vec3))
+
 ;;--------------------------------------------------
-
-(defun-g parallax-mapping ((tex-coords :vec2)
-                           (view-dir :vec3)
-                           (depth-map :sampler-2d)
-                           (height-scale :float))
-  (let* ((height (x (texture depth-map tex-coords)))
-         (p      (* (/ (s~ view-dir :xy) (z view-dir))
-                    (* height height-scale))))
-    (- tex-coords p)))
-
-;;--------------------------------------------------
-
-(defun-g treat-uvs ((uv :vec2))
-  (v! (x uv) (- 1.0 (y uv))))
-
-(defun-g norm-from-map ((normal-map :sampler-2d) (uv :vec2))
-  (let* ((norm-from-map (s~ (texture normal-map uv) :xyz))
-         (norm-from-map (normalize
-                         (- (* norm-from-map 2.0) 1.0))))
-    (v! (x norm-from-map)
-        (- (y norm-from-map))
-        (z norm-from-map))))
+;; 3D - g-pnt with tangent info in tb-data AND textures
 
 (defun-g vert-with-tbdata
     ((vert g-pnt) (tb tb-data)
@@ -109,7 +145,7 @@
   (let* ((pos       (* scale (pos vert)))
          (norm      (norm vert))
          (uv        (treat-uvs (tex vert)))
-         (norm      (* (m4:to-mat3 model-world) (norm vert)))
+         (norm      (* (m4:to-mat3 model-world) norm))
          (world-pos (* model-world (v! pos 1)))
          (view-pos  (* world-view  world-pos))
          (clip-pos  (* view-clip   view-pos))
@@ -127,7 +163,7 @@
     (values clip-pos
             uv
             norm
-            (s~ world-pos :xyz)
+            (s~ world-pos :xyz)            
             tbn
             (* tbn light-pos)
             (* tbn cam-pos)
@@ -147,6 +183,7 @@
                    (height-map :sampler-2d))
   (let* ((light-pos *pointlight-pos*)
          ;; Parallax
+
          (tan-cam-dir (- tan-cam-pos tan-frag-pos))
          (newuv (parallax-mapping uv tan-cam-dir height-map .1))
          ;; ---------
@@ -156,14 +193,11 @@
          (vec-to-light (- light-pos frag-pos))
          (dir-to-light (normalize vec-to-light))
          ;;--------------------
-
          (color (expt (s~ (texture albedo newuv) :xyz)
                       (vec3 2.2)))
          ;;(normal (normalize frag-norm))
          (nfm    (norm-from-map normap newuv))
          (normal (* tbn nfm))
-
-         
          (direc-light-strength
           (* *dirlight-mul*
              light-color
@@ -179,32 +213,39 @@
              (/ 1f0 (+ 1f0
                        (* .014 (length vec-to-light))
                        (* .07 (pow (length vec-to-light)
-                                    2))))))
-         (final-color (+  (* color
-                             point-light-strength
-                             )
-                          (* color direc-light-strength)
-                         )))
+                                   2))))))
+         (final-color
+          (+ (* color point-light-strength)
+             (* color direc-light-strength))))
     (values
-     (v! final-color 1)
-     (v! 0 0 0 1))))
+     ;; (v! final-color 1)
+     ;; (v! 1 1 1 1)
+     frag-pos
+     frag-norm)))
+
+(defpipeline-g generic-tex-pipe ()
+  :vertex (vert-with-tbdata g-pnt tb-data)
+  :fragment (frag-tex :vec2 :vec3 :vec3 :mat3
+                      ;; Parallax
+                      :vec3 :vec3 :vec3))
 
 ;;--------------------------------------------------
+;; 3D - g-pnt mesh without tangents
 
 (defun-g vert
     ((vert g-pnt) &uniform
      (model-world :mat4) (world-view :mat4) (view-clip :mat4)
      (scale :float))
-  (let* ((pos       (* scale (pos vert)))
-         (norm      (norm vert))
-         (tex       (tex vert))
-         (norm      (* (m4:to-mat3 model-world) (norm vert)))
-         (world-pos (* model-world (v! pos 1)))
-         (view-pos  (* world-view  world-pos))
-         (clip-pos  (* view-clip   view-pos)))
+  (let* ((pos        (* scale (pos vert)))
+         (norm       (norm vert))
+         (tex        (tex vert))
+         (world-norm (* (m4:to-mat3 model-world) norm))
+         (world-pos  (* model-world (v! pos 1)))
+         (view-pos   (* world-view  world-pos))
+         (clip-pos   (* view-clip   view-pos)))
     (values clip-pos
             tex
-            norm
+            world-norm
             (s~ world-pos :xyz))))
 
 ;; http://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
@@ -237,8 +278,10 @@
          (final-color (+ (* color point-light-strength)
                          (* color direc-light-strength))))
     (values
-     (v! final-color 1)
-     (v! 0 0 0 1))))
+     ;;(v! final-color 1)
+     ;;(v! 0 0 0 1)
+     frag-pos
+     frag-norm)))
 
 ;;--------------------------------------------------
 ;; 2D - Post Processing
@@ -270,13 +313,6 @@
 (defpipeline-g generic-pipe ()
   :vertex (vert g-pnt)
   :fragment (frag :vec2 :vec3 :vec3))
-
-;; 3D - g-pnt+tb-data with light shading and textures
-(defpipeline-g generic-tex-pipe ()
-  :vertex (vert-with-tbdata g-pnt tb-data)
-  :fragment (frag-tex :vec2 :vec3 :vec3 :mat3
-                      ;; Parallax
-                      :vec3 :vec3 :vec3))
 
 ;;--------------------------------------------------
 ;; 3D - Lamp solid color
@@ -314,10 +350,9 @@
 ;;----------------------------------------
 ;; 2D - Bloom
 
-(defun-g other-frag
-    ((uv :vec2)
-     &uniform (light-sam :sampler-2d) (sam :sampler-2d)
-     (x :float) (y :float) (delta :float))
+(defun-g other-frag ((uv :vec2) &uniform
+                     (light-sam :sampler-2d) (sam :sampler-2d)
+                     (x :float) (y :float) (delta :float))
   (let* ((c (texture light-sam uv))
          (c (v! (+ (s~ (sample-box uv delta sam x y) :xyz)
                    (s~ c :xyz))
@@ -326,3 +361,142 @@
 
 (defpipeline-g dobloom-pipe (:points)
   :fragment (other-frag :vec2))
+
+;;----------------------------------------
+
+(defun-g get-view-pos ((uv :vec2) (g-depth :sampler-2d)
+                       (world-view :mat4))
+  (let* ((x (1- (* 2f0 (x uv))))
+         (y (1- (* 2f0 (y uv))))
+         (z (1- (* 2f0 (x (texture g-depth uv)))))
+         (pos-proj (v! x y z 1f0))
+         (pos-view (* world-view pos-proj))
+         (pos-view (/ pos-view (w pos-view))))
+    pos-view))
+
+;; https://github.com/McNopper/OpenGL/blob/master/Example28/shader/ssao.frag.glsl
+;; (defun-g ssao-frag ((uv :vec2)
+;;                     &uniform
+;;                     (g-position :sampler-2d)
+;;                     (g-normal :sampler-2d)
+;;                     (g-depth :sampler-2d)
+;;                     (tex-noise :sampler-2d)
+;;                     (world-view :mat4)
+;;                     (random-kernel random-kernel :ubo)
+;;                     (res :vec2)
+;;                     (view-clip :mat4))
+;;   (let* ((pos-view (get-view-pos uv g-depth world-view))
+;;          (normal-view
+;;           (normalize (1- (* 2 (s~ (texture g-normal uv) :xyz)))))
+;;          (random-vector
+;;           (normalize (1- (* 2 (s~ (texture tex-noise (* 10 uv)) :xyz)))))
+;;          (tangent-view
+;;           (normalize (- random-vector (* (dot random-vector normal-view)
+;;                                          normal-view))))
+;;          (bitangent-view (cross normal-view tangent-view))
+;;          (kernel-matrix (mat3 tangent-view bitangent-view normal-view))
+;;          (oclussion 0f0))
+;;     (with-slots (random-v3) random-kernel
+;;       (dotimes (i 10)
+;;         (let* ((sample-vector-view
+;;                 (* kernel-matrix (aref random-v3 (int i))))
+;;                (sample-point-view
+;;                 (+ pos-view (* .7 (v! sample-vector-view 0))))
+;;                (sample-point-ndc
+;;                 (* view-clip sample-point-view))
+;;                (sample-point-ndc (/ sample-point-ndc
+;;                                     (w sample-point-ndc)))
+;;                (sample-point-tex-coord
+;;                 (+ .5 (* .5 (s~ sample-point-ndc :xy))))
+;;                (z-scene-ndc
+;;                 (1- (* 2 (x (texture g-depth sample-point-tex-coord)))))
+;;                (delta (- (z sample-point-ndc) z-scene-ndc)))
+;;           (if (and (> delta .0001) (< delta .005))
+;;               (incf oclussion 1f0)))))
+;;     ;;    (vec3 (- 1 (/ oclussion (1- 10))))
+;;     (vec4 (x (texture g-depth uv)))
+;;     ))
+
+
+;; https://learnopengl.com/Advanced-Lighting/SSAO
+(defun-g ssao-frag ((uv :vec2)
+                    &uniform
+                    (g-position :sampler-2d)
+                    (g-normal :sampler-2d)
+                    (tex-noise :sampler-2d)
+                    (random-kernel random-kernel :ubo)
+                    (res :vec2)
+                    (view-clip :mat4))
+  (let* ((kernel-size 30)
+         (radius .5)
+         (bias .025)
+         (noise-scale (/ res 4))
+         ;;
+         (frag-pos
+          (s~ (texture g-position uv) :xyz))
+         (normal
+          (normalize (s~ (texture g-normal uv) :xyz)))
+         (random-vec
+          (normalize (s~ (texture tex-noise (* uv noise-scale)) :xyz)))
+         ;;
+         (tangent
+          (normalize
+           (- random-vec (* normal (dot random-vec normal)))))
+         (bitangent (cross normal tangent))
+         (tbn (mat3 tangent bitangent normal))
+         (oclussion 0f0))
+    (with-slots (random-v3) random-kernel
+      (dotimes (i kernel-size)
+        (let* ((s (aref random-v3 (int i)))
+               (s (* tbn s))
+               (s (+ frag-pos
+                     (* s radius) ))
+               (offset (v! s 1f0))
+               (offset (* view-clip offset))
+               (offset (v! (/ (s~ offset :xyz) (w offset)) (w offset)))
+               (offset (v! (+ .5 (* .5 (s~ offset :xyz))) (w offset)))
+               (sample-depth (z (texture g-position 
+                                         (s~ offset :xy)
+                                         )))
+               (range-check
+                (smoothstep 0f0 1f0 (/ radius (abs (- (z frag-pos)
+                                                      sample-depth))))))
+          (incf oclussion (* (if (>= sample-depth (+ bias (z s)))
+                                 1f0
+                                 0f0)
+                             range-check))
+
+          )))
+    (v! (vec3 (- 1f0 (/ oclussion kernel-size))) 1)
+    
+    ))
+
+;; http://ogldev.atspace.co.uk/www/tutorial45/tutorial45.html
+;; (defun-g ssao-frag ((uv :vec2)
+;;                     &uniform
+;;                     (g-position :sampler-2d)
+;;                     (g-normal :sampler-2d)
+;;                     (tex-noise :sampler-2d)
+;;                     (random-kernel random-kernel :ubo)
+;;                     (res :vec2)
+;;                     (view-clip :mat4))
+;;   (let* (;;(uv (/ (+ uv 1) 2))
+;;          (pos (s~ (texture g-position uv) :xyz))
+;;          (a 0f0))
+;;     (with-slots (random-v3) random-kernel 
+;;       (dotimes (i 10)
+;;         (let* ((sample-pos (+ pos (aref random-v3 (int i))))
+;;                (offset (v! sample-pos 1))
+;;                (offset (* view-clip offset))
+;;                (offset (v! (+ .5 (* .5 (/ (s~ offset :xy) (w offset))))
+;;                            (s~ offset :zw)))
+;;                ;; (offset (v! (+ .5 (* .5 (s~ offset :xy)))
+;;                ;;             (s~ offset :zw)))
+;;                (sample-depth (z (texture g-position (s~ offset :xy)))))
+;;           (if (< (abs (- (z pos) sample-depth)) .5)
+;;               (incf a (step sample-depth (z sample-pos)))))))
+;;     (setf a (- 1f0 (/ a 128f0)))
+;;     (v! (vec3 (pow a 2f0)) 1)))
+
+(defpipeline-g ssao-pipe (:points)
+  :fragment (ssao-frag :vec2))

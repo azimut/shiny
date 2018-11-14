@@ -1,8 +1,8 @@
 (in-package :shiny)
 
 (defparameter *dirlight-pos* (v! 1000 1000 1000))
-(defparameter *dirlight-mul* .1)
-(defparameter *pointlight-pos* (v! 0 3 0))
+(defparameter *dirlight-mul* .5)
+(defparameter *pointlight-pos* (v! 0 2 0))
 
 (defun render-all-the-things (actor camera)
   (update actor)
@@ -32,20 +32,24 @@
 ;;            :view-clip  (projection camera))))
 
 (defmethod draw ((actor cement) camera)
-  (with-slots (buf scale albedo normal height) actor
+  (with-slots
+        (buf scale albedo normal height)
+      actor
     ;; (map-g #'assimp-norm-pipeline buf
     ;;        :normal-map normal
     ;;        :scale scale
     ;;        :model-world (model->world actor)
     ;;        :world-view (world->view camera)
     ;;        :view-clip  (projection camera))
-    (map-g #'generic-tex-pipe buf
+    (map-g #'generic-pipe ;;#'generic-tex-pipe
+           buf
            :scale scale
-           :albedo albedo
-           :normap normal
-           :light-pos *pointlight-pos*
+           :color (v! 0 0 0)
+;;           :albedo albedo
+;;           :normap normal
+;;           :light-pos *pointlight-pos*
            :cam-pos (pos camera)
-           :height-map height
+;;           :height-map height
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))
@@ -72,11 +76,22 @@
 
 
 ;;--------------------------------------------------
-(defmethod draw ((actor assimp-thing) camera)
-  (with-slots (buf scale) actor
-    (map-g #'generic-pipe buf
+;; (defmethod draw ((actor assimp-thing) camera)
+;;   (with-slots (buf scale) actor
+;;     (map-g #'generic-pipe buf
+;;            :scale 1f0
+;;            :color (v! .2 .2 .2)
+;;            :model-world (model->world actor)
+;;            :world-view (world->view camera)
+;;            :view-clip  (projection camera))))
+
+(defmethod draw ((actor assimp-thing-with-maps) camera)
+  (with-slots (buf scale albedo normal height) actor
+    (map-g #'assimp-pipe buf
            :scale 1f0
-           :color (v! .2 .2 .2)
+           :albedo albedo
+           :normap normal
+           :height-map height
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))
@@ -88,3 +103,12 @@
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))
+
+(defmethod draw ((actor celestial-sphere) camera)
+  (with-slots (buf scale) actor
+    (with-setf (cull-face) :front
+      (map-g #'light-pipe buf
+             :color (v! .5 .2 .5)
+             :model-world (model->world actor)
+             :world-view (world->view camera)
+             :view-clip  (projection camera)))))

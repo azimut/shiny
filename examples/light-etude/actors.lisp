@@ -38,8 +38,17 @@
    (scale :initarg :scale :initform 1f0)))
 
 (defclass assimp-thing (actor) ())
+(defclass assimp-thing-with-maps (actor)
+  ((albedo
+    :initform (get-tex "static/32.Rock01-1k/rock01_albedo.jpg"))
+   (normal
+    :initform (get-tex "static/32.Rock01-1k/rock01_normal.jpg"))
+   (height
+    :initform (get-tex "static/32.Rock01-1k/rock01_height.jpg"))))
 (defclass assimp-bloom (actor) ())
 
+(defclass celestial-sphere (actor)
+  ((buf :initform (box 10))))
 (defclass piso (actor)
   ((buf :initform (box 15 .1 15))))
 (defclass box (actor)
@@ -47,11 +56,18 @@
 (defclass sphere (actor)
   ((buf :initform (sphere 2))))
 (defclass cement (actor)
-  ((buf :initform (box 2 2 2 t))
-   (albedo :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_albedo.jpg"))
-   (normal :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_normal.jpg"))
-   (height :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_height.jpg"))))
+  ((buf :initform (box 1 1 1 t))
+   (albedo
+    :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_albedo.jpg"))
+   (normal
+    :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_normal.jpg"))
+   (height
+    :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_height.jpg"))))
 
+(defun make-celestial-sphere ()
+  (let ((obj (make-instance 'celestial-sphere)))
+    (push obj *actors*)
+    obj))
 (defun make-box ()
   (let ((obj (make-instance 'box)))
     (push obj *actors*)
@@ -81,7 +97,12 @@
   ;;        (radians (* 360 (sync (* .2 (mynow)))))))
   )
 
+
 (defmethod update ((actor assimp-thing))
   (setf (pos actor) (v! 0 0 0)))
+(defmethod update ((actor assimp-thing-with-maps))
+  (setf (pos actor) (v! 0 0 0)))
+(defmethod update ((actor cement))
+  (setf (pos actor) (v! 0 -.4 0)))
 (defmethod update ((actor assimp-bloom))
   (setf (pos actor) (v! 0 0 0)))
