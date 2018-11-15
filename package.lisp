@@ -4,9 +4,6 @@
   (:use #:cl
         #:cl-ppcre
         #:incudine)
-  (:import-from #:with-setf
-                #:with-setf
-                #:with-setf*)
   (:import-from #:alexandria
                 #:flatten
                 #:iota
@@ -38,6 +35,7 @@
                 #:palindrome
                 #:heap)
   (:import-from #:incudine.vug
+                #:maybe-expand
                 #:define-vug
                 #:define-ugen
                 #:make-frame
@@ -45,6 +43,7 @@
                 #:delay1
                 #:cout
                 #:vuglet
+                #:current-channel
                 #:current-frame
                 #:buffer-play
                 #:foreach-channel
@@ -83,6 +82,7 @@
                 #:pink-noise
                 #:dsp!)
   (:import-from #:incudine.util
+                #:dochannels
                 #:with-samples
                 #:f32-ref
                 #:db->lin
