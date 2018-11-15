@@ -2,7 +2,7 @@
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:shadowing-import-from #:cepl #:free)
-  (:use #:cl 
+  (:use #:cl
         #:cepl
         #:vari
         #:rtg-math
@@ -46,6 +46,7 @@
                 #:palindrome
                 #:heap)
   (:import-from #:incudine.vug
+                #:maybe-expand
                 #:define-vug
                 #:define-ugen
                 #:make-frame
@@ -54,6 +55,7 @@
                 #:cout
                 #:counter
                 #:vuglet
+                #:current-channel
                 #:current-frame
                 #:buffer-play
                 #:foreach-channel
@@ -94,6 +96,7 @@
                 #:pink-noise
                 #:dsp!)
   (:import-from #:incudine.util
+                #:dochannels
                 #:with-samples
                 #:f32-ref
                 #:db->lin
