@@ -27,3 +27,40 @@
                (:file "lib/drums")
                (:file "lib/cm")
                (:file "lib/incudine")))
+
+
+(asdf:defsystem "shiny-cepl/fluidsynth"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny-cepl #:incudine-fluidsynth)
+  :components ((:file "lib/fluidsynth")))
+
+(asdf:defsystem "shiny-cepl/csound"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny-cepl #:csound)
+  :components ((:file "lib/csound")))
+
+(asdf:defsystem "shiny-cepl/gme"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny-cepl #:cl-gme/incudine)
+  :components ((:file "lib/gme")))
+
+(asdf:defsystem "shiny-cepl/aubio"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"  
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny-cepl #:aubio/double)
+  :components ((:file "lib/aubio")))
