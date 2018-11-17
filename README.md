@@ -55,6 +55,13 @@ And for visualizations with OpenGL/CEPL see:
 > (ql:quickload :shiny-cepl)
 ```
 
+## ChangeLog
+
+> Nov 2018: BREAKING CHANGE - (pa) finally has a more similar syntax to (p)
+
 ### WHY?
 
 See [ABOUT.md](ABOUT.md)
+
+## References
+https://www.hfmdk-frankfurt.info/fileadmin/Dateien/lehrende/algorithmische-komposition.pdf
