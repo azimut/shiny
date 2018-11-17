@@ -108,7 +108,8 @@
   (with-slots (buf scale) actor
     (with-setf (cull-face) :front
       (map-g #'light-pipe buf
-             :color (v! .5 .2 .5)
+             ;;:color (v! .5 .2 .5)
+             :scale 1f0
              :model-world (model->world actor)
              :world-view (world->view camera)
              :view-clip  (projection camera)))))

@@ -59,16 +59,21 @@
 (defparameter *crotate* nil)
 (defparameter *head* nil)
 (defparameter *wave* 1f0)
+
+(defparameter *cam-vector* (v! 1 0 0))
 (defmethod update ((camera pers))
   ;;(setf (pos camera) (v! 0 2 9))
-  ;; (setf (far camera) 10f0)
-   (setf (pos camera) (v! 0 1 2))
+  ;;(setf (far camera) 100f0)
+  (setf (pos camera) (v! 0 0 3))
+  ;;n(setf (rot camera) (q:from-axis-angle *cam-vector* (radians 90)))
   (setf (rot camera)
-        (q:from-axis-angle (v! -.2 1 0)
+        (q:from-axis-angle *cam-vector*
+                           ;;(radians 90)
                            (radians (mod (* 20 (mynow)) 360))
                            ;;(radians (+ 130 (mod (* 20 (mynow)) 90)))
                            )
-        ))
+        )
+  )
 
 
 

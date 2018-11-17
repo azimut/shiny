@@ -102,10 +102,11 @@
   ;; HDR fbo(s)
   (when *fbo*
     (free *fbo*)
-    (free *fbo-secondary*)
-    (free *fbo-terciary*)
-    (free *fbo-ao*))
-
+    ;; (free *fbo-secondary*)
+    ;; (free *fbo-terciary*)
+    ;; (free *fbo-ao*)
+    )
+  
   ;; (setf *fbo* (make-fbo (list 0 :element-type :rgba16f)
   ;;                       ;; BLOOM LIGHT
   ;;                       (list 1 :element-type :rgba16f)
@@ -113,24 +114,25 @@
   ;;                       (list 2 :element-type :rgb16f) ;; pos
   ;;                       (list 3 :element-type :rgb16f) ;; nor
   ;;                       :d))
-  (setf *fbo* (make-fbo (list 0 :element-type :rgb16f) ;; pos
-                        (list 1 :element-type :rgb16f) ;; nor
-                        (list :d :dimensions (viewport-dimensions (current-viewport)))))
+  (setf *fbo* (make-fbo ;;(list 0 :element-type :rgb16f) ;; pos
+                        (list 0 :element-type :rgb16f) ;; nor
+                        :d))
   (setf *dimensions-fbo* (dimensions (attachment-tex *fbo* 0)))
   ;; (setf *sam* (cepl:sample (attachment-tex *fbo* 0) :wrap :clamp-to-edge))
   ;; (setf *sam1* (cepl:sample (attachment-tex *fbo* 1) :wrap :clamp-to-edge))
   ;;--------------------------------------------------
   ;; SSAO - Normal and position textures
-  (setf *sam-depth* (cepl:sample (attachment-tex *fbo* :d)))
-  (setf *sam-pos* (cepl:sample (attachment-tex *fbo* 0)
+  (setf *sam-depth* (cepl:sample (attachment-tex *fbo* :d)
+                                 :minify-filter :nearest
+                                 :magnify-filter :nearest
+                                 :wrap :clamp-to-edge))
+  ;; (setf *sam-pos* (cepl:sample (attachment-tex *fbo* 0)
+  ;;                              :minify-filter :nearest
+  ;;                              :magnify-filter :nearest
+  ;;                              :wrap :clamp-to-edge))
+  (setf *sam-nor* (cepl:sample (attachment-tex *fbo* 0)
                                :minify-filter :nearest
-                               :magnify-filter :nearest
-                               :wrap :clamp-to-edge))
-  (setf *sam-nor* (cepl:sample (attachment-tex *fbo* 1)
-                               :minify-filter :nearest
-                               :magnify-filter :nearest
-;;                               :wrap :clamp-to-edge
-                               ))
+                               :magnify-filter :nearest))
   ;; SSAO - Random kernel rotations - generate noise texture
   (unless *noise-tex*
     (setf *noise-tex* (make-texture (generate-rotation-kernel)
@@ -147,27 +149,27 @@
   ;;                                    :dimensions 64
   ;;                                    :element-type :vec3)))
   ;; SSAO - ?
-  (setf *fbo-ao* (make-fbo (list 0 :element-type :r16)))
-  (setf *sam-ao* (cepl:sample (attachment-tex *fbo-ao* 0)
-                              :minify-filter :nearest
-                              :magnify-filter :nearest
-                              :wrap :clamp-to-edge))
-  (setf *fbo-ao-blur* (make-fbo (list 0 :element-type :r8)))
-  (setf *sam-ao-blur* (cepl:sample (attachment-tex *fbo-ao-blur* 0)
-                              :minify-filter :nearest
-                              :magnify-filter :nearest
-                              :wrap :clamp-to-edge))
+  ;; (setf *fbo-ao* (make-fbo (list 0 :element-type :r16)))
+  ;; (setf *sam-ao* (cepl:sample (attachment-tex *fbo-ao* 0)
+  ;;                             :minify-filter :nearest
+  ;;                             :magnify-filter :nearest
+  ;;                             :wrap :clamp-to-edge))
+  ;; (setf *fbo-ao-blur* (make-fbo (list 0 :element-type :r8)))
+  ;; (setf *sam-ao-blur* (cepl:sample (attachment-tex *fbo-ao-blur* 0)
+  ;;                             :minify-filter :nearest
+  ;;                             :magnify-filter :nearest
+  ;;                             :wrap :clamp-to-edge))
   ;;--------------------------------------------------
   ;; Sec FBO
-  (setf *fbo-secondary* (make-fbo (list 0 :element-type :rgba16f)))
-  (setf *sam-secondary*
-        (cepl:sample (attachment-tex *fbo-secondary* 0)
-                     :wrap :clamp-to-edge))
+  ;; (setf *fbo-secondary* (make-fbo (list 0 :element-type :rgba16f)))
+  ;; (setf *sam-secondary*
+  ;;       (cepl:sample (attachment-tex *fbo-secondary* 0)
+  ;;                    :wrap :clamp-to-edge))
   ;; Ter FBO
-  (setf *fbo-terciary* (make-fbo (list 0 :element-type :rgba16f)))
-  (setf *sam-terciary*
-        (cepl:sample (attachment-tex *fbo-terciary* 0)
-                     :wrap :clamp-to-edge))
+  ;; (setf *fbo-terciary* (make-fbo (list 0 :element-type :rgba16f)))
+  ;; (setf *sam-terciary*
+  ;;       (cepl:sample (attachment-tex *fbo-terciary* 0)
+  ;;                    :wrap :clamp-to-edge))
   ;;--------------------------------------------------
   ;; BLUR
 
@@ -181,33 +183,33 @@
     (free *eighth-fbo*)
     (free *sixteen-fbo*))
   
-  (flet ((f (d) (mapcar (lambda (x) (round (/ x d)))
-                        *dimensions-fbo*)))
-    (setf *half-fbo*
-          (make-fbo (list 0 :element-type :rgba16f :dimensions (f 2))))
-    (setf *fourth-fbo*
-          (make-fbo (list 0 :element-type :rgba16f :dimensions (f 4))))
-    (setf *eighth-fbo*
-          (make-fbo (list 0 :element-type :rgba16f :dimensions (f 8))))
-    (setf *sixteen-fbo*
-          (make-fbo (list 0 :element-type :rgba16f :dimensions (f 16))))
-    (setf *sam-half-fbo* (cepl:sample (attachment-tex *half-fbo* 0) 
-                                      :wrap :clamp-to-edge))
-    (setf *sam-fourth-fbo* (cepl:sample (attachment-tex *fourth-fbo* 0)
-                                        :wrap :clamp-to-edge))
-    (setf *sam-eighth-fbo* (cepl:sample (attachment-tex *eighth-fbo* 0)
-                                        :wrap :clamp-to-edge))
-    (setf *sam-sixteen-fbo* (cepl:sample (attachment-tex *sixteen-fbo* 0)
-                                         :wrap :clamp-to-edge)))
+  ;; (flet ((f (d) (mapcar (lambda (x) (round (/ x d)))
+  ;;                       *dimensions-fbo*)))
+  ;;   (setf *half-fbo*
+  ;;         (make-fbo (list 0 :element-type :rgba16f :dimensions (f 2))))
+  ;;   (setf *fourth-fbo*
+  ;;         (make-fbo (list 0 :element-type :rgba16f :dimensions (f 4))))
+  ;;   (setf *eighth-fbo*
+  ;;         (make-fbo (list 0 :element-type :rgba16f :dimensions (f 8))))
+  ;;   (setf *sixteen-fbo*
+  ;;         (make-fbo (list 0 :element-type :rgba16f :dimensions (f 16))))
+  ;;   (setf *sam-half-fbo* (cepl:sample (attachment-tex *half-fbo* 0) 
+  ;;                                     :wrap :clamp-to-edge))
+  ;;   (setf *sam-fourth-fbo* (cepl:sample (attachment-tex *fourth-fbo* 0)
+  ;;                                       :wrap :clamp-to-edge))
+  ;;   (setf *sam-eighth-fbo* (cepl:sample (attachment-tex *eighth-fbo* 0)
+  ;;                                       :wrap :clamp-to-edge))
+  ;;   (setf *sam-sixteen-fbo* (cepl:sample (attachment-tex *sixteen-fbo* 0)
+  ;;                                        :wrap :clamp-to-edge)))
   ;;--------------------------------------------------
   (setf (clear-color) (v! 0 0 0 1))
   ;;(setf (clear-color) (v! 0 0 0 1))
   (setf *actors* nil)
   ;;;(make-box)
   (make-cement)
-  ;;(make-celestial-sphere)
-  (push *ass* *actors*)
-  (push *ass-light* *actors*)
+  (make-celestial-sphere)
+  ;;(push *ass* *actors*)
+  ;;(push *ass-light* *actors*)
   ;;(make-sphere)
   ;;(make-piso)
   NIL)
@@ -297,18 +299,22 @@
     ;;              :x (/ 1f0 width)
     ;;              :y (/ 1f0 height)))))
     (as-frame
+      
       (with-setf* ((depth-mask) nil
                    (cull-face) nil
                    (clear-color) (v! 0 0 0 1)
                    (depth-test-function) #'always)
           (map-g #'ssao-pipe *bs*
-                 :g-position *sam-pos*
+;;                 :g-position *sam-pos*
                  :g-normal *sam-nor*
-;;                 :g-depth *sam-depth*
+                 :g-depth *sam-depth*
+                 :kernel *kernel*
+                 :kernel-effect *kernel-effect*
+                 :radius *radius*
 ;;                 :world-view (world->view *currentcamera*)
                  :tex-noise *noise-sam*
                  :random-kernel *ubo-kernel*
-                 :res res
+                 :res (v! *dimensions-fbo*)
                  :view-clip (projection *currentcamera*))))
     ;; (as-frame
     ;;   (map-g #'generic-2d-pipe *bs*
