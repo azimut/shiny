@@ -87,7 +87,6 @@
                iname duration vars-only)))))
 (defmethod playcsound-freq
     ((iname string) (duration number) (keynum list) &rest rest)
-  "plays a single note with INSTRUMENT"
   (let ((kpos (1+ (position :freq rest))))
     (mapcar
      (lambda (keynum)
@@ -128,6 +127,34 @@
             (format nil "~a 0 ~a ~{~A~^ ~}"
                     iname duration vars-only)))))
      keynum)))
+
+(defgeneric playcsound-midi (instrument duration keynum &rest rest))
+(defmethod playcsound-midi
+    ((iname string) (duration number) (keynum integer) &rest rest)
+  (when (and (not (= duration 0)) (> keynum 0))
+    (let ((kpos (1+ (position :midi rest))))
+      (setf (nth kpos rest) keynum))
+    ;; finally send only the parameter values
+    (let ((vars-only (remove-if #'keywordp rest)))
+      (csound:csoundreadscore
+       *c* 
+       (format nil "~a 0 ~a ~{~A~^ ~}"
+               iname duration vars-only)))))
+(defmethod playcsound-midi
+    ((iname string) (duration number) (keynum list) &rest rest)
+  (let ((kpos (1+ (position :midi rest))))
+    (mapcar
+     (lambda (keynum)
+       (when (and (> duration 0) (> keynum 0))
+         (setf (nth kpos rest) keynum)
+         ;; finally send only the parameter values
+         (let ((vars-only (remove-if #'keywordp rest)))
+           (csound:csoundreadscore
+            *c* 
+            (format nil "~a 0 ~a ~{~A~^ ~}"
+                    iname duration vars-only)))))
+     keynum)))
+
 
 (defmacro make-play (name i &rest rest)
   "this macro will create a new (play-NAME) function wrapper of either
@@ -198,7 +225,6 @@
                                                (k  (intern sn)))
                                           (when (not (eq :freq x))
                                             (list k y))))))
-                (declare (integer keynum) (number duration))
                 (playcsound-freq ,i duration keynum
                                  ,@(loop :for (k v) :on rest :by #'cddr :append
                                       (if (eq k :freq)
@@ -238,6 +264,54 @@
                                (when (not (eq :freq x))
                                  (list x k)))))))
                 NIL)))
+          ;;--------------------------------------------------
+          ((position :midi rest)
+           `(progn
+              (defun ,fname (midi duration &key ,@(remove-if
+                                                     #'null
+                                                     (loop :for (x y) :on rest :by #'cddr
+                                                        :collect
+                                                        (let* ((sn (symbol-name x))
+                                                               (k  (intern sn)))
+                                                          (when (not (eq :midi x))
+                                                            (list k y))))))
+                (declare (type (or integer list) midi) (number duration)
+                         (optimize speed))
+                (playcsound-midi ,i duration midi
+                                ,@(loop :for (k v) :on rest :by #'cddr :append
+                                     (if (eq k :midi)
+                                         (list k 127) ;; dummy value...
+                                         (list k (intern (symbol-name k)))))))
+              (defun ,fnamearp (midis duration offset
+                                &key ,@(remove-if
+                                        #'null
+                                        (loop :for (x y) :on rest :by #'cddr
+                                           :collect
+                                           (let* ((sn (symbol-name x))
+                                                  (k  (intern sn)))
+                                             (when (not (eq :midi x))
+                                               (list k y))))))
+                (declare (list midis) (number duration offset)
+                         (optimize speed))
+                (loop
+                   :for midi :in (cdr midis)
+                   :for i :from offset :by offset
+                   :with now = (now)
+                   :initially (playcsound-midi
+                               ,i duration (car midis)
+                               ,@(loop :for (k v) :on rest :by #'cddr :append
+                                    (if (eq k :midi)
+                                        (list k 127) ;; dummy value...
+                                        (list k (intern (symbol-name k))))))
+                   :do
+                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                       #'playcsound-midi ,i duration midi
+                       ,@(loop :for (k v) :on rest :by #'cddr :append
+                            (if (eq k :midi)
+                                (list k 127) ;; dummy value...
+                                (list k (intern (symbol-name k)))))))
+                NIL)))
+          ;;--------------------------------------------------
           (t 
            ;; Handles instruments without keynum
            `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
