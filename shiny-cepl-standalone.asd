@@ -22,4 +22,5 @@
                #:nineveh
                #:with-setf)
   :components ((:file "cepl/package-standalone")
-               (:file "lib/assets")))
+               (:file "lib/assets")
+               (:file "lib/misc-gpu")))
