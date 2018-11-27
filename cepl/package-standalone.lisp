@@ -11,4 +11,7 @@
         #:temporal-functions
         #:cepl.sdl2-image
         #:cepl.skitter
-        #:livesupport))
+        #:livesupport)
+  (:import-from #:with-setf
+                #:with-setf
+                #:with-setf*))
