@@ -6,7 +6,10 @@
         #:incudine)
   (:import-from #:alexandria
                 #:flatten
+                #:when-let
+                #:when-let*
                 #:iota
+                #:appendf
                 #:lastcar)
   (:import-from #:cm
                 #:eop?
