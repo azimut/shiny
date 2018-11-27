@@ -64,6 +64,10 @@
 (defun list-buffers ()
   (alexandria:hash-table-keys *buffers*))
 
+(defun clean-buffers ()
+  (alexandria:maphash-values (lambda (x) (incudine:free x)) *buffers*)
+  (clrhash *buffers*))
+
 (defun list-words ()
   (alexandria:hash-table-keys *sample-words*))
 
@@ -258,30 +262,37 @@
 ;; different pitches. They also might need a sustain to
 ;; play longer than designed without change pitch.
 ;; NOTE: Using some of ormf's code.
+;;--------------------------------------------------
 
 (defparameter *instruments* (make-hash-table))
 
 (defclass instrument ()
-  ((name   :initarg :name)
-   (dir    :initarg :dir)
-   (lnotes :initarg :lnotes :initform '())
-   (keys   :initarg :keys   :accessor keys)))
+  ((name  :initarg :name
+          :documentation "relative filename path")
+   (dir   :initarg :dir
+          :documentation "absolute directory path where to look for samples")
+   (keys  :initarg :keys :initform (make-array 127 :initial-element nil)
+          :documentation "stores key class elements")))
 
 (defun make-instrument (name directory)
-  (declare (string directory) (symbol name))
+  (declare (symbol name) (string directory))
   (setf (gethash name *instruments*)
         (make-instance 'instrument
                        :name name
-                       :dir directory
-                       :keys (make-array 127))))
+                       :dir directory)))
 
 (defun list-instruments ()
   (alexandria:hash-table-keys *instruments*))
 
+(defun clean-instruments ()
+  (clean-buffers)
+  (clrhash *instruments*))
+
+;;--------------------------------------------------
+
 (define-vug buffer-loop-play
     ((buffer buffer) rate start-pos loopstart loopend)
-  (with-samples
-      ((frame (phasor-loop rate start-pos loopstart loopend)))
+  (with-samples ((frame (phasor-loop rate start-pos loopstart loopend)))
     (buffer-read buffer frame :interpolation :cubic)))
 
 (dsp! play-lsample
@@ -303,39 +314,115 @@
                          1 dur #'incudine:free)
                in))))
 
+;;--------------------------------------------------
+
 (defclass key ()
-  ((filename  :initarg :filename)
-   (keynum    :initarg :keynum)
-   (startpos  :initarg :startpos)
-   (loopstart :initarg :loopstart)
-   (loopend   :initarg :loopend)))
+  ((filename  :initarg :filename
+              :documentation
+              "just filename without path, used to lookup into *buffers* hash")
+   (keynum    :initarg :keynum :documentation "midi keynum")
+   (startpos  :initarg :startpos :documentation "initial start position")
+   (loopstart :initarg :loopstart :documentation "loop start position")
+   (loopend   :initarg :loopend :documentation "loop end position")))
 
-(defun push-note (name keynum filename
-                  &optional (startpos 0) loopstart loopend)
-  (declare (symbol name) (integer keynum) (string filename))
-  (let ((instrument (gethash name *instruments*)))
-    (when instrument
-      (with-slots (dir keys lnotes) instrument
-        (let* ((fullpath (concatenate 'string dir filename))
-               (buf (bbuffer-load fullpath))
-               (buf-size (buffer-size buf)))
-          (pushnew keynum lnotes)
-          (setf loopend buf-size
-                loopstart (/ buf-size 10))
-          (setf (aref keys keynum)
-                (make-instance 'key
-                               :filename filename
-                               :keynum keynum
-                               :startpos startpos
-                               :loopstart loopstart
-                               :loopend loopend)))))))
+(defun get-pure-keys (keys)
+  "Returns a list of keys that match the array index and thus
+   won't be pitchbended."
+  (loop
+     :for i :from 0
+     :for ckey :across keys :when (and ckey (= i (slot-value ckey 'keynum)))
+     :collect i))
 
-(defun play-instrument
-    (name keynum &key (dur 1) (amp 1) (rate 1))
-  (declare (symbol name) (integer keynum) (number dur amp rate))
+(defun get-new-mappings-hash (akeys)
+  (loop
+     :for (x y) :on (get-pure-keys akeys)
+     :with first-p = T
+     :with hkeys = (make-hash-table)
+     :finally (return hkeys)
+     :do
+     (cond ((and first-p x y)
+            (setf first-p nil)
+            ;; At least 2 notes
+            (appendf (gethash x hkeys)
+                     (append (iota x)
+                             (iota (round (/ (- y x) 2))
+                                   :start (+ 1 x))))
+            (appendf (gethash y hkeys)
+                     (iota (- y (+ x (round (/ (- y x) 2))))
+                           :start (+ x (round (/ (- y x) 2))))))
+           ;; Only 1 note
+           ((and first-p x)
+            (appendf (gethash x hkeys)
+                     (append (iota x :start 0)
+                             (iota (- 126 x) :start (1+ x)))))
+           ;; Middle
+           ((and x y)
+            (appendf (gethash x hkeys)
+                     (iota (round (/ (- y x) 2))
+                           :start x))
+            (appendf (gethash y hkeys)
+                     (iota (round (/ (- y x) 2))
+                           :start (+ x (round (/ (- y x) 2))))))
+           ;; Final sequence
+           ((and (not y) (not first-p) x)
+            (appendf (gethash x hkeys)
+                     (iota (- 126 x) :start (1+ x)))))))
+
+(defun fill-notes (keynum iname)
+  (let* ((akeys (slot-value (gethash iname *instruments*) 'keys)))
+    (loop :for k :in (gethash keynum (get-new-mappings-hash akeys))
+       :do (setf (aref akeys k) (aref akeys keynum)))))
+
+(defun push-note (iname keynum filename &optional (startpos 0) loopstart loopend)
+  (declare (symbol iname) (unsigned-byte keynum) (string filename))
+  (when-let ((instrument (gethash iname *instruments*)))
+    (with-slots (dir keys) instrument
+      (let* ((fullpath (concatenate 'string dir filename))
+             (buf (bbuffer-load fullpath))
+             (buf-size (buffer-size buf)))
+        (setf loopend   buf-size
+              loopstart buf-size)
+        (setf (aref keys keynum)
+              (make-instance 'key
+                             :filename filename
+                             :keynum keynum
+                             :startpos startpos
+                             :loopstart loopstart
+                             :loopend loopend))
+        (fill-notes keynum iname)))))
+
+(defun push-note-parsed (iname filename &optional (startpos 0) loopstart loopend)
+  (declare (symbol iname) (string filename))
+  (when-let ((instrument (gethash iname *instruments*))
+             (keynum (note-name-to-midi-number filename)))
+    (with-slots (dir keys) instrument
+      (let* ((fullpath (concatenate 'string dir filename))
+             (buf (bbuffer-load fullpath))
+             (buf-size (buffer-size buf)))
+        (setf loopend   buf-size
+              loopstart buf-size)
+        (setf (aref keys keynum)
+              (make-instance 'key
+                             :filename filename
+                             :keynum keynum
+                             :startpos startpos
+                             :loopstart loopstart
+                             :loopend loopend))
+        (fill-notes keynum iname)))))
+
+(defun load-instrument (iname)
+  (when-let ((instrument (gethash iname *instruments*)))
+    (with-slots (dir) instrument
+      (loop :for f :in (directory (concatenate 'string dir "*.wav"))
+         :do (push-note-parsed iname (file-namestring f))))))
+
+(defun play-instrument (name nkeynum &key (dur 1) (amp 1) (rpitch 0))
+  (declare (symbol name) (integer nkeynum) (number dur amp rpitch))
   (with-slots (keys) (gethash name *instruments*)
-    (with-slots (filename loopend loopstart) (aref keys keynum)
-      (let ((buf (gethash filename *buffers*)))
-        (if (> rate 0)
-            (play-lsample-f buf dur amp loopstart loopend rate)
-            (play-lsample-f buf dur amp loopend loopstart rate))))))
+    (with-slots (filename loopend loopstart keynum) (aref keys nkeynum)
+      (let* ((buf (gethash filename *buffers*))
+             (relative-pitch (- nkeynum keynum))
+             (rate (pitch-to-ratio (if (not (= 0 rpitch))
+                                       rpitch
+                                       relative-pitch))))
+        (play-lsample-f buf dur amp :rate rate)))))
