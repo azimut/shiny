@@ -60,43 +60,7 @@
       (aat (+ time #[time-step b]) #'corrupt it node))))
 
 ;;<3
-(dsp! green (freq dur volume rms)
-  (:defaults 440 1 1 0)
-  (with-samples
-      ((in (incudine.vug:sine (+ freq (* 3 (incudine.vug:sine 3)))))
-       (in (incudine.vug:clip in -.4d0 .4d0))
-       (in (incudine.vug:lpf in 800d0 1))
-       (in (* in (envelope (make-adsr .001 .8 .1 1)
-                           (incudine.vug:line 1 0 dur #'incudine:free))))
-       (in (* in volume)))
-    (setf rms in)
-    (out in in)))
 
-(dsp! keen (freq dur volume rms)
-  (:defaults 440 1 1 0)
-  (with-samples
-      ((in (incudine.vug:pulse (+ freq (* 3 (incudine.vug:sine 9)))))
-       (in (incudine.vug:lpf in 800 1))
-       (in (* in (envelope (make-adsr .08 .2 .1 1)
-                           (incudine.vug:line 1 0 dur #'incudine:free))))
-       (in (* in volume)))
-    (setf rms in)
-    (out in in)))
-
-(dsp! bass (freq volume dur rms)
-  (:defaults 110 1 4 0)
-  (with-samples
-      ((decay (min 2d0 (- dur .5d0)))
-       (in (sine freq))
-       (in (+ in (* .1 (white-noise))))
-       (in (lpf in 700 (line 0.3 .1 4 #'free)))
-       (in (lpf in 1800 1d0))
-       (in (+ in (sine (* freq))))
-;;       (in (* in (signum (sine 1))))
-       (in (* in (envelope (make-perc .01 decay))))
-       (in (* in volume)))
-    (setf rms in)
-    (out in in)))
 
 ;;--------------------------------------------------
 
