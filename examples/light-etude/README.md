@@ -1,12 +1,8 @@
-All things here are based or took from cbaggers's "Pushing Pixels" streams about how to use CEPL. For doing 2d stuff you don't need this much. But when you deal with cameras and pipelines and different objects you want to have a template.
+## lights-etude
 
-         ;; Specular
-         ;; (vec-to-cam (- cam-pos frag-pos))
-         ;; (dir-to-cam (normalize vec-to-cam))
-         ;; (reflection (normalize (reflect (- dir-to-light)
-         ;;                                 frag-norm)))
-         ;; (spec-foo .5)
-         ;; (spec (* spec-foo (pow (saturate
-         ;;                         (dot dir-to-cam reflection))
-         ;;                        32)))
+* Working on [SSAO](https://github.com/McNopper/OpenGL/blob/master/Example28/shader/ssao.frag.glsl).
+* Some commented out Bloom[1](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/)[2](https://github.com/EyezLee/Samsara/blob/master/Assets/shader/Bloom.shader).
+* [Parallax mapping](https://learnopengl.com/Advanced-Lighting/Parallax-Mapping) for objects with height or parallax map textures. Not really being used...
+* Some usage of loaded assimp models and object with tangent space coordinates...also not used on the final render.
 
+Visuals of ["awful"](https://www.youtube.com/watch?v=9ksBwo-oUhE)
