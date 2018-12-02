@@ -34,7 +34,7 @@
               (buffer-play
                buf (* downsamp rate) start-pos loop-p #'incudine:free)))
        (in (incudine.vug:downsamp downsamp in)))
-        (incudine.vug:maybe-expand in)
+    (incudine.vug:maybe-expand in)
     (unless (= 0d0 lpf)
       (setf in (incudine.vug:lpf in lpf 2)))
     (unless (= 0d0 hpf)
@@ -73,6 +73,20 @@
 
 (defun node-alive (id)
   (node-id (node id)))
+
+(defun amp-node
+    (time id &key (center 1f0) (radius .1) (period 1) (life 3))
+  (declare (sample time) (integer id))
+  "sends random rate changes to the node ID
+   LIFE is needed to avoid early check of the node"
+  (let ((alive (node-id (node id))))
+    (when (or alive (> life 0))
+      (set-control
+       id
+       :rate (funcall (pick '+ '+ '+ '+ '+ '+ '-)
+                      (cosr center radius 10)))
+      (aat (+ time (* *sample-rate* period))
+           #'amp-node it id :life (- life 1)))))
 
 (defun corrupt-node
     (time id &key (center 1f0) (radius .1) (period 1) (life 3))
@@ -117,8 +131,9 @@
 ;; Single buffer play
 
 (defun bbplay
-    (buf &key (rate 1d0 rate-p) (rpitch 1 rpitch-p) (beat-length 1f0 beat-length-p)
+    (buf &key (rate 1d0 rate-p) (rpitch 0 rpitch-p) (beat-length 1f0 beat-length-p)
            (start-pos 0d0) (loop-p nil) (amp 1d0) (id 2 id-p)
+           (lpf 0) (hpf 0) (bpf 0)
            (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p))
   (declare (integer rpitch id downsamp) (boolean loop-p) (float pan))
   "plays the provided buffer either by
@@ -155,21 +170,26 @@
     (if downsamp-p
         (if id-p
             (bplay-downsamp buf rate start-pos loop-p
+                            :id id
                             :amp amp
                             :left left :right right
+                            :lpf lpf :hpf hpf :bpf bpf
                             :downsamp downsamp)
             (bplay-downsamp buf rate start-pos loop-p
                             :amp amp
                             :left left :right right
+                            :lpf lpf :hpf hpf :bpf bpf
                             :downsamp downsamp
                             :id id))
         (if id-p
             (bplay buf rate start-pos loop-p
                    :amp amp
+                   :lpf lpf :hpf hpf :bpf bpf
                    :left left :right right
                    :id id)
             (bplay buf rate start-pos loop-p
                    :amp amp
+                   :lpf lpf :hpf hpf :bpf bpf
                    :left left :right right)))))
 
 ;;------------------------------------------------------
@@ -276,10 +296,11 @@
 
 (defun make-instrument (name directory)
   (declare (symbol name) (string directory))
-  (setf (gethash name *instruments*)
-        (make-instance 'instrument
-                       :name name
-                       :dir directory)))
+  (unless (gethash name *instruments*)
+    (setf (gethash name *instruments*)
+          (make-instance 'instrument
+                         :name name
+                         :dir directory))))
 
 (defun list-instruments ()
   (alexandria:hash-table-keys *instruments*))
@@ -295,24 +316,36 @@
   (with-samples ((frame (phasor-loop rate start-pos loopstart loopend)))
     (buffer-read buffer frame :interpolation :cubic)))
 
-(dsp! play-lsample
-    ((buf buffer) amp start-pos loopend rate)
-  (:defaults nil 1 0 0 1)
-  (with-samples ((in (buffer-loop-play buf rate start-pos start-pos loopend))
-                 (in (+ (* .6 in)
-                        (incudine.vug:resonr in 400 .9))))
-    (stereo (* amp in))))
-
 (dsp! play-lsample-f
-    ((buf buffer) dur amp start-pos loopstart loopend rate)
-  (:defaults nil 1 1 0 0 0 1)
+    ((buf buffer) dur amp start-pos loopstart loopend rate
+     left right
+     lpf hpf bpf
+     reson
+     (downsamp fixnum))
+  (:defaults nil 1 .5 0 0 0 1
+             1 1
+             0 0 0
+             0
+             0)
   (with-samples ((in (buffer-loop-play buf rate start-pos loopstart loopend))
-                 (in (+ (* .6 in)
-                        (incudine.vug:resonr in 400 .9))))
-    (stereo (* amp
-               (envelope (make-envelope '(0 1 1 0) '(0 .9 .1))
-                         1 dur #'incudine:free)
-               in))))
+                 (in (* amp in))
+                 (in (* in (envelope (make-envelope '(0 1 1 0) '(0 .9 .1))
+                                     1 dur #'incudine:free))))
+    (incudine.vug:maybe-expand in)
+    ;;
+    (unless (= 0d0 reson)
+      (setf in (incudine.vug:reson in reson 2)))
+    ;;
+    (unless (= 0 downsamp)
+      (setf in (incudine.vug:downsamp downsamp in)))
+    ;;
+    (unless (= 0d0 lpf)
+      (setf in (incudine.vug:lpf in lpf 2)))
+    (unless (= 0d0 hpf)
+      (setf in (incudine.vug:hpf in hpf 2)))
+    (unless (= 0d0 bpf)
+      (setf in (incudine.vug:hpf in bpf 2)))
+    (out (* left in) (* right in))))
 
 ;;--------------------------------------------------
 
@@ -416,7 +449,10 @@
       (loop :for f :in (directory (concatenate 'string dir "*.wav"))
          :do (push-note-parsed iname (file-namestring f))))))
 
-(defun play-instrument (name nkeynum &key (dur 1) (amp 1) (rpitch 0))
+(defun play-instrument (name nkeynum &key (dur 1) (amp 1) (rpitch 0)
+                                       (downsamp 0)
+                                       (reson 0)
+                                       (left 1) (right 1) (lpf 0) (hpf 0) (bpf 0))
   (declare (symbol name) (integer nkeynum) (number dur amp rpitch))
   (with-slots (keys) (gethash name *instruments*)
     (with-slots (filename loopend loopstart keynum) (aref keys nkeynum)
@@ -425,4 +461,8 @@
              (rate (pitch-to-ratio (if (not (= 0 rpitch))
                                        rpitch
                                        relative-pitch))))
-        (play-lsample-f buf dur amp :rate rate)))))
+        (play-lsample-f buf dur amp
+                        :rate rate
+                        :downsamp downsamp
+                        :reson reson
+                        :lpf lpf :hpf hpf :bpf bpf :left left :right right)))))
