@@ -162,7 +162,7 @@
 
 (defvar *samplers* (make-hash-table :test #'equal))
 
-(defun get-tex (path &optional (force nil) (mipmap t))
+(defun get-tex (path &optional (force nil) (mipmap t) (image-format :rgba8))
   (when force
     (let ((s (gethash path *samplers*)))
       (when s
@@ -176,7 +176,7 @@
                 (if absolutep
                     path
                     (asdf:system-relative-pathname :shiny path))
-                :rgba8
+                image-format
                 mipmap
                 t))))))
 
