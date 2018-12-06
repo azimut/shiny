@@ -12,6 +12,13 @@
         #:cepl.sdl2-image
         #:cepl.skitter
         #:livesupport)
+  (:import-from #:alexandria
+                #:flatten
+                #:when-let
+                #:when-let*
+                #:iota
+                #:appendf
+                #:lastcar)
   (:import-from #:with-setf
                 #:with-setf
                 #:with-setf*))
