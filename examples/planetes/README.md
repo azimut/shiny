@@ -1,0 +1,2 @@
+* Some cheap AO trickery for the monolith. After seeing but not following (not knowing how) the "Inside" GDC talk.
+* Atmosphere scattering shader from [glsl-atmosphere](https://github.com/wwwtyro/glsl-atmosphere) that seems to follow the ideas from [frostbite talk](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf) but from other papers ... kind of wish there was a no physics version of it...it should be just a simple fragment shader...but I guess I won't be so easily parametizable and render and coherent effects.
