@@ -269,9 +269,12 @@
                          &uniform
                          (time :float)
                          (world-view :mat4))
-  (* world-view (v! 0 0 -30 1)))
+  (* world-view (v! 0 -6 -50 1)))
 
-(defun-g billboard-frag ((uv :vec2) &uniform (tex :sampler-2d) (time :float))
+(defun-g billboard-frag ((uv :vec2)
+                         &uniform
+                         (tex :sampler-2d)
+                         (time :float))
   (let* ((color (texture tex uv)))
     (values color
             (v! (x color) 0 0 (w color)))))
@@ -499,7 +502,7 @@
                            (sam :sampler-2d))
   (mix (texture sam uv)
        (texture sam-god uv)
-       .3))
+       .4))
 
 (defpipeline-g combine-god-pipe (:points)
   :fragment (combine-god-frag :vec2))
@@ -516,8 +519,8 @@
          ;;                     (resolution (current-viewport)))
          ;;               2f0)
          ;;   -1f0)
-         (uv uv)
-         (samples 5f0)
+         (uv uv)         
+         (samples 10f0)
          (decay .974)
          (exposure .24)
          (density .93)
@@ -549,19 +552,37 @@
 
 (defun screen-coord (res &optional (pos (v! 0 0 -10)))
   (let* ((pos4 (v! pos 1))
-         (vpos4 (m4:*v (world->view *currentcamera*)
+         (cpos4 (m4:*v (world->view *currentcamera*)
                        pos4))
          (cpos4 (m4:*v (projection *currentcamera*)
-                       vpos4))
+                       cpos4))
          (w (w cpos4))
-         (cpos4 (v4:/s cpos4 w)))
-    (v2:abs (v2:/ (v! (+ .5 (* (x res)
-                               (/ (+ 1 (x cpos4)) 2)))
-                      (+ .5 (* (y res)
-                               (/ (- 1 (y cpos4)) 2))))
+         (ndc (v4:/s cpos4 w)))
+    
+    ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
+    ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
+    ;;     (+ (* (+ 1 (y ndc)) (/ (y res) 2))))
+
+    ;; screen.x = ((view.w * 0.5) * ndc.x) +
+    ;;            ((w * 0.5) + view.x)
+    ;; screen.y = ((view.h * 0.5) * ndc.y) +
+    ;;            ((h * 0.5) + view.y)
+
+    ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
+    (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
+                         (+ (* (x res) .5 ) 0))
+                      (+ (* (y res) .5 (y ndc))
+                         (+ (* (y res) .5))))
                   res))
+    
+    ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
+    ;;                            (/ (+ 1 (x ndc)) 2)))
+    ;;                   (+ .5 (* (y res)
+    ;;                            (/ (- 1 (y ndc)) 2))))
+    ;;               res))
     ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
     ;;             (v! 1 1))
     ;;       (v2:*s res .5))
+    
     ))
 
