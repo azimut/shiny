@@ -175,8 +175,8 @@
          ;;   cam-pos
          ;;   0 1000))
          )
-    final-color
-    ))
+    (values final-color
+            (v! 0 1 0 1))))
 
 ;;--------------------------------------------------
 ;; 2D - Post Processing
@@ -422,7 +422,8 @@
          ;;   cam-pos
          ;;   0 1000))
          )
-    (v! final-color 1)))
+    (values (v! final-color 1)
+            (v! 0 1 0 1))))
 
 (defpipeline-g pbr-pipe ()
   :vertex (vert-with-tbdata g-pnt tb-data)

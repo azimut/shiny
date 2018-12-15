@@ -15,8 +15,7 @@
                               (* linear distance)
                               (* quadratic distance distance))))
          (ambient (* .1 color))
-         (diffuse (* diff color))
-         )
+         (diffuse (* diff color)))
     (+ ambient diffuse)))
 
 (defun-g dir-light-apply ((color :vec3)
@@ -226,11 +225,13 @@
 ;;--------------------------------------------------
 ;; PBR - BRDF
 ;; https://learnopengl.com/PBR/Lighting
+
 (defun-g fresnel-schlick ((cos-theta :float)
                           (f0 :vec3))
   (+ f0
      (* (- 1 f0)
         (pow (- 1 cos-theta) 5))))
+
 (defun-g distribution-ggx ((n :vec3)
                            (h :vec3)
                            (roughness :float))
@@ -242,6 +243,7 @@
          (denom (+ 1 (* n-dot-h2 (- a2 1))))
          (denom (* 3.141516 denom denom)))
     (/ num denom)))
+
 (defun-g geometry-schlick-ggx ((n-dot-v :float)
                                (roughness :float))
   (let* ((r (+ 1 roughness))
@@ -250,6 +252,7 @@
          (denom (+ (* n-dot-v (- 1 k))
                    k)))
     (/ num denom)))
+
 (defun-g geometry-smith ((n :vec3)
                          (v :vec3)
                          (l :vec3)
@@ -259,38 +262,55 @@
          (ggx2 (geometry-schlick-ggx n-dot-v roughness))
          (ggx1 (geometry-schlick-ggx n-dot-l roughness)))
     (* ggx1 ggx2)))
+
 ;;--------------------------------------------------
+;; Billboarding
+(defun-g billboard-vert ((pos :vec3)
+                         &uniform
+                         (time :float)
+                         (world-view :mat4))
+  (* world-view (v! 0 0 -30 1)))
+
+(defun-g billboard-frag ((uv :vec2) &uniform (tex :sampler-2d) (time :float))
+  (let* ((color (texture tex uv)))
+    (values color
+            (v! (x color) 0 0 (w color)))))
+
 (defun-g billboard-geom (&uniform (camera-pos :vec3)
                                   (view-clip :mat4))
-  (declare (output-primitive :kind :triangle-strip :max-vertices 4))
+  (declare (output-primitive :kind :triangle-strip
+                             :max-vertices 4))
   (let* ((p (s~ (gl-position (aref gl-in 0)) :xyz))
          (to-camera (normalize (- camera-pos p)))
          (up (v! 0 1 0))
          (right (cross to-camera up)))
     ;;
-    (decf p (* .5 right))
+    (decf p (* 9 .5 right))
     (emit ()
           (* view-clip (v! p 1))
           (v! 0 0))
     ;;
-    (incf (y p) 1f0)
+    (incf (y p) 9f0)
     (emit ()
           (* view-clip (v! p 1))
           (v! 0 1))
     ;;
-    (decf (y p) 1f0)
-    (incf p right)
+    (decf (y p) 9f0)
+    (incf p (* right 9))
     (emit ()
           (* view-clip (v! p 1))
           (v! 1 0))
     ;;
-    (incf (y p) 1f0)
+    (incf (y p) 9f0)
     (emit ()
           (* view-clip (v! p 1))
           (v! 1 1))
     (end-primitive)
     (values)))
-
+(defpipeline-g billboard-pipe (:points)
+  :vertex (billboard-vert :vec3)
+  :geometry (billboard-geom)
+  :fragment (billboard-frag :vec2))
 ;;--------------------------------------------------
 ;; glsl-atmosphere
 ;; https://github.com/wwwtyro/glsl-atmosphere/
@@ -467,59 +487,81 @@
     (view-zto-orthographic-depth view-z camera-near camera-far)))
 
 ;;--------------------------------------------------
-(defun-g z-texture ((sam :sampler-2d)
-                    (uv :vec2))
-  (- 1 (/ (linear-eye-depth (x (texture sam uv)))
-          400f0)))
 
-(defun-g z-texture ((sam :sampler-2d)
-                    (uv :vec2))
-  (- 1 (read-depth sam uv .1 400f0)))
+(defun-g fbm-hash ((p :vec2))
+  (fract
+   (* (sin (dot p (v! 41 289)))
+      45758.5453)))
 
-(defun-g z-texture ((sam :sampler-2d)
-                    (uv :vec2))
-  (- 1 (x (texture sam uv))))
+(defun-g combine-god-frag ((uv :vec2)
+                           &uniform
+                           (sam-god :sampler-2d)
+                           (sam :sampler-2d))
+  (mix (texture sam uv)
+       (texture sam-god uv)
+       .3))
+
+(defpipeline-g combine-god-pipe (:points)
+  :fragment (combine-god-frag :vec2))
+
 
 (defun-g god-rays-frag ((uv :vec2)
                         &uniform
-                        (t-input :sampler-2d)
-                        (sun-position :vec2)
-                        (pass :float))
-  (let* (;; Screen space
+                        (res :vec2)
+                        (time :float)
+                        (sun-pos :vec2)
+                        (sam :sampler-2d))
+  (let* (;;(uv (/ (s~ gl-frag-coord :xy) res))
+         ;; (v2:+s (v2:*s (v2:/ (screen-coord (resolution (current-viewport)) (v! 0 0 -30))
+         ;;                     (resolution (current-viewport)))
+         ;;               2f0)
+         ;;   -1f0)
          (uv uv)
-         (f-step-size (pow 6 (- pass)))
-         (delta (- sun-position uv))
-         (dist (length delta))
-         (stepv (/ (* f-step-size delta) dist))
-         (iters (/ dist f-step-size))
-         (col 0f0))
-    (dotimes (i 5)  
-      (incf col (if (and (<= i iters)
-                         (< (y uv) 1))
-                    (z-texture t-input uv)
-                    0f0))
-      (incf uv stepv))
-    ;; (when (and (<= 0 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv))
-    ;;   (incf uv stepv))
-    ;; (when (and (<= 1 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv))
-    ;;   (incf uv stepv))
-    ;; (when (and (<= 2 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv))
-    ;;   (incf uv stepv))
-    ;; (when (and (<= 3 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv))
-    ;;   (incf uv stepv))
-    ;; (when (and (<= 4 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv))
-    ;;   (incf uv stepv))
-    ;; (when (and (<= 5 iters) (< (y uv) 1))
-    ;;   (incf col (z-texture t-input uv)))
-    ;; (vec3 (- 1 (/ (linear-eye-depth (x (texture t-input uv)))
-    ;;               400f0)))
-    ;;(vec3 (- 1 (read-depth t-input uv .1 400f0)))
-    (v! (vec3 (/ col 6)) 1)
-    ;;(v! (vec3 (x (texture t-input uv))) 1)
+         (samples 5f0)
+         (decay .974)
+         (exposure .24)
+         (density .93)
+         (weight .36)
+         (color (s~ (texture sam uv) :xyz))
+         (occ (x color))
+         (obj (y color))
+         (dtc (* (- uv sun-pos)
+                 (/ 1f0 samples)))
+         (illumdecay 3f0)
+         (dither (fbm-hash (+ uv (fract time)))))
+    (dotimes (i samples)
+      (decf uv dtc)
+      (let ((s (x (texture sam (+ (* dither dtc) uv)))))
+        (multf s (* illumdecay weight))
+        (incf occ s)
+        (multf illumdecay decay)
+        ))
+    (v! (+ (v! 0 0 0)
+           (* occ exposure))
+        1)
+    ;;(vec4 occ)
+    ))
+
+;; https://stackoverflow.com/questions/3792481/how-to-get-screen-coordinates-from-a-3d-point-opengl
+;; You then need to transform the [-1:1]^3 cube to window coordinates
+;; by applying the Viewport transformation to it. window.x =
+;; viewport.x + viewport.width * (cube.x+1)/2
+
+(defun screen-coord (res &optional (pos (v! 0 0 -10)))
+  (let* ((pos4 (v! pos 1))
+         (vpos4 (m4:*v (world->view *currentcamera*)
+                       pos4))
+         (cpos4 (m4:*v (projection *currentcamera*)
+                       vpos4))
+         (w (w cpos4))
+         (cpos4 (v4:/s cpos4 w)))
+    (v2:abs (v2:/ (v! (+ .5 (* (x res)
+                               (/ (+ 1 (x cpos4)) 2)))
+                      (+ .5 (* (y res)
+                               (/ (- 1 (y cpos4)) 2))))
+                  res))
+    ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
+    ;;             (v! 1 1))
+    ;;       (v2:*s res .5))
     ))
 

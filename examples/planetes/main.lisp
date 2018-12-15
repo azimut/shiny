@@ -1,16 +1,14 @@
 (in-package :shiny)
 
-(defvar *samd* nil)
 (defvar *fbo* nil)
 (defvar *sam* nil)
+(defvar *sam1* nil)
 (defvar *bs* nil)
 (defvar *res* nil)
-(defvar *res4* nil)
+(defvar *blend* (make-blending-params))
 
-(defvar *fbo4-ping* nil)
-(defvar *sam4-ping* nil)
-(defvar *fbo4-pong* nil)
-(defvar *sam4-pong* nil)
+(defvar *god-fbo* nil)
+(defvar *god-sam* nil)
 
 (defun initialize ()
   ;;--------------------------------------------------
@@ -19,22 +17,19 @@
   ;;--------------------------------------------------
   ;; HDR fbo(s)
   (when *fbo* (free *fbo*))
-  (when *fbo4-ping* (free *fbo4-ping*) (free *fbo4-pong*))
   (setf *fbo* (make-fbo (list 0 :element-type :rgb16f)
+                        (list 1 :element-type :rgb16f)
                         :d))
   (setf *sam* (cepl:sample (attachment-tex *fbo* 0)
                            :wrap :clamp-to-edge))
-  (setf *samd* (cepl:sample (attachment-tex *fbo* :d)
+  (setf *sam1* (cepl:sample (attachment-tex *fbo* 1)
                             :wrap :clamp-to-edge))
   ;;--------------------------------------------------
+  (when *god-fbo* (free *god-fbo*))
+  (setf *god-fbo* (make-fbo (list 0 :element-type :rgb16f)))
+  (setf *god-sam* (cepl:sample (attachment-tex *god-fbo* 0)
+                               :wrap :clamp-to-edge))
   (setf *res*  (dimensions (attachment-tex *fbo* 0)))
-  (setf *res4* (mapcar (lambda (x) (round (/ x 4))) *res*))
-  (setf *fbo4-ping* (make-fbo (list 0 :dimensions *res4*)))
-  (setf *sam4-ping* (cepl:sample (attachment-tex *fbo4-ping* 0)
-                                 :wrap :clamp-to-edge))
-  (setf *fbo4-pong* (make-fbo (list 0 :dimensions *res4*)))
-  (setf *sam4-pong* (cepl:sample (attachment-tex *fbo4-pong* 0)
-                                 :wrap :clamp-to-edge))
   (setf (clear-color) (v! 0 0 0 1))
   ;;--------------------------------------------------
   (setf *actors* nil)
@@ -46,23 +41,16 @@
   ;;             (random 1f0)))
   (make-pbr (v! 0 -2 0))
   ;;(make-clouds)
-  (make-celestial-sphere)
+  ;;(make-celestial-sphere)
   NIL)
 
 (defun draw! ()
   (let* ((res (surface-resolution (current-surface)))
          (time (mynow))
-         ;;(sun-position (v2:*s res .5))
-         (sun-position
-          (v! (* (x res)
-                 (+ .5 (* .5 (sin time))))
-              (* (y res)
-                 (+ .5 (* .5 (cos time)))))))
+         )
     
     (setf (resolution (current-viewport)) res)
-    (setf *pointlight-pos* (v! (* 4 (sin time))
-                               (* 4 (cos time))
-                               0))
+
     (update *currentcamera*)
     (update-all-the-things *actors*)
     
@@ -70,35 +58,27 @@
       (clear-fbo *fbo*)
       (loop :for actor :in *actors* :do
            (draw actor *currentcamera*)))
-
-    (with-fbo-bound (*fbo4-ping*)
-      (clear-fbo *fbo4-ping*)
+    (with-fbo-bound (*fbo*)
+      (with-blending *blend*
+        (map-g #'billboard-pipe *bs*
+               :world-view (world->view *currentcamera*)
+               :view-clip (projection *currentcamera*)
+               :tex (get-tex "static/pointlight2.png"))
+))
+    (with-fbo-bound (*god-fbo*)
       (map-g #'god-rays-pipe *bs*
-             :t-input *samd*
-             :pass 3f0
-             :sun-position sun-position))
-    ;; (with-fbo-bound (*fbo4-pong*)
-    ;;   (clear-fbo *fbo4-pong*)
-    ;;   (map-g #'god-rays-pipe *bs*
-    ;;          :t-input *sam4-ping*
-    ;;          :pass 2f0
-    ;;          :sun-position sun-position))
-    ;; (with-fbo-bound (*fbo4-ping*)
-    ;;   (clear-fbo *fbo4-ping*)
-    ;;   (map-g #'god-rays-pipe *bs*
-    ;;          :t-input *sam4-pong*
-    ;;          :pass 3f0
-    ;;          :sun-position sun-position))
-
-    ;;var stepLen = filterLen * Math.pow( TAPS_PER_PASS, - pass );
-    ;;    stepLen = filterLen * Math.pow( TAPS_PER_PASS, - pass );
+             :res res
+             :time time
+             :sam *sam1*
+             ;; ... well FUCK IT!!! -14 sure
+             :sun-pos (screen-coord res (v! 0 14 -30))))
     (as-frame
       (with-setf* ((depth-mask) nil
                    (cull-face) nil
-                   (clear-color) (v! 0 0 0 1)
-                   (depth-test-function) #'always)        
-        (map-g #'generic-2d-pipe *bs*
-               :sam *sam4-ping*)))))
+                   (clear-color) (v! 0 0 0 1))        
+        (map-g #'combine-god-pipe *bs*
+               :sam *sam*
+               :sam-god *god-sam*)))))
 
 (def-simple-main-loop runplay
     (:on-start #'initialize)
