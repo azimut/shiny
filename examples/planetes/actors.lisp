@@ -84,6 +84,7 @@
   (let ((obj (make-instance 'celestial-sphere)))
     (push obj *actors*)
     obj))
+
 (defun make-box (&optional (pos (v! 0 0 0)) (scale 1f0))
   (let ((obj (make-instance 'box
                             :pos pos
@@ -91,8 +92,12 @@
                             :buf (box 3 10 1))))
     (push obj *actors*)
     obj))
-(defun make-sphere ()
-  (let ((obj (make-instance 'sphere)))
+(defun make-sphere (&optional
+                      (pos (v! 0 0 0))
+                      (scale 1f0))
+  (let ((obj (make-instance 'sphere
+                            :pos pos
+                            :scale scale)))
     (push obj *actors*)
     obj))
 (defun make-piso (&optional (pos (v! 0 0 0)) (rot (q:identity)))
@@ -104,7 +109,10 @@
 (defmethod update (actor))
 (defmethod update ((actor pbr))
   ;;(setf (pos actor) (v! 0 -2 0))
+
   )
+(defmethod update ((actor sphere))
+  (setf (pos actor) (v! 0 10 -40)))
 (defmethod update ((actor celestial-sphere))
   (setf (rot actor)
         (q:from-axis-angle (v! 0 1 0)

@@ -229,7 +229,8 @@
     (v! color 1)
     ;; (atmosphere (normalize frag-pos)
     ;;           (v! 0 6372000 0)
-    ;;           (v! 0 1000 -1000)
+    ;;           ;;(v! 10 500 -1000)
+    ;;           (v! 0 40 -60)
     ;;           22f0
     ;;           6371000f0
     ;;           6471000f0
@@ -464,3 +465,20 @@
 ;; God
 (defpipeline-g god-rays-pipe (:points)
   :fragment (god-rays-frag :vec2))
+
+
+
+(defun-g circle-frag ((uv :vec2)
+                      (frag-norm :vec3)
+                      (frag-pos :vec3)
+                      &uniform
+                      (time :float)
+                      (color :vec3)
+                      (cam-pos :vec3))
+  (let* ((final-color color))
+    (values final-color
+            (v! 1 0 0 1))))
+
+(defpipeline-g circle-pipe ()
+  :vertex (vert g-pnt)
+  :fragment (circle-frag :vec2 :vec3 :vec3))

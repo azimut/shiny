@@ -34,6 +34,7 @@
   ;;--------------------------------------------------
   (setf *actors* nil)
   (make-box (v! 0 0 -10))
+  (make-sphere (v! 0 10 -40) 1f0)
   ;; (dotimes (i 20)
   ;;   (make-box (v! (+ -10 (random 20f0))
   ;;                 (random 1f0)
@@ -58,20 +59,13 @@
       (clear-fbo *fbo*)
       (loop :for actor :in *actors* :do
            (draw actor *currentcamera*)))
-    (with-fbo-bound (*fbo*)
-      (with-blending *blend*
-        (map-g #'billboard-pipe *bs*
-               :world-view (world->view *currentcamera*)
-               :view-clip (projection *currentcamera*)
-               :tex (get-tex "static/pointlight2.png"))
-))
     (with-fbo-bound (*god-fbo*)
       (map-g #'god-rays-pipe *bs*
              :res res
              :time time
              :sam *sam1*
-             ;; ... well FUCK IT!!! -14 sure
-             :sun-pos (screen-coord res (v! 0 14 -30))))
+             ;; ... well FUCK IT!!! +30 sure
+             :sun-pos (screen-coord res (v! 0 10 -40))))
     (as-frame
       (with-setf* ((depth-mask) nil
                    (cull-face) nil

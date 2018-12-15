@@ -29,6 +29,15 @@
            :world-view (world->view camera)
            :view-clip  (projection camera))))
 
+(defmethod draw ((actor sphere) camera)
+  (with-slots (buf scale) actor
+    (map-g #'circle-pipe buf
+           :scale scale
+           :color (v! 1 1 1)
+           :model-world (model->world actor)
+           :world-view (world->view camera)
+           :view-clip  (projection camera))))
+
 (defmethod draw ((actor pbr) camera)
   (with-slots (buf albedo normal height roughness scale ao) actor
     (map-g #'pbr-pipe buf
