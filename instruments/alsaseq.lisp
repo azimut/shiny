@@ -1,36 +1,67 @@
 (in-package :shiny)
 
-(midihelper:start-midihelper)
-;; connect on qjackctl
+;; (ql:quickload :cl-alsaseq)
+;; (midihelper:start-midihelper)
 
-(let ((d (new cycle :of '(2 2 4))))
-  (defun f (time)
-    (let ((c (make-chord 50 70 (random-elt #(3 4)) *phrygian*))
-          (dd (next d)))
-      (play-midi (car c) 50 dd 2)
-      (mapcar 
-       (lambda (x) (play-midi x 60 (+ -.1 dd) 1))
-       c)
-;;      (callback (+ time dd) #'f (+ time dd))
-      )))
+;; (midihelper:send-event (midihelper:ev-pgmchange 1 5))
+;; (midihelper:send-event (midihelper:ev-pgmchange 1 52))
+;; (midihelper:send-event (midihelper:ev-pgmchange 2 101))
 
-(f (quant 4))
+;; With Incudine scheduler
+;; FIX #[] usage
+(defgeneric play-midi (time note velocity duration channel))
+(defmethod play-midi (time note velocity duration channel))
+(defmethod play-midi ((time double-float)
+                      (note fixnum)
+                      (velocity fixnum)
+                      (duration number)
+                      (channel fixnum))
+  (at time #'midihelper:send-event (midihelper:ev-noteon channel note velocity))
+  (at (+ time #[duration b])
+      #'midihelper:send-event
+      (midihelper:ev-noteoff channel note velocity)))
 
-(midihelper:send-event (midihelper:ev-pgmchange 1 5))
-(midihelper:send-event (midihelper:ev-pgmchange 1 52))
+(defmethod play-midi ((time double-float)
+                      (note list)
+                      (velocity fixnum)
+                      (duration number)
+                      (channel fixnum))
+  (mapcar (lambda (x) (play-midi time x 1 duration channel))
+          note))
+;;--------------------------------------------------
+(defgeneric play-midi-arp (time note velocity duration channel offset))
+(defmethod play-midi-arp  (time note velocity duration channel offset))
+(defmethod play-midi-arp  ((time double-float)
+                           (note fixnum)
+                           (velocity fixnum)
+                           (duration number)
+                           (channel fixnum)
+                           (offset number))
+  (play-midi time note velocity duration channel))
 
-(midihelper:send-event (midihelper:ev-pgmchange 2 101))
+(defmethod play-midi-arp  ((time double-float)
+                           (note list)
+                           (velocity fixnum)
+                           (duration number)
+                           (channel fixnum)
+                           (offset number))
+  (let* ((lnotes  (length note))
+         (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+    (mapcar
+     (lambda (n o) (play-midi (+ time (* *sample-rate* (* (sample o) (spb *tempo*))))
+                         n velocity duration channel))
+            note
+            offsets)))
 
-;; stolen from cl-patterns
-(defun play-midi (note velocity duration channel)
-  (let* ((time (local-time:timestamp+ (local-time:now)
-                                      1000000000
-                                      :nsec)))
-    (bt:make-thread
-     (lambda ()
-       ;; (sleep (local-time:timestamp-difference time (local-time:now)))
-       (midihelper:send-event (midihelper:ev-noteon channel note velocity))
-       (sleep duration)
-       (midihelper:send-event (midihelper:ev-noteoff channel note velocity)))
-     :name "cl-patterns temporary midi note thread")))
-
+(defmethod play-midi-arp  ((time double-float)
+                           (note list)
+                           (velocity fixnum)
+                           (duration list)
+                           (channel fixnum)
+                           (offset list))
+  (mapcar
+   (lambda (n d o) (play-midi (+ time (* *sample-rate* (* (sample o) (spb *tempo*))))
+                         n velocity d channel))
+   note
+   duration
+   offset))

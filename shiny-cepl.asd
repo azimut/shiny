@@ -21,6 +21,7 @@
                #:nineveh)
   :components ((:file "cepl/package")
                (:file "lib/assets")
+               (:file "lib/misc-gpu")
                (:file "lib/musicutils")
                (:file "lib/extempore")
                (:file "lib/overtone")

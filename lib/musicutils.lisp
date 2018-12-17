@@ -16,6 +16,10 @@
   (loop :for x :in l :with z = 0
      :collect (incf z x)))
 
+(defun d2o (l)
+  "durations to offsets"
+  (append (list 0f0) (cumsum (cdr l))))
+
 (setf *random-state* (make-random-state t))
 
 ;; https://stackoverflow.com/questions/6158990/generating-randoms-numbers-in-a-certain-range-for-common-lisp
@@ -73,10 +77,11 @@
 ;; functional-composition
 ;; https://github.com/ctford/functional-composition
 ;; ----------------------
+(declaim (inline midihz))
 (defun midihz (midi)
-  (declare (number midi))
-  (* 8.1757989156
-     (expt 2 (/ midi 12))))
+  (declare (fixnum midi) (optimize (speed 3)))
+  (* 8.1757989156f0
+     (expt 2 (* midi .0833333f0))))
 
 ;; ---------------------
 ;; https://en.wikipedia.org/wiki/Musical_note
@@ -310,3 +315,34 @@ See also: `pbjorklund'"
      :with queue
      :do (push e queue)
      :finally (return (append (reverse queue) (subseq queue 1)))))
+
+;;--------------------------------------------------
+
+(defgeneric extend (n &rest nths))
+(defmethod extend ((n list) &rest nths)
+  "Extends list of notes, using last value
+   >(extend '(68 71 75 85) 5)
+   (68 71 75 85 90)"
+  (declare (list nths) (optimize (speed 3)))
+  (let ((l (car (last n))))
+    (append (butlast n) (apply #'extend l nths))))
+
+(defmethod extend ((n fixnum) &rest nths)
+  "Extends note into a list with given offsets, using last value
+   > (extend (+ -12 50) 12 6)
+   (38 50 44)"
+  (declare (fixnum n) (list nths) (optimize (speed 3)))
+  (let ((notes
+         (mapcar (lambda (x) (the fixnum (+ (the fixnum n) (the fixnum x)))) nths)))
+    (push n notes)))
+
+(defgeneric pc-extend (n pc &rest nths))
+(defmethod pc-extend ((n fixnum) (pc list) &rest nths)
+  (declare (optimize (speed 3)))
+  (let ((notes
+         (mapcar (lambda (x) (pc-relative n x pc)) nths)))
+    (push n notes)))
+
+(defmethod pc-extend ((n list) (pc list) &rest nths)
+  (let ((l (car (last n))))
+    (append (butlast n) (apply #'pc-extend l nths))))
