@@ -1,6 +1,13 @@
 (in-package :shiny)
 
 (defvar *actors* nil)
+(defparameter *light-pos* (v! -60 100 -50)
+  ;;(v! 0 10 -40)
+  )
+(defparameter *light-color* (v! .9 .9 .9))
+(defparameter *sun-intensity* 10f0)
+(defparameter *exposure* .5f0)
+(defparameter *radius-planet* 16000000f0)
 
 (defun update-all-the-things (l)
   (declare (list l))
@@ -13,12 +20,13 @@
             (q:to-mat4 rot))))
 
 (defun delete-actor-name (actor-name)
-  (declare (keyword actor-name))
+  (declare (symbol actor-name))
   (setf *actors*
         (delete-if
          (lambda (x) (eq actor-name (slot-value x 'name)))
          *actors*))
   NIL)
+
 (defun delete-actor-class (class-name)
   (declare (string class-name))
   (setf *actors*
@@ -50,33 +58,48 @@
   ((buf :initform (lattice 50 50 2 2))
    (tex :initform (get-tex "static/checker.dds"))))
 
-(defclass clouds (actor)
-  ((buf :initform (lattice 50 50 2 2))))
 
 (defclass box (actor)
   ((buf :initform (box 2 2 2))))
+
+
+
 (defclass sphere (actor)
   ((buf :initform (sphere 1))))
 
-(defun make-clouds ()
-  (let ((obj (make-instance
-              'clouds
-              :pos (v! 0 10 0)
-              :rot (q:from-axis-angle (v! 1 0 0)
-                                      (radians -180)))))
-    (push obj *actors*)
-    obj))
-(defun make-pbr (&optional (pos (v! 0 0 0)))
+
+(defun make-pbr (&optional (pos (v! 0 0 0)) (rot (q:identity)))
   (let ((obj
          (make-instance
           'pbr
-          :buf (lattice 100 100 2 2 t)
+          :buf (lattice 200 200 2 2 t)
           :pos pos
+          :rot rot
           :albedo (get-tex "static/32.Rock01-1k/rock01_albedo.jpg" nil t :rgb8)
           :ao (get-tex "static/32.Rock01-1k/rock01_ao.jpg" nil t :r8)
           :height (get-tex "static/32.Rock01-1k/rock01_height.jpg" nil t :r8)
           :normal (get-tex "static/32.Rock01-1k/rock01_normal.jpg" nil t :rgb8)
           :roughness (get-tex "static/32.Rock01-1k/rock01_roughness.jpg" nil t :r8))))
+    (push obj *actors*)
+    obj))
+
+(defclass planet (actor)
+  ((buf :initform (sphere))
+   (albedo :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_albedo.jpg" nil t :rgb8))
+   (ao :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_ao.jpg" nil t :r8))
+   (height :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_height.jpg" nil t :r8))
+   (normal :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_normal.jpg" nil t :rgb8))
+   (roughness :initform (get-tex "static/16.Plasterwall02-1k/plasterwall02_roughness.jpg" nil t :r8))))
+
+(defun make-planet (&optional (pos (v! 0 0 0))
+                      (scale 1f0)
+                      (rot (q:identity)))
+  (let ((obj
+         (make-instance
+          'planet
+          :pos pos
+          :rot rot
+          :scale scale)))
     (push obj *actors*)
     obj))
 
@@ -89,9 +112,11 @@
   (let ((obj (make-instance 'box
                             :pos pos
                             :scale scale
-                            :buf (box 3 10 1))))
-    (push obj *actors*)
+                            :buf (box) ;;(box 3 10 1)
+                            )))
+    (appendf *actors* (list obj))
     obj))
+
 (defun make-sphere (&optional
                       (pos (v! 0 0 0))
                       (scale 1f0))
@@ -112,17 +137,45 @@
 
   )
 (defmethod update ((actor sphere))
-  (setf (pos actor) (v! 0 10 -40)))
+  (with-slots (pos) actor
+    (let* ((old-pos pos)
+           (time (* 1f0 (mynow)))
+           (new-pos (v! (+ -4  (* 4 (sin time)))
+                        0
+                        (+ 60 (- (* 10 (cos time))))))
+           ;;(new-pos (v! 0 0 0))
+           )
+      (setf pos new-pos)
+      (setf *light-pos* new-pos))))
+
 (defmethod update ((actor celestial-sphere))
-  (setf (rot actor)
-        (q:from-axis-angle (v! 0 1 0)
-                           (radians 90))))
-(defmethod update ((actor box))
-  ;;(setf (pos actor) (v! 0 0 -10))
-  ;; (setf (rot actor)
-  ;;       (q:from-axis-angle
-  ;;        (v! 1 1 1)
-  ;;        (radians (* 360 (sync (* .2 (mynow)))))))
+  ;;(setf (pos actor) (v! 0 0 0))
   )
-(defmethod update ((actor clouds)))
+(defmethod update ((actor planet))
+  (with-slots (pos name) actor
+    (v3:incf pos (v! 0 0 .5))
+    (setf *light-pos* pos)
+    (if (or (> (z pos) 100)
+            (> (y pos) 30))
+        (progn
+          (v3:decf pos (v! 0 .5 0))
+          ;;(delete-actor-name name)
+          )))
+  ;; (with-slots (pos scale) actor
+  ;;   (setf pos (v! (* -60 (cos (mynow))) (* 100 (sin (mynow))) -100))
+  ;;   ;;(setf pos (v! 0 0 10))
+  ;;   (setf *light-pos* pos)
+  ;;   (setf scale 10f0))
+  )
+
+(defmethod update ((actor box))
+  (with-slots (pos name) actor
+    (v3:incf pos (v! 0 0 .5))
+    (if (or (> (z pos) 100)
+            (> (y pos) 30))
+        (progn
+          (v3:decf pos (v! 0 .5 0))
+          ;;(delete-actor-name name)
+          ))))
+
 

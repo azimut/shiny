@@ -1,6 +1,7 @@
 (in-package :shiny)
 
 (defparameter *exposure* 1f0)
+
 (defun-g treat-uvs ((uv :vec2))
   (v! (x uv) (- 1.0 (y uv))))
 
@@ -131,29 +132,33 @@
                (time :float)
                (color :vec3)
                (cam-pos :vec3))
-  (let* ((light-pos *pointlight-pos*)
-         (light-color (v! 1 .7 .4))
-         (light-strength 1f0)         
-         ;;--------------------
-         (vec-to-light (- light-pos frag-pos))
-         (dir-to-light (normalize vec-to-light))
+  (let* (
          ;;--------------------
          (final-color color)
          (final-color
           (dir-light-apply final-color
-                           (v! 10 10 10)
-                           (v! 3000 1000 -1000)
+                           (v! 20 20 20)
+                           (v! 0 1000 1000)
                            frag-pos
                            frag-norm))
+         (final-color
+          (point-light-apply final-color
+                             (v! 10 10 10)
+                             *light-pos*
+                             frag-pos
+                             frag-norm
+                             1f0
+                             0.014 0.07))
          ;; (final-color (apply-fog final-color
          ;;                         (v! .5 .6 .7)
          ;;                         (length (- frag-pos cam-pos))
          ;;                         cam-pos
          ;;                         frag-pos))
-         ;; AO FAKE
-         (final-color (mix final-color
-                           (v! 0 0 0)
-                           (- 1 (vec3 (y (- frag-pos (v! 0 -2 0)))))))
+         ;; AO FAKE         
+         ;; (final-color (mix final-color
+         ;;                   (v! 0 0 0)
+         ;;                   (* (vec3 (y (- frag-pos (v! 0 -2 0))))
+         ;;                      (vec3 (y (- frag-pos (v! 0  0)))))))
          ;; (fog (get-exponential-height-fog
          ;;       frag-pos
          ;;       cam-pos
@@ -175,7 +180,7 @@
          ;;   cam-pos
          ;;   0 1000))
          )
-    (values final-color
+    (values (v! final-color 1)
             (v! 0 1 0 1))))
 
 ;;--------------------------------------------------
@@ -218,28 +223,19 @@
                      (frag-pos :vec3)
                      &uniform
                      (cam-pos :vec3)
-                     (color :vec3)
-                     (time :float))
-  (let* ((color (v! .2 .1 .8))
-         ;; (color (smoothstep color
-         ;;                    (v! 0 0 0)
-         ;;                    (vec3 (+ .4 (* .6 (- 1 (y uv)))))))
-         ;;(color (+ color (* .06 (nineveh.noise:perlin-noise frag-pos))))
-         )
-    (v! color 1)
-    ;; (atmosphere (normalize frag-pos)
-    ;;           (v! 0 6372000 0)
-    ;;           ;;(v! 10 500 -1000)
-    ;;           (v! 0 40 -60)
-    ;;           22f0
-    ;;           6371000f0
-    ;;           6471000f0
-    ;;           (v! .0000055 .000013 .0000224)
-    ;;           .000021
-    ;;           8000f0
-    ;;           1200f0
-    ;;           .758)
-    ))
+                     (light-pos :vec2)
+                     (color :vec3))
+  (atmosphere (normalize frag-pos)
+              (v! 0 6372000 0)
+              (v! 0 0 -100)
+              *sun-intensity*
+              *radius-planet*
+              6471000f0
+              (v! .0000055 .000013 .0000224)
+              .000021
+              8000f0 ;; rayleigh scale height
+              1200   ;; mie scale height
+              .758))
 
 (defpipeline-g light-pipe ()
   :vertex (vert g-pnt)
@@ -340,45 +336,15 @@
 ;;          )
 ;;     (v! final-color 1)))
 
-
-
-(defun-g pbr-frag ((uv :vec2)
-                   (frag-norm :vec3)
-                   (frag-pos :vec3)
-                   (tbn :mat3)
-                   (tan-light-pos :vec3)
-                   (tan-cam-pos :vec3)
-                   (tan-frag-pos :vec3)                   
-                   &uniform
-                   (time :float)
-                   (cam-pos :vec3)
-                   (ao-map :sampler-2d)
-                   (rough-map :sampler-2d)
-                   (albedo :sampler-2d)
-                   (height-map :sampler-2d)
-                   (normal-map :sampler-2d))
-  (let* ((uv (treat-uvs uv))
-         (uv (* uv 2))
-         (roughness (x (texture rough-map uv)))
-         (ao (x (texture ao-map uv)))         
-         (color (expt (s~ (texture albedo uv) :xyz) (vec3 2.2)))
-         (color (* color (v! 1 .2 .1)))
-         (normal (normalize (norm-from-map normal-map uv)))
-         (normal (normalize (* tbn normal)))
-         ;; (light-pos (v! (+ -10 (* 20 (+ .5 (* .5 (sin time)))))
-         ;;                1
-         ;;                (+ -10 (* 20 (+ .5 (* .5 (cos time)))))))
-         (light-pos (v! 0 1000 -1000))
-         ;; metallic
-         (metallic .1f0)
-         (f0 (vec3 .04))
-         ;;(f0 color)
-         (f0 (mix f0 color metallic))
-         ;; pbr - reflectance equation
-         (lo (vec3 0f0))
-         (n normal)
-         (v (normalize (- cam-pos frag-pos)))
-         (l (normalize (- light-pos frag-pos)))
+(defun-g pbr-direct-lum ((light-pos :vec3)
+                         (frag-pos :vec3)
+                         (v :vec3)
+                         (n :vec3)
+                         (roughness :float)
+                         (f0 :vec3)
+                         (metallic :float)
+                         (color :vec3))
+  (let* ((l (normalize (- light-pos frag-pos)))
          (h (normalize (+ v l)))
          (distance (length (- light-pos frag-pos)))
          ;;(attenuation (/ 1 (* distance distance)))
@@ -401,30 +367,164 @@
          (specular (/ numerator denominator))
          ;; add to outgoing radiance lo
          (n-dot-l (max (dot n l) 0))
+         (lo (* (+ specular (/ (* kd color) 3.14159265359))
+                radiance
+                n-dot-l)))
+    lo))
+
+(defun-g pbr-point-lum ((light-pos :vec3)
+                         (frag-pos :vec3)
+                         (v :vec3)
+                         (n :vec3)
+                         (roughness :float)
+                         (f0 :vec3)
+                         (metallic :float)
+                         (color :vec3))
+  (let* ((l (normalize (- light-pos frag-pos)))
+         (h (normalize (+ v l)))
+         (distance (length (- light-pos frag-pos)))
+         (attenuation (/ 1f0 (* distance distance)))
+         (radiance (* (v! 10 10 10)  attenuation
+                      ))
+         ;; pbr - cook-torrance brdf
+         (ndf (distribution-ggx n h roughness))
+         (g (geometry-smith n v l roughness))
+         (f (fresnel-schlick (max (dot h v) 0) f0))
+         ;;
+         (ks f)
+         (kd (- 1 ks))
+         (kd (* kd (- 1 metallic)))
+         ;;
+         (numerator (* ndf g f))
+         (denominator (+ .001
+                         (* (max (dot n v) 0)
+                            (max (dot n l) 0)
+                            4)))
+         (specular (/ numerator denominator))
+         ;; add to outgoing radiance lo
+         (n-dot-l (max (dot n l) 0))
          (lo (* (+ specular (/ (* kd color) 3.141516))
                 radiance
-                n-dot-l))
-         ;;
+                n-dot-l)))
+    lo))
+
+(defun-g pbr-frag ((uv :vec2)
+                   (frag-norm :vec3)
+                   (frag-pos :vec3)
+                   (tbn :mat3)
+                   (tan-light-pos :vec3)
+                   (tan-cam-pos :vec3)
+                   (tan-frag-pos :vec3)
+                   &uniform
+                   (oclussion-factor :vec4)
+                   (light-pos :vec3)
+                   (time :float)
+                   (color-mult :float)
+                   (cam-pos :vec3)
+                   (ao-map :sampler-2d)
+                   (rough-map :sampler-2d)
+                   (albedo :sampler-2d)
+                   (height-map :sampler-2d)
+                   (normal-map :sampler-2d)
+                   (uv-repeat :float)
+                   (uv-speed :float))
+  (let* (;;(uv (treat-uvs uv))
+         (uv (+ (* uv uv-repeat)
+                (v! 0 (* uv-speed time))))
+         (roughness (x (texture rough-map uv)))
+         (ao        (x (texture ao-map uv)))         
+         (color (* color-mult (expt (s~ (texture albedo uv) :xyz)
+                       (vec3 2.2))))
+         (color (* color (v! .4 .1 .9)))
+         (normal (normalize (norm-from-map normal-map uv)))
+         (normal (normalize (* tbn normal)))
+         ;; (light-pos (v! (+ -10 (* 20 (+ .5 (* .5 (sin time)))))
+         ;;                1
+         ;;                (+ -10 (* 20 (+ .5 (* .5 (cos time)))))))
+         ;; metallic
+         (metallic .1)
+         (f0 (vec3 .04))
+         ;;(f0 color)
+         (f0 (mix f0 color metallic))
+         ;; pbr - reflectance equation
+         (lo (vec3 0f0))
+         (n normal)
+         (v (normalize (- cam-pos frag-pos)))
+         ;; ---------- START
+         ;; (l (normalize (- light-pos frag-pos)))
+         ;; (h (normalize (+ v l)))
+         ;; (distance (length (- light-pos frag-pos)))
+         ;; ;;(attenuation (/ 1 (* distance distance)))
+         ;; (attenuation 1f0)
+         ;; (radiance (* (v! 5 5 5) attenuation))
+         ;; ;; pbr - cook-torrance brdf
+         ;; (ndf (distribution-ggx n h roughness))
+         ;; (g (geometry-smith n v l roughness))
+         ;; (f (fresnel-schlick (max (dot h v) 0) f0))
+         ;; ;;
+         ;; (ks f)
+         ;; (kd (- 1 ks))
+         ;; (kd (* kd (- 1 metallic)))
+         ;; ;;
+         ;; (numerator (* ndf g f))
+         ;; (denominator (+ .001
+         ;;                 (* (max (dot n v) 0)
+         ;;                    (max (dot n l) 0)
+         ;;                    4)))
+         ;; (specular (/ numerator denominator))
+         ;; ;; add to outgoing radiance lo
+         ;; (n-dot-l (max (dot n l) 0))
+         ;; (lo (* (+ specular (/ (* kd color) 3.141516))
+         ;;        radiance
+         ;;        n-dot-l))
+         ;; (lo (pbr-direct-lum
+         ;;      light-pos
+         ;;      frag-pos
+         ;;      v
+         ;;      n
+         ;;      roughness
+         ;;      f0
+         ;;      metallic
+         ;;      color))
+         (lo (+ lo (pbr-point-lum light-pos
+                                  frag-pos
+                                  v
+                                  n
+                                  roughness
+                                  f0
+                                  metallic
+                                  color)))
+         (lo (+ lo (pbr-direct-lum (v! 0 1000 1000)
+                                  frag-pos
+                                  v
+                                  n
+                                  roughness
+                                  f0
+                                  metallic
+                                  color)))
+         ;; ---------- END
          (ambient (* color ao (vec3 .03)))
          (final-color (+ ambient lo))
          ;; AO trickery
          ;;(final-color (vec3 (fract (length (- frag-pos (v! 0 0 -10))))))
-         (pos (- frag-pos (v! 0 0 -10)))
-         (size (/ (v! 3 10 1) 2))
-         (d (- (abs pos) size))
-         (final-color (mix final-color
-                           (v! .001 .001 .001)
-                           (- 1 (saturate (vec3 (length (max d 0)))))))
-         ;; (final-color
-         ;;  (fog-linear-apply
-         ;;   final-color
-         ;;   (v! .7 .6 .5)
-         ;;   frag-pos
-         ;;   cam-pos
-         ;;   0 1000))
-         )
+         ;; (pos (- frag-pos (v! 0 0 -10)))         
+         ;; (size (/ (v! 3 10 1) 2))
+         ;; (d (- (abs pos) size))
+         ;; (final-color (mix final-color
+         ;;                   (v! .001 .001 .001)
+         ;;                   (- 1 (saturate (vec3 (length (max d 0)))))))
+         (final-color
+          (fog-exp2-apply
+           final-color
+           ;;(v! .4 .9 .9)
+           ;;(v! .1 .01 .01)
+           (v! 0 0 0)
+           frag-pos
+           cam-pos .003
+           ;;50 3000
+           )))
     (values (v! final-color 1)
-            (v! 0 1 0 1))))
+            oclussion-factor)))
 
 (defpipeline-g pbr-pipe ()
   :vertex (vert-with-tbdata g-pnt tb-data)
@@ -440,33 +540,10 @@
                                (x in-cloud-min-max)))))
     (saturate height-fraction)))
 
-(defun-g clouds-frag ((uv :vec2)
-                      (frag-norm :vec3)
-                      (frag-pos :vec3)
-                      &uniform
-                      (time :float))
-  (atmosphere (normalize frag-pos)
-              (v! 0 6372000 0)
-              (v! 0 -0 -100)
-              22f0
-              6371000f0
-              6471000f0
-              (v! .0000055 .000013 .0000224)
-              .000021
-              8000f0
-              1200
-              .758))
-
-(defpipeline-g clouds-pipe ()
-  :vertex (vert g-pnt)
-  :fragment (clouds-frag :vec2 :vec3 :vec3))
-
 ;;--------------------------------------------------
 ;; God
 (defpipeline-g god-rays-pipe (:points)
   :fragment (god-rays-frag :vec2))
-
-
 
 (defun-g circle-frag ((uv :vec2)
                       (frag-norm :vec3)

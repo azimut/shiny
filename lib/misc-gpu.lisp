@@ -1,5 +1,18 @@
 (in-package :shiny)
 
+;; Range Constant Linear Quadratic
+;; 3250, 1.0, 0.0014, 0.000007
+;; 600, 1.0, 0.007, 0.0002
+;; 325, 1.0, 0.014, 0.0007
+;; 200, 1.0, 0.022, 0.0019
+;; 160, 1.0, 0.027, 0.0028
+;; 100, 1.0, 0.045, 0.0075
+;; 65, 1.0, 0.07, 0.017
+;; 50, 1.0, 0.09, 0.032
+;; 32, 1.0, 0.14, 0.07
+;; 20, 1.0, 0.22, 0.20
+;; 13, 1.0, 0.35, 0.44
+;; 7, 1.0, 0.7, 1.8
 (defun-g point-light-apply ((color :vec3)
                             (light-color :vec3)
                             (light-pos :vec3)
@@ -359,8 +372,8 @@
                      (sh-rlh :float)
                      (sh-mie :float)
                      (g :float))
-  (let* ((i-steps 16)
-         (j-steps 8)
+  (let* ((i-steps 3) ;; 16
+         (j-steps 2) ;; 8
          (pi 3.141592)
          ;; Normalize the sun and view directions
          (p-sun (normalize p-sun))
@@ -500,9 +513,14 @@
                            &uniform
                            (sam-god :sampler-2d)
                            (sam :sampler-2d))
-  (mix (texture sam uv)
-       (texture sam-god uv)
-       .4))
+  (let* ((color (mix (s~ (texture sam uv) :xyz)
+                     (* *light-color* (s~ (texture sam-god uv) :xyz))
+                     .1))
+         ;; (color (+ (s~ (texture sam uv) :xyz)
+         ;;           (* *light-color* (s~ (texture sam-god uv) :xyz))))
+         (ldr (nineveh.tonemapping:tone-map-reinhard color *exposure*))
+         (luma (rgb->luma-bt601 ldr)))
+    (v! ldr luma)))
 
 (defpipeline-g combine-god-pipe (:points)
   :fragment (combine-god-frag :vec2))
@@ -530,11 +548,12 @@
          (obj (y color))
          (dtc (* (- uv sun-pos)
                  (/ 1f0 samples)))
-         (illumdecay 3f0)
+         (illumdecay .4f0)
          (dither (fbm-hash (+ uv (fract time)))))
     (dotimes (i samples)
       (decf uv dtc)
-      (let ((s (x (texture sam (+ (* dither dtc) uv)))))
+      (let ((s (x (texture sam (+ (* dither dtc)
+                                  uv)))))
         (multf s (* illumdecay weight))
         (incf occ s)
         (multf illumdecay decay)
@@ -558,6 +577,12 @@
                        cpos4))
          (w (w cpos4))
          (ndc (v4:/s cpos4 w)))
+    ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
+    (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
+                         (+ (* (x res) .5 ) 0))
+                      (+ (* (y res) .5 (y ndc))
+                         (+ (* (y res) .5))))
+                  res))
     
     ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
     ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
@@ -567,14 +592,7 @@
     ;;            ((w * 0.5) + view.x)
     ;; screen.y = ((view.h * 0.5) * ndc.y) +
     ;;            ((h * 0.5) + view.y)
-
-    ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
-    (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
-                         (+ (* (x res) .5 ) 0))
-                      (+ (* (y res) .5 (y ndc))
-                         (+ (* (y res) .5))))
-                  res))
-    
+    ;;
     ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
     ;;                            (/ (+ 1 (x ndc)) 2)))
     ;;                   (+ .5 (* (y res)
@@ -582,7 +600,6 @@
     ;;               res))
     ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
     ;;             (v! 1 1))
-    ;;       (v2:*s res .5))
-    
+    ;;       (v2:*s res .5))    
     ))
 

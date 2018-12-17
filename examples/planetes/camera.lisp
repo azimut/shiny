@@ -41,12 +41,12 @@
 
 (defmethod update ((camera orth))
   (setf (pos camera) (v! 0 0 0))
-  (setf (frame-size camera) (v2! 100))
+  (setf (frame-size camera) (v2! 30))
 ;;  (setf (rot camera) (v! 0 0 0))
   (setf (rot camera)
         ;; TOP
         (q:from-axis-angle (v! 1 0 0)
-                           (radians -90))
+                           (radians -40))
         ;; FRONT
         ;; (q:from-axis-angle (v! 1 0 0)
         ;;                    (radians -45))
@@ -58,17 +58,17 @@
 
 (defparameter *cam-vector* (v! 1 0 0))
 (defmethod update ((camera pers))
-  (with-slots (pos rot) camera
-    ;;(setf rot (q:identity))
-    (setf rot (q:*
-               (q:from-axis-angle (v! 1 0 0) (radians 10))
-               (q:from-axis-angle (v! 0 1 0)
-                                  (radians (* 40 (sin (* .2 (mynow))))))))
-    ;;(setf rot (q:from-axis-angle (v! 0 0 1) (radians 80)))
-    (setf pos (v! (* 0 (cos (* .5 (mynow))))
-                  (+ 4 (* .1 (sin (* .5 (mynow)))))
-                  (+ 10 (* 5 (cos (* .5 (mynow)))))
-                  ))
-    ;;(setf pos (v! 0 0 0))
-    ;;(setf rot (q:look-at (v! 0 1 0) pos (v! 0 -1 0)))
-    ))
+  (let ((time (mynow))) (with-slots (pos rot) camera
+     ;;(setf rot (q:identity))
+     (setf rot (q:*
+                (q:from-axis-angle (v! 1 0 0) (radians 10))
+                (q:from-axis-angle (v! 0 1 0)
+                                   (radians (* 20 (sin (* .2 time)))))))
+     ;;(setf rot (q:from-axis-angle (v! 0 0 1) (radians 80)))
+     (setf pos (v! (+ -10 (* 0 (cos (* .5 time))))
+                   (+ 22 (* .1 (sin (* .5 time))))
+                   (+ 100 (* 1 (cos (* .5 time))))
+                   ))
+     ;;(setf pos (v! 0 0 0))
+     ;;(setf rot (q:look-at (v! 0 1 0) pos (v! 0 -1 0)))
+     )))
