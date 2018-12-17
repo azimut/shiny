@@ -1,5 +1,8 @@
 (in-package :shiny)
 
+(defvar *light-color* (v! 1 1 1))
+(defvar *exposure* 1f0)
+
 ;; Range Constant Linear Quadratic
 ;; 3250, 1.0, 0.0014, 0.000007
 ;; 600, 1.0, 0.007, 0.0002
@@ -47,12 +50,23 @@
 ;;--------------------------------------------------
 ;; https://learnopengl.com/Advanced-Lighting/Normal-Mapping
 ;; "Pushing pixels" code
+
 (defun-g norm-from-map ((normal-map :sampler-2d)
                         (uv :vec2))
   (let* ((norm-from-map
           (s~ (texture normal-map uv) :xyz))
          (norm-from-map
-          (normalize (- (* norm-from-map 2.0) 1.0))))
+          (normalize (1- (* 2 norm-from-map)))))
+    (v! (x norm-from-map)
+        (y norm-from-map)
+        (z norm-from-map))))
+
+(defun-g norm-from-map-flipped ((normal-map :sampler-2d)
+                                (uv :vec2))
+  (let* ((norm-from-map
+          (s~ (texture normal-map uv) :xyz))
+         (norm-from-map
+          (normalize (1- (* 2 norm-from-map)))))
     (v! (x norm-from-map)
         (- 1 (y norm-from-map))
         (z norm-from-map))))
@@ -71,7 +85,9 @@
 
 ;;--------------------------------------------------
 ;; https://catlikecoding.com/unity/tutorials/rendering/part-14/
-;; These ones return a "fog-factor" number based on the DISTANCE
+;; (Euclidean) Distance (aka radial/range) based fog:
+;; more realistic and expensive than using depth
+;; TODO: add depth and defered fog versions
 
 (defun-g fog-linear ((frag-pos :vec3)
                      (cam-pos :vec3)
@@ -108,10 +124,7 @@
                            (cam-pos :vec3)
                            (start :float)
                            (end :float))
-  (let* ((view-distance (length (- cam-pos frag-pos)))
-         (fog-factor
-          (+ (* view-distance (/ -1 (- end start)))
-             (/ end (- end start)))))
+  (let ((fog-factor (fog-linear frag-pos cam-pos start end)))
     (mix fog-color color (saturate fog-factor))))
 
 (defun-g fog-exp-apply ((color :vec3)
@@ -119,9 +132,7 @@
                         (frag-pos :vec3)
                         (cam-pos :vec3)
                         (density :float))
-  (let* ((view-distance (length (- frag-pos cam-pos)))
-        (fog-factor
-         (exp2 (- (* view-distance (/ density (log 2)))))))
+  (let ((fog-factor (fog-exp frag-pos cam-pos density)))
     (mix fog-color color (saturate fog-factor))))
 
 (defun-g fog-exp2-apply ((color :vec3)
@@ -129,11 +140,7 @@
                          (frag-pos :vec3)
                          (cam-pos :vec3)
                          (density :float))
-  (let* ((view-distance (length (- frag-pos cam-pos)))
-         (fog-density
-          (* (/ density (sqrt (log 2))) view-distance))
-         (fog-factor
-          (exp2 (- (* fog-density fog-density)))))
+  (let ((fog-factor (fog-exp2 frag-pos cam-pos density)))
     (mix fog-color color (saturate fog-factor))))
 
 ;;--------------------------------------------------
@@ -250,16 +257,16 @@
                            (roughness :float))
   (let* ((a  (* roughness roughness))
          (a2 (* a a))
-         (n-dot-h (max (dot n h) 0))
+         (n-dot-h  (max (dot n h) 0))
          (n-dot-h2 (* n-dot-h n-dot-h))
          (num a2)
          (denom (+ 1 (* n-dot-h2 (- a2 1))))
-         (denom (* 3.141516 denom denom)))
+         (denom (* +PI+ denom denom)))
     (/ num denom)))
 
 (defun-g geometry-schlick-ggx ((n-dot-v :float)
                                (roughness :float))
-  (let* ((r (+ 1 roughness))
+  (let* ((r (1+ roughness))
          (k (/ (* r r) 8))
          (num n-dot-v)
          (denom (+ (* n-dot-v (- 1 k))
@@ -374,7 +381,7 @@
                      (g :float))
   (let* ((i-steps 3) ;; 16
          (j-steps 2) ;; 8
-         (pi 3.141592)
+         (pi +PI+)
          ;; Normalize the sun and view directions
          (p-sun (normalize p-sun))
          (r (normalize r))
@@ -508,7 +515,6 @@
   (fract
    (* (sin (dot p (v! 41 289)))
       45758.5453)))
-
 (defun-g combine-god-frag ((uv :vec2)
                            &uniform
                            (sam-god :sampler-2d)
