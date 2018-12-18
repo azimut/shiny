@@ -224,3 +224,16 @@
                        (assimp-mesh-bitangent a) bt
                        (assimp-mesh-uv a) (v! (x tc) (y tc)))))
         (make-buffer-stream v-arr :index-array i-arr)))))
+
+;;--------------------------------------------------
+;; Cubemap
+
+(defun make-cubemap-tex (&rest paths)
+  "Returns a gpu texture from the provided images"
+  (assert (= 6 (length paths)))
+  (with-c-arrays-freed
+      (ca (mapcar (lambda (p)
+                    (dirt:load-image-to-c-array
+                     (asdf:system-relative-pathname :shiny p)))
+                  paths))
+    (make-texture ca :element-type :rgb8 :cubes t)))
