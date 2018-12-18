@@ -1,0 +1,5 @@
+* Code for ["burnout"](https://www.youtube.com/watch?v=TcabByrOzow)
+* PBR code from [learnopengl](https://learnopengl.com/PBR/Theory), there is a bug somewhere on my point lighting...would probably need to redo it.
+* NOT USED - Some cheap AO trickery for the monolith. After seeing but not following (not knowing how) the "Inside" GDC talk.
+* Atmosphere scattering shader from [glsl-atmosphere](https://github.com/wwwtyro/glsl-atmosphere) that seems to follow the ideas from [frostbite talk](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf) but from other papers ... kind of wish there was a no physics version of it...it should be just a simple fragment shader...but I guess I won't be so easily parametizable and render and coherent effects.
+* God Rays with dithering from [shadertoy](https://www.shadertoy.com/view/4dyXWy) (with some shitty 3d space to screenspace conversion) but using hash noise instead of a texture. Kind of like the thing they have in Inside only they used blue noise. Problem is that is screen based, no volumetric so when is behind something it gets hide.
