@@ -44,6 +44,12 @@
    (color :initarg :color :initform (v! 1 0 0))
    (scale :initarg :scale :initform 1f0)))
 
+(defclass cubemap (actor) ())
+(defun make-cubemap ()
+  (let ((obj (make-instance 'cubemap)))
+    (push obj *actors*)
+    obj))
+
 (defclass pbr-simple (actor) ())
 
 (defclass pbr (actor)
@@ -76,7 +82,7 @@
   (let ((obj
          (make-instance
           'pbr-simple
-          :buf (box 2 4 1)
+          :buf (box 2 4 .5)
           :pos pos)))
     (push obj *actors*)
     obj))
@@ -97,10 +103,10 @@
 (defmethod update ((actor pbr-simple))
   
   (with-slots (pos rot color) actor
-    (setf color (v! .005 .005 .005))
+    (setf color (v! .001 .001 .001))
     (setf rot (q:from-axis-angle (v! 1 .2 .8)
                                  (radians (* 360 (sin (* .2 (mynow)))))))
-    (setf pos (v! 0 0 40))))
+    (setf pos (v! 0 0 -4))))
 (defmethod update ((actor box)))
 
 

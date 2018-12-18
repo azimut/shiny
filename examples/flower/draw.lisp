@@ -37,7 +37,6 @@
            :world-view (world->view camera)
            :view-clip  (projection camera))))
 
-
 (defmethod draw ((actor pbr-simple) camera)
   (with-slots (buf scale color) actor
     (map-g #'pbr-simple-pipe buf
@@ -50,3 +49,13 @@
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))
+
+
+(defmethod draw ((actor cubemap) camera)
+  (with-slots (buf) actor
+    (with-setf* ((cull-face) :front
+                 (depth-test-function) #'<=)
+      (map-g #'cubemap-pipe buf
+             :tex *s-cubemap*
+             :mod-clip (m4:* (projection camera)
+                             (world->view camera))))))

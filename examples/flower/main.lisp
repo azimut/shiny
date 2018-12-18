@@ -4,7 +4,20 @@
 (defvar *sam* nil)
 (defvar *bs* nil)
 
+(defvar *t-cubemap* nil)
+(defvar *s-cubemap* nil)
+
 (defun initialize ()
+  (unless *t-cubemap*
+    (setf *t-cubemap*
+          (make-cubemap-tex
+           "static/ThickCloudsWater/left.png"
+           "static/ThickCloudsWater/right.png"
+           "static/ThickCloudsWater/up.png"
+           "static/ThickCloudsWater/down.png"
+           "static/ThickCloudsWater/front.png"
+           "static/ThickCloudsWater/back.png"))
+    (setf *s-cubemap* (cepl:sample *t-cubemap*)))
   ;;--------------------------------------------------
   ;; Buffer stream for single stage pipelines
   (unless *bs* (setf *bs* (make-buffer-stream nil :primitive :points)))
@@ -19,8 +32,9 @@
   (setf (clear-color) (v! 0 0 0 1))
   ;;--------------------------------------------------
   (setf *actors* nil)
-  (make-pbr (v! 0 -2 0))
-  (make-pbr-simple (v! 0 -2 -30))
+  ;;(make-pbr (v! 0 -2 0))
+  (make-cubemap)
+  (make-pbr-simple)
   NIL)
 
 (defun draw! ()

@@ -288,13 +288,13 @@
   (let* (;; First change UV, then parallax!
          (uv (treat-uvs uv))
          (normal (normalize frag-norm))
-         (roughness .01)
+         (roughness .8f0)
          (ao        1f0)         
          (color color)
          ;;----------------------------------------
          ;; PBR
          ;; metallic
-         (metallic .999)
+         (metallic .1)
          (f0 (vec3 .04))
          (f0 color)
          ;;(f0 (mix f0 color metallic))
@@ -311,17 +311,17 @@
                                    f0
                                    metallic
                                    color)))
-         ;; (lo (+ lo (pbr-point-lum (+ (v! 0 0 40)
-         ;;                             (v! (* 2 (sin time))
-         ;;                                 0
-         ;;                                 (* 2 (cos time))))
-         ;;                          frag-pos
-         ;;                          v
-         ;;                          n
-         ;;                          roughness
-         ;;                          f0
-         ;;                          metallic
-         ;;                          color)))
+         (lo (+ lo (pbr-point-lum (+ (v! 0 0 0)
+                                     (v! (* 2 (sin time))
+                                         0
+                                         (* 2 (cos time))))
+                                  frag-pos
+                                  v
+                                  n
+                                  roughness
+                                  f0
+                                  metallic
+                                  color)))
          ;; ---------- END
          (ambient (* color ao (vec3 .03)))
          (final-color (+ ambient lo))
@@ -337,3 +337,27 @@
 (defpipeline-g pbr-simple-pipe ()
   :vertex (vert g-pnt)
   :fragment (pbr-simple-frag :vec2 :vec3 :vec3))
+;;--------------------------------------------------
+;; Cubemap
+;; Rendering order does not matter
+;; Use it with a 1x1x1 box AND
+;; depth-test-function #'<=
+(defun-g cubemap-vert ((g-pnt g-pnt)
+                       &uniform
+                       (mod-clip :mat4))
+  (let* ((pos3 (pos g-pnt))
+         (pos4 (v! pos3 1))
+         (cpos4 (* mod-clip pos4)))
+    (values (s~ cpos4 :xyww)
+            pos3)))
+
+(defun-g cubemap-frag ((tc :vec3)
+                       &uniform
+                       (tex :sampler-cube))
+  (v! (expt (s~ (texture tex tc) :xyz)
+            (vec3 2.2))
+      1f0))
+
+(defpipeline-g cubemap-pipe ()
+  (cubemap-vert g-pnt)
+  (cubemap-frag :vec3))
