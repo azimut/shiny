@@ -61,6 +61,7 @@
         (y norm-from-map)
         (z norm-from-map))))
 
+;; Sometimes "y" component is wrong on the normal map.
 (defun-g norm-from-map-flipped ((normal-map :sampler-2d)
                                 (uv :vec2))
   (let* ((norm-from-map
@@ -71,6 +72,11 @@
         (- 1 (y norm-from-map))
         (z norm-from-map))))
 
+;; ?
+;; From "pushing pixels" don't remember why it's needed
+(defun-g treat-uvs ((uv :vec2))
+  (v! (x uv) (- 1.0 (y uv))))
+
 ;;--------------------------------------------------
 ;; https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
 ;; vec3 viewDir   = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
@@ -79,9 +85,21 @@
                            (depth-map :sampler-2d)
                            (height-scale :float))
   (let* ((height (x (texture depth-map uv)))
-         (p      (* (/ (s~ view-dir :xy) (z view-dir))
-                    (* height height-scale))))
+         (p      (* (* height height-scale)
+                    (/ (s~ view-dir :xy)
+                       (z view-dir)))))
     (- uv p)))
+
+;; https://catlikecoding.com/unity/tutorials/rendering/part-20/
+;; Limit lenght of 1
+(defun-g parallax-mapping-offset ((uv :vec2)
+                                  (view-dir :vec3)
+                                  (depth-map :sampler-2d)
+                                  (height-scale :float))
+  (let* ((height (x (texture depth-map uv)))
+         (height (- height .5))
+         (p      (* height height-scale)))
+    (+ uv (* (s~ view-dir :xy) p))))
 
 ;;--------------------------------------------------
 ;; https://catlikecoding.com/unity/tutorials/rendering/part-14/
@@ -282,6 +300,76 @@
          (ggx2 (geometry-schlick-ggx n-dot-v roughness))
          (ggx1 (geometry-schlick-ggx n-dot-l roughness)))
     (* ggx1 ggx2)))
+
+(defun-g pbr-direct-lum ((light-pos :vec3)
+                         (frag-pos :vec3)
+                         (v :vec3)
+                         (n :vec3)
+                         (roughness :float)
+                         (f0 :vec3)
+                         (metallic :float)
+                         (color :vec3))
+  (let* ((l (normalize (- light-pos frag-pos)))
+         (h (normalize (+ v l)))
+         (distance (length (- light-pos frag-pos)))
+         (radiance (v! 5 5 5))
+         ;; pbr - cook-torrance brdf
+         (ndf (distribution-ggx n h roughness))
+         (g (geometry-smith n v l roughness))
+         (f (fresnel-schlick (max (dot h v) 0) f0))
+         ;;
+         (ks f)
+         (kd (- 1 ks))
+         (kd (* kd (- 1 metallic)))
+         ;;
+         (numerator (* ndf g f))
+         (denominator (+ .001
+                         (* (max (dot n v) 0)
+                            (max (dot n l) 0)
+                            4)))
+         (specular (/ numerator denominator))
+         ;; add to outgoing radiance lo
+         (n-dot-l (max (dot n l) 0))
+         (lo (* (+ specular (/ (* kd color) +PI+))
+                radiance
+                n-dot-l)))
+    lo))
+
+(defun-g pbr-point-lum ((light-pos :vec3)
+                         (frag-pos :vec3)
+                         (v :vec3)
+                         (n :vec3)
+                         (roughness :float)
+                         (f0 :vec3)
+                         (metallic :float)
+                         (color :vec3))
+  (let* ((l (normalize (- light-pos frag-pos)))
+         (h (normalize (+ v l)))
+         (distance (length (- light-pos frag-pos)))
+         (attenuation (/ 1f0 (* distance distance)))
+         (radiance (* (v! 10 10 10)  attenuation
+                      ))
+         ;; pbr - cook-torrance brdf
+         (ndf (distribution-ggx n h roughness))
+         (g (geometry-smith n v l roughness))
+         (f (fresnel-schlick (max (dot h v) 0) f0))
+         ;;
+         (ks f)
+         (kd (- 1 ks))
+         (kd (* kd (- 1 metallic)))
+         ;;
+         (numerator (* ndf g f))
+         (denominator (+ .001
+                         (* (max (dot n v) 0)
+                            (max (dot n l) 0)
+                            4)))
+         (specular (/ numerator denominator))
+         ;; add to outgoing radiance lo
+         (n-dot-l (max (dot n l) 0))
+         (lo (* (+ specular (/ (* kd color) +PI+))
+                radiance
+                n-dot-l)))
+    lo))
 
 ;;--------------------------------------------------
 ;; Billboarding
@@ -515,6 +603,7 @@
   (fract
    (* (sin (dot p (v! 41 289)))
       45758.5453)))
+
 (defun-g combine-god-frag ((uv :vec2)
                            &uniform
                            (sam-god :sampler-2d)
