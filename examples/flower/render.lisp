@@ -214,7 +214,8 @@
   (let* (;; First change UV, then parallax!
          ;;(uv (treat-uvs uv))
          (uv (+ (* uv uv-repeat)
-                (v! 0 (* uv-speed time))))         
+         ;;       (v! 0 (* uv-speed time))
+                ))         
          (uv (parallax-mapping-offset
               uv
               (normalize (- tan-cam-pos tan-frag-pos))
@@ -247,26 +248,26 @@
                                    f0
                                    metallic
                                    color)))
-         (lo (+ lo (pbr-point-lum (v! (* 5 (sin time))
-                                      0
-                                      (* 5 (cos time)))
+         ;; (lo (+ lo (pbr-point-lum (v! (* 5 (sin time))
+         ;;                              0
+         ;;                              (* 5 (cos time)))
                                   
-                                  frag-pos
-                                  v
-                                  n
-                                  roughness
-                                  f0
-                                  metallic
-                                  color)))
+         ;;                          frag-pos
+         ;;                          v
+         ;;                          n
+         ;;                          roughness
+         ;;                          f0
+         ;;                          metallic
+         ;;                          color)))
          ;; ---------- END
          (ambient (* color ao (vec3 .03)))
          (final-color (+ ambient lo))
          ;; Fog
          (final-color
           (fog-exp2-apply final-color
-                          (v! 0 0 0)
+                          (v! .6 .2 .2)
                           frag-pos
-                          cam-pos .03)))
+                          cam-pos .04)))
     (v! final-color 1)))
 
 (defpipeline-g pbr-pipe ()
@@ -303,7 +304,7 @@
          (v (normalize (- cam-pos frag-pos)))
          (lo (vec3 0f0))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 1000 2000 5000)
+         (lo (+ lo (pbr-direct-lum (v! 100 200 500)
                                    frag-pos
                                    v
                                    n
@@ -311,17 +312,17 @@
                                    f0
                                    metallic
                                    color)))
-         (lo (+ lo (pbr-point-lum (+ (v! 0 0 0)
-                                     (v! (* 2 (sin time))
-                                         0
-                                         (* 2 (cos time))))
-                                  frag-pos
-                                  v
-                                  n
-                                  roughness
-                                  f0
-                                  metallic
-                                  color)))
+         ;; (lo (+ lo (pbr-point-lum (+ (v! 0 0 0)
+         ;;                             (v! (* 2 (sin time))
+         ;;                                 0
+         ;;                                 (* 2 (cos time))))
+         ;;                          frag-pos
+         ;;                          v
+         ;;                          n
+         ;;                          roughness
+         ;;                          f0
+         ;;                          metallic
+         ;;                          color)))
          ;; ---------- END
          (ambient (* color ao (vec3 .03)))
          (final-color (+ ambient lo))
