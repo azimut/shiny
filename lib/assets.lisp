@@ -8,6 +8,21 @@
   (/ (get-internal-real-time)
      1000f0))
 
+;;--------------------------------------------------
+;; From cepl.tests
+
+(defmacro with-free (name thing &body body)
+  (let ((name (or name (gensym "thing"))))
+    `(let ((,name ,thing))
+       (unwind-protect (progn ,@body)
+         (free ,name)))))
+
+(defmacro with-free* (bindings &body body)
+  `(let* ,bindings
+     (unwind-protect (progn ,@body)
+       ,@(loop :for (name) :in bindings :collect
+            `(free ,name)))))
+
 ;;------------------------------------------------------------
 ;; Helpers for tangent-space calculations
 
