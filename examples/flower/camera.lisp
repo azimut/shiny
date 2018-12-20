@@ -68,10 +68,10 @@
   (let ((time (mynow)))
     (with-slots (pos rot) camera
       ;;(setf rot (q:identity))
-      ;; (setf rot (q:*
-      ;;            (q:from-axis-angle (v! 1 0 0) (radians -15))
-      ;;            (q:from-axis-angle (v! 0 1 0)
-      ;;                               (radians (* 20 (sin (* .2 time)))))))
+      (setf rot (q:*
+                 (q:from-axis-angle (v! 1 0 0) (radians 45))
+                 (q:from-axis-angle (v! 0 1 0)
+                                    (radians (* 20 (sin (* .2 time)))))))
       ;; (setf rot (q:from-axis-angle
       ;;            (v! 0 1 0)
       ;;            (radians (* 90 0))))

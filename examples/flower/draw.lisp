@@ -56,6 +56,6 @@
     (with-setf* ((cull-face) :front
                  (depth-test-function) #'<=)
       (map-g #'cubemap-pipe buf
-             :tex *s-cubemap*
+             :tex *s-cubemap-live*
              :mod-clip (m4:* (projection camera)
                              (world->view camera))))))
