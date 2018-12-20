@@ -14,15 +14,6 @@
 (defparameter *dimensions* '(1024 1024))
 
 (defun initialize ()
-  (unless *t-cubemap-live*
-    (setf *t-cubemap-live*
-          (make-texture
-           nil
-           :element-type :rgb8
-           :dimensions *dimensions*
-           :cubes t))
-    (setf *s-cubemap-live*
-          (cepl:sample *t-cubemap-live*)))
   (unless *t-cubemap*
     (setf *t-cubemap*
           (make-cubemap-tex
@@ -34,6 +25,15 @@
            "static/ThickCloudsWater/back.png"))
     (setf *s-cubemap*
           (cepl:sample *t-cubemap*)))
+  (unless *t-cubemap-live*
+    (setf *t-cubemap-live*
+          (make-texture
+           nil
+           :element-type :rgb8
+           :dimensions *dimensions*
+           :cubes t))
+    (setf *s-cubemap-live*
+          (cepl:sample *t-cubemap-live*)))
   ;;--------------------------------------------------
   ;; Buffer stream for single stage pipelines  
   (unless *bs* (setf *bs* (make-buffer-stream nil :primitive :points)))
@@ -184,8 +184,12 @@
     ;; (unless *saved*
     ;;   (save-to-cubemap *camera-cubemap* *dimensions*))
 
-    ;; (unless *saved*
-    ;;   (render-to-cubemap *camera-cubemap* *dimensions* *t-cubemap-live*))
+    (unless *saved*
+      (render-to-cubemap *camera-cubemap*
+                         *dimensions*
+                         *t-cubemap-live*)
+      (delete-actor-class "CUBEMAP")
+      (make-light-cubemap))
     
     (with-fbo-bound (*fbo*)
       (clear-fbo *fbo*)

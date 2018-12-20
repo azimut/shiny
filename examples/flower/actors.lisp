@@ -36,6 +36,8 @@
 (defmethod sync (x) (+ .5 (* .5 (sin x))))
 (defmethod cync (x) (+ .5 (* .5 (cos x))))
 
+;;--------------------------------------------------
+
 (defclass actor ()
   ((name  :initarg :name  :initform (gensym))
    (pos   :initarg :pos   :initform (v! 0 0 0) :accessor pos)
@@ -50,8 +52,13 @@
     (push obj *actors*)
     obj))
 
-(defclass pbr-simple (actor) ())
+(defclass light-cubemap (actor) ())
+(defun make-light-cubemap ()
+  (let ((obj (make-instance 'light-cubemap)))
+    (push obj *actors*)
+    obj))
 
+(defclass pbr-simple (actor) ())
 (defclass pbr (actor)
   ((albedo :initarg :albedo)
    (ao     :initarg :ao)
