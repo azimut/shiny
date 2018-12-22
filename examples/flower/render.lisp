@@ -66,7 +66,7 @@
          (color (expt (s~ (texture albedo newuv) :xyz)
                       (vec3 2.2)))
          (normal (norm-from-map normap newuv))
-         (normal (normalize (* tbn nfm))))
+         (normal (normalize (* tbn normal))))
     (values
      ;; (v! final-color 1)
      ;; (v! 1 1 1 1)
@@ -210,7 +210,8 @@
                    (height-map :sampler-2d)
                    (normal-map :sampler-2d)
                    (uv-repeat :float)
-                   (uv-speed :float))
+                   (uv-speed :float)
+                   (irradiance-map :sampler-cube))
   (let* (;; First change UV, then parallax!
          ;;(uv (treat-uvs uv))
          (uv (+ (* uv uv-repeat)
@@ -240,7 +241,7 @@
          (n normal)
          (v (normalize (- cam-pos frag-pos)))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 100 200 500)
+         (lo (+ lo (pbr-direct-lum (v! 0 200 -1000)
                                    frag-pos
                                    v
                                    n
@@ -260,14 +261,20 @@
          ;;                          metallic
          ;;                          color)))
          ;; ---------- END
-         (ambient (* color ao (vec3 .03)))
-         (final-color (+ ambient lo))
+         ;;(ambient (* color ao (vec3 .03)))
+         (ambient (pbr-ambient-map-r irradiance-map
+                                     color
+                                     ao n v f0
+                                     roughness))
+         (final-color (+ ambient lo
+                         ))
          ;; Fog
          (final-color
           (fog-exp2-apply final-color
-                          (v! .6 .2 .2)
+                          (v! .3 .2 .1)
                           frag-pos
-                          cam-pos .04)))
+                          cam-pos .02))
+         )
     (v! final-color 1)))
 
 (defpipeline-g pbr-pipe ()
@@ -285,12 +292,13 @@
                           (time :float)
                           (color-mult :float)
                           (color :vec3)
-                          (cam-pos :vec3))
+                          (cam-pos :vec3)
+                          (irradiance-map :sampler-cube))
   (let* (;; First change UV, then parallax!
          (uv (treat-uvs uv))
          (normal (normalize frag-norm))
-         (roughness .8f0)
-         (ao        1f0)         
+         (roughness 2f0)
+         (ao        1f0)
          (color color)
          ;;----------------------------------------
          ;; PBR
@@ -312,19 +320,12 @@
                                    f0
                                    metallic
                                    color)))
-         ;; (lo (+ lo (pbr-point-lum (+ (v! 0 0 0)
-         ;;                             (v! (* 2 (sin time))
-         ;;                                 0
-         ;;                                 (* 2 (cos time))))
-         ;;                          frag-pos
-         ;;                          v
-         ;;                          n
-         ;;                          roughness
-         ;;                          f0
-         ;;                          metallic
-         ;;                          color)))
          ;; ---------- END
-         (ambient (* color ao (vec3 .03)))
+         (ambient (pbr-ambient-map-r irradiance-map
+                                     color
+                                     ao n v f0
+                                     roughness))
+         ;;(ambient (* color ao (vec3 .3)))
          (final-color (+ ambient lo))
          ;; Fog
          ;; (final-color
@@ -334,6 +335,41 @@
          ;;                  cam-pos .03))
          )
     (v! final-color 1)))
+
+(defun-g fresnel-schlick-roughness ((cos-theta :float)
+                                    (f0 :vec3)
+                                    (roughness :float))
+  (+ f0
+     (* (- (max (vec3 (- 1 roughness))
+                f0)
+           f0)
+        (pow (- 1 cos-theta) 5f0))))
+(defun-g pbr-ambient-map ((irradiance-map :sampler-cube)
+                          (albedo :vec3)
+                          (ao :float)
+                          (n :vec3)
+                          (v :vec3)
+                          (f0 :vec3))
+  (let* ((ks (fresnel-schlick (max (dot n v) 0) f0))
+        (kd (- 1 ks))
+        (irradiance (s~ (texture irradiance-map n) :xyz))
+        (diffuse (* irradiance albedo)))
+    (* diffuse kd ao)))
+
+(defun-g pbr-ambient-map-r ((irradiance-map :sampler-cube)
+                            (albedo :vec3)
+                            (ao :float)
+                            (n :vec3)
+                            (v :vec3)
+                            (f0 :vec3)
+                            (roughness :float))
+  (let* ((ks (fresnel-schlick-roughness (max (dot n v) 0)
+                                        f0
+                                        roughness))
+        (kd (- 1 ks))
+        (irradiance (s~ (texture irradiance-map n) :xyz))
+        (diffuse (* irradiance albedo)))
+    (* diffuse kd ao)))
 
 (defpipeline-g pbr-simple-pipe ()
   :vertex (vert g-pnt)
@@ -362,3 +398,71 @@
 (defpipeline-g cubemap-pipe ()
   (cubemap-vert g-pnt)
   (cubemap-frag :vec3))
+
+;;----------------------------------------
+(defun-g cube-down-frag ((frag-pos :vec3)
+                         &uniform
+                         (tex :sampler-cube))
+  (let* ((normal (normalize frag-pos))
+         (irradiance (v! 0 0 0))
+         (up (v! 0 1 0))
+         (right (cross up normal))
+         (up (cross normal right))
+         (sample-delta .025)
+         (nr-samples 0f0))
+    (for
+     (phi 0f0) (< phi (* 2 +pi+)) (setf phi (+ phi sample-delta))
+     (for
+      (theta 0f0) (< theta (* .5 +pi+)) (setf theta (+ theta sample-delta))
+      (let* (;; spherical to cartesian (in tangent space)
+             (tangent-sample (v! (* (sin theta) (cos phi))
+                                 (* (sin theta) (sin phi))
+                                 (cos theta)))
+             ;; Tangent space to world
+             (sample-vec (+ (* right (x tangent-sample))
+                            (* up (y tangent-sample))
+                            (* normal (z tangent-sample)))))
+        (incf irradiance (* (s~ (texture tex sample-vec) :xyz)
+                            (cos theta)
+                            (sin theta)))
+        (incf nr-samples 1f0))))
+    (setf irradiance (* +pi+ irradiance (/ 1 nr-samples)))
+    (v! irradiance 1)))
+
+(defpipeline-g cube-down-pipe ()
+  :vertex (cubemap-vert g-pnt)
+  :fragment (cube-down-frag :vec3))
+
+;; This gives us a sample vector somewhat oriented around the expected
+;; microsurface's halfway vector based on some input roughness and the
+;; low-discrepancy sequence value Xi. Note that Epic Games uses the
+;; squared roughness for better visual results as based on Disney's
+;; original PBR research.
+(defun-g importance-sample-ggx ((xi :vec2)
+                                (n :vec3)
+                                (roughness :float))
+  (let* ((a (* roughness roughness))
+         (phi (* 2 +pi+ (x xi)))
+         (cos-theta (sqrt (/ (- 1 (y xi))
+                             (+ 1 (* (1- (* a a)) (y xi))))))
+         (sin-theta (sqrt (- 1 (* cos-theta cos-theta))))
+         ;; from spherical coordinates to cartesian coordinates
+         (h (v! (* (cos phi) sin-theta)
+                (* (sin phi) sin-theta)
+                cos-theta))
+         ;; from tangent-space vector to world-space sample vector
+         (up (if (< (abs (z n)) .999)
+                 (v! 0 0 1)
+                 (v! 1 0 0)))
+         (tangent (normalize (cross up n)))
+         (bitangent (cross n tangent))
+         (sample-vec (+ (* (x h) tangent)
+                        (* (y h) bitangent)
+                        (* (z h) n))))
+    (normalize sample-vec)))
+
+;;  The GLSL Hammersley function gives us the low-discrepancy sample X
+;;  of the total sample set of size Y.
+(hammersley-nth-2d )
+
+(nineveh.math-primitives:radical-inverse-vdc )

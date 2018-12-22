@@ -41,7 +41,7 @@
 (defclass actor ()
   ((name  :initarg :name  :initform (gensym))
    (pos   :initarg :pos   :initform (v! 0 0 0) :accessor pos)
-   (rot   :initarg :rot   :initform (v! 0 0 0) :accessor rot)
+   (rot   :initarg :rot   :initform (q:identity) :accessor rot)
    (buf   :initarg :buf   :initform (box))
    (color :initarg :color :initform (v! 1 0 0))
    (scale :initarg :scale :initform 1f0)))
@@ -113,7 +113,7 @@
     (setf rot (q:from-axis-angle
                (v! 1 .2 .8)
                (radians (mod (* 10 (mynow)) 360))))
-    ;;(setf pos (v! 0 0 -8))
+    (setf pos (v! 0 0 -5))
     ))
 (defmethod update ((actor box)))
 

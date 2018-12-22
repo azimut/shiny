@@ -35,16 +35,17 @@
            :light-pos *light-pos*
            :model-world (model->world actor)
            :world-view (world->view camera)
-           :view-clip  (projection camera))))
-
+           :view-clip  (projection camera)
+           :irradiance-map *s-cubemap-live*)))
 (defmethod draw ((actor pbr-simple) camera)
   (with-slots (buf scale color) actor
     (map-g #'pbr-simple-pipe buf
            :scale scale
-           :color color
+           :color (v! .001 .001 .001)
            :time (mynow)
            :color-mult 1f0
            :cam-pos (pos camera)
+           :irradiance-map *s-cubemap-live*
            :light-pos *light-pos*
            :model-world (model->world actor)
            :world-view (world->view camera)
@@ -56,8 +57,9 @@
                  (depth-test-function) #'<=)
       (map-g #'cubemap-pipe buf
              :tex *s-cubemap*
-             :mod-clip (m4:* (projection camera)
-                             (world->view camera))))))
+             :mod-clip
+             (m4:* (projection camera)
+                   (world->view camera))))))
 
 (defmethod draw ((actor light-cubemap) camera)
   (with-slots (buf) actor
@@ -65,5 +67,6 @@
                  (depth-test-function) #'<=)
       (map-g #'cubemap-pipe buf
              :tex *s-cubemap-live*
-             :mod-clip (m4:* (projection camera)
-                             (world->view camera))))))
+             :mod-clip
+             (m4:* (projection camera)
+                   (world->view camera))))))
