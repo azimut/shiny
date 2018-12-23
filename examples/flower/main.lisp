@@ -9,6 +9,7 @@
 (defvar *s-cubemap* nil)
 
 ;; Cubemap for the luminance
+(defparameter *saved* nil)
 (defvar *t-cubemap-live* nil)
 (defvar *s-cubemap-live* nil)
 
@@ -16,26 +17,37 @@
 ;; ???
 
 ;; Prefilter cubemap - for specular
+(defparameter *prefilter* nil)
 (defvar *t-cubemap-prefilter* nil)
 (defvar *s-cubemap-prefilter* nil)
 
-(defparameter *saved* nil)
+(defparameter *brdf* nil)
+(defvar *f-brdf* nil)
+(defvar *t-brdf* nil)
+(defvar *s-brdf* nil)
+
+
 (defparameter *dimensions* '(512 512))
 
 (defun free-cubes ()
   ;;(setf *saved* NIL)
-  (when *t-cubemap-prefilter*
+  (when *t-cubemap-prefilter*    
     (free *t-cubemap-prefilter*)
-    (setf *t-cubemap-prefilter* NIL))  
-  ;; (when *t-cubemap*
-  ;;   (free *t-cubemap*)
-  ;;   (setf *t-cubemap* NIL))
-  ;; (when *t-cubemap-live*
-  ;;   (free *t-cubemap-live*)
-  ;;   (setf *t-cubemap-live* NIL))
+    (setf *t-cubemap-prefilter* NIL)
+;;    (setf *prefilter* NIL)
+    )  
+  (when *t-cubemap*
+    (free *t-cubemap*)
+    (setf *t-cubemap* NIL))
+  (when *t-cubemap-live*
+    (free *t-cubemap-live*)
+    (setf *t-cubemap-live* NIL)
+;;    (setf *saved* NIL)
+    )
   )
 
 (defun initialize ()
+  
   (unless *t-cubemap*
     (setf *t-cubemap*
           (make-cubemap-tex
@@ -48,7 +60,9 @@
     (setf *s-cubemap*
           (cepl:sample *t-cubemap*
                        :wrap :clamp-to-edge
-                       :minify-filter :linear)))
+                       :magnify-filter :linear)))
+  ;;--------------------------------------------------
+  ;; IBL - Diffuse ambient
   (unless *t-cubemap-live*
     (setf *t-cubemap-live*
           (make-texture
@@ -59,8 +73,11 @@
     (setf *s-cubemap-live*
           (cepl:sample *t-cubemap-live*
                        :minify-filter :linear
+                       :magnify-filter :linear
                        :wrap :clamp-to-edge)))
   ;;--------------------------------------------------
+  ;; IBL - Specular ambient
+  ;; 1) prefilter
   (unless *t-cubemap-prefilter*
     (setf *t-cubemap-prefilter*
           (make-texture
@@ -71,7 +88,20 @@
            :cubes t))
     (setf *s-cubemap-prefilter*
           (cepl:sample *t-cubemap-prefilter*
+                       :magnify-filter :linear
                        :wrap :clamp-to-edge)))
+  ;; 2) BRDF
+  (unless *f-brdf*
+    (setf *f-brdf*
+          (make-fbo
+           (list 0 :element-type :rg16f :dimensions '(512 512))))
+    (setf *t-brdf* (attachment-tex *f-brdf* 0))
+    (setf *s-brdf*
+          (cepl:sample *t-brdf*
+                       :wrap :clamp-to-edge
+                       :magnify-filter :linear
+                       :minify-filter :linear)))
+  
   ;;--------------------------------------------------
   ;; Buffer stream for single stage pipelines  
   (unless *bs*
@@ -97,32 +127,32 @@
 
 (defun draw! ()
   (let* ((res (surface-resolution (current-surface)))
-         (time (mynow)))
+         ;;(time (mynow))
+         )
     
     (setf (resolution (current-viewport)) res)
     ;;(setf (resolution (current-viewport)) (v! *dimensions*))
     
     (update *currentcamera*)
     (update-all-the-things *actors*)
-    
-    ;; (unless *saved*
-    ;;   (save-to-cubemap *camera-cubemap* *dimensions*))
-    ;; (unless *saved*
-    ;;   (render-to-cubemap *camera-cubemap*
-    ;;                      *dimensions*
-    ;;                      *t-cubemap-live*)
-    ;;   (delete-actor-class "CUBEMAP")
-    ;;   (make-light-cubemap))
+
+    (unless *prefilter*
+      (setf *prefilter* T)
+      (render-to-prefilter-cubemap *camera-cubemap*
+                                   *t-cubemap*
+                                   *s-cubemap*
+                                   *t-cubemap-prefilter*))
+    (unless *brdf*
+      (setf *brdf* T)
+      (setf (resolution (current-viewport)) (v! 512 512))
+      (map-g-into *f-brdf* #'brdf-pipe *bs*))
 
     (unless *saved*
-      (render-to-light-cubemap
-       *camera-cubemap*
-       *t-cubemap*
-       *s-cubemap*
-       *t-cubemap-live*)
-      ;;(delete-actor-class "CUBEMAP")
-      ;;(make-light-cubemap)
-      )
+      (render-to-light-cubemap *camera-cubemap*
+                               *t-cubemap*
+                               *s-cubemap*
+                               *t-cubemap-live*)
+      (setf *saved* T))
     
     (with-fbo-bound (*fbo*)
       (clear-fbo *fbo*)
@@ -134,9 +164,7 @@
                    (cull-face) nil
                    (clear-color) (v! 0 0 0 1))        
         (map-g #'generic-2d-pipe *bs*
-               :sam *sam*)))
-    ))
+               :sam *sam*)))))
 
-(def-simple-main-loop runplay
-    (:on-start #'initialize)
+(def-simple-main-loop runplay (:on-start #'initialize)
   (draw!))

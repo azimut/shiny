@@ -89,7 +89,7 @@
   (let ((obj
          (make-instance
           'pbr-simple
-          :buf (box 2 4 .5)
+          :buf (sphere)
           :pos pos)))
     (push obj *actors*)
     obj))

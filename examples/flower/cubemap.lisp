@@ -14,6 +14,58 @@
    (list (v! 0 -1  0) (v! 0 0 0) (v!  0  0 -1))))
 
 ;;--------------------------------------------------
+;; GI - IBL - Specular prefilter cubemap
+;; https://learnopengl.com/PBR/IBL/Specular-IBL
+(defgeneric render-to-prefilter-cubemap (camera
+                                         src-cubemap
+                                         src-cubemap-sample
+                                         dst-cubemap))
+
+(defmethod render-to-prefilter-cubemap ((camera pers)
+                                        src-cubemap
+                                        src-cubemap-sample
+                                        dst-cubemap)
+  (let ((dst-dimensions (dimensions dst-cubemap))
+        (src-dimensions (dimensions src-cubemap)))
+    (assert (= 5 (texture-mipmap-levels dst-cubemap)))
+    (assert (texture-cubes-p dst-cubemap))
+    (assert (texture-cubes-p src-cubemap))
+    (assert (eq :RGB16F (texture-element-type dst-cubemap)))
+    (assert (= (car dst-dimensions) (cadr dst-dimensions)))
+    (setf (fov camera) 90f0)    
+    (dotimes (mip 5)
+      (let* ((mip-width  (floor (* 128 (expt .5 mip))))
+             (mip-height mip-width)
+             (dimensions (list mip-width mip-height))
+             (roughness  (coerce (/ mip (- 5 1)) 'single-float)))
+        (setf (resolution (current-viewport)) (v! dimensions))        
+        (with-free*
+            ((fbo
+              (make-fbo
+               (list 0 :dimensions dimensions :element-type :rgb16f)
+               (list :d :dimensions dimensions))))
+          (loop
+             :for side :in *cubemap-sides*
+             :for rotation :in *cubemap-rotations*
+             :for face :from 0
+             :finally (setf *saved* T)
+             :do
+             ;; Rotate camera
+               (destructuring-bind (up from to) rotation
+                 (setf (rot camera) (q:look-at up from to)))
+             ;; Switch FBO texture for one of the cubemap
+               (setf (attachment fbo 0)
+                     (texref dst-cubemap :cube-face face :mipmap-level mip))
+               (with-setf* ((cull-face) :front
+                            (depth-test-function) #'<=)
+                 (with-fbo-bound (fbo)
+                   (clear-fbo fbo)
+                   (map-g #'prefilter-pipe (box)
+                          :roughness roughness
+                          :environment-map src-cubemap-sample
+                          :mod-clip (m4:* (projection camera)
+                                          (world->view camera)))))))))))
+;;--------------------------------------------------
 (defgeneric render-to-light-cubemap (camera
                                      src-cubemap
                                      src-cubemap-sample

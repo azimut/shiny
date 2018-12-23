@@ -278,7 +278,7 @@
          (n-dot-h  (max (dot n h) 0))
          (n-dot-h2 (* n-dot-h n-dot-h))
          (num a2)
-         (denom (+ 1 (* n-dot-h2 (- a2 1))))
+         (denom (1+ (* n-dot-h2 (1- a2))))
          (denom (* +PI+ denom denom)))
     (/ num denom)))
 
@@ -664,37 +664,109 @@
 ;; by applying the Viewport transformation to it. window.x =
 ;; viewport.x + viewport.width * (cube.x+1)/2
 
-(defun screen-coord (res &optional (pos (v! 0 0 -10)))
-  (let* ((pos4 (v! pos 1))
-         (cpos4 (m4:*v (world->view *currentcamera*)
-                       pos4))
-         (cpos4 (m4:*v (projection *currentcamera*)
-                       cpos4))
-         (w (w cpos4))
-         (ndc (v4:/s cpos4 w)))
-    ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
-    (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
-                         (+ (* (x res) .5 ) 0))
-                      (+ (* (y res) .5 (y ndc))
-                         (+ (* (y res) .5))))
-                  res))
+;; (defun screen-coord (res &optional (pos (v! 0 0 -10)))
+;;   (let* ((pos4 (v! pos 1))
+;;          (cpos4 (m4:*v (world->view *currentcamera*)
+;;                        pos4))
+;;          (cpos4 (m4:*v (projection *currentcamera*)
+;;                        cpos4))
+;;          (w (w cpos4))
+;;          (ndc (v4:/s cpos4 w)))
+;;     ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
+;;     (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
+;;                          (+ (* (x res) .5 ) 0))
+;;                       (+ (* (y res) .5 (y ndc))
+;;                          (+ (* (y res) .5))))
+;;                   res))
     
-    ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
-    ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
-    ;;     (+ (* (+ 1 (y ndc)) (/ (y res) 2))))
+;;     ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
+;;     ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
+;;     ;;     (+ (* (+ 1 (y ndc)) (/ (y res) 2))))
 
-    ;; screen.x = ((view.w * 0.5) * ndc.x) +
-    ;;            ((w * 0.5) + view.x)
-    ;; screen.y = ((view.h * 0.5) * ndc.y) +
-    ;;            ((h * 0.5) + view.y)
-    ;;
-    ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
-    ;;                            (/ (+ 1 (x ndc)) 2)))
-    ;;                   (+ .5 (* (y res)
-    ;;                            (/ (- 1 (y ndc)) 2))))
-    ;;               res))
-    ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
-    ;;             (v! 1 1))
-    ;;       (v2:*s res .5))    
-    ))
+;;     ;; screen.x = ((view.w * 0.5) * ndc.x) +
+;;     ;;            ((w * 0.5) + view.x)
+;;     ;; screen.y = ((view.h * 0.5) * ndc.y) +
+;;     ;;            ((h * 0.5) + view.y)
+;;     ;;
+;;     ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
+;;     ;;                            (/ (+ 1 (x ndc)) 2)))
+;;     ;;                   (+ .5 (* (y res)
+;;     ;;                            (/ (- 1 (y ndc)) 2))))
+;;     ;;               res))
+;;     ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
+;;     ;;             (v! 1 1))
+;;     ;;       (v2:*s res .5))    
+;;     ))
+
+;;--------------------------------------------------
+;; Pipeline to create a BRDF 2d lut
+;;--------------------------------------------------
+;; ON INIT:
+;;
+;; (unless *f-brdf*
+;;     (setf *f-brdf*
+;;           (make-fbo (list 0 :element-type :rg16f :dimensions '(512 512))))
+;;     (setf *t-brdf* (attachment-tex *f-brdf* 0))
+;;     (setf *s-brdf*
+;;           (cepl:sample *t-brdf* :wrap :clamp-to-edge
+;;                                 :minify-filter :linear)))
+;; ON DRAW LOOP:
+;;
+;; (unless *brdf*
+;;   (setf *brdf* T)
+;;   (setf (resolution (current-viewport)) (v! 512 512))
+;;   (map-g-into *f-brdf* #'brdf-pipe *bs*))
+
+(defun-g integrate-brdf ((n-dot-v :float)
+                         (roughness :float))
+  ;; You might've recalled from the theory tutorial that the geometry
+  ;; term of the BRDF is slightly different when used alongside IBL as
+  ;; its k variable has a slightly different interpretation:
+  (labels ((geometry-schlick-ggx ((n-dot-v :float)
+                                  (roughness :float))
+             (let* ((a roughness)
+                    (k (/ (* a a) 2))
+                    (nom n-dot-v)
+                    (denom (+ k (* n-dot-v (- 1 k)))))
+               (/ nom denom)))
+           (geometry-smith ((n :vec3)
+                            (v :vec3)
+                            (l :vec3)
+                            (roughness :float))
+             (let* ((n-dot-v (max (dot n v) 0))
+                    (n-dot-l (max (dot n l) 0))
+                    (ggx2 (geometry-schlick-ggx n-dot-v roughness))
+                    (ggx1 (geometry-schlick-ggx n-dot-l roughness)))
+               (* ggx1 ggx2))))
+    (let* ((v (v! (sqrt (- 1 (* n-dot-v n-dot-v)))
+                  0
+                  n-dot-v))
+           (a 0f0)
+           (b 0f0)
+           (n (v! 0 0 1)))
+      (dotimes (i 1024)
+        (let* (;; generates a sample vector that's biased towards the
+               ;; preferred alignment direction (importance sampling).
+               (xi (hammersley-nth-2d 1024 i))
+               (h  (importance-sample-ggx xi n roughness))
+               (l  (normalize (+ (- v) (* 2 (dot v h) h))))
+               (n-dot-l (max (z l) 0))
+               (n-dot-h (max (z h) 0))
+               (v-dot-h (max (dot v h) 0)))
+          (when (> n-dot-l 0)
+            (let* ((g (geometry-smith n v l roughness))
+                   (g-vis (/ (* g v-dot-h) (* n-dot-h n-dot-v)))
+                   (fc (pow (- 1 v-dot-h) 5)))
+              (incf a (* (- 1 fc) g-vis))
+              (incf b (* fc g-vis))))))
+      (divf a 1024f0)
+      (divf b 1024f0)
+      (v! a b))))
+
+(defun-g brdf-frag ((uv :vec2))
+  (integrate-brdf (x uv) (y uv)))
+
+(defpipeline-g brdf-pipe (:points)
+  :fragment (brdf-frag :vec2))
+
 

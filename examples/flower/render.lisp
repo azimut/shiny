@@ -211,7 +211,9 @@
                    (normal-map :sampler-2d)
                    (uv-repeat :float)
                    (uv-speed :float)
-                   (irradiance-map :sampler-cube))
+                   (irradiance-map :sampler-cube)
+                   (prefilter-map :sampler-cube)
+                   (brdf-lut :sampler-2d)                   )
   (let* (;; First change UV, then parallax!
          ;;(uv (treat-uvs uv))
          (uv (+ (* uv uv-repeat)
@@ -241,7 +243,7 @@
          (n normal)
          (v (normalize (- cam-pos frag-pos)))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 0 200 -1000)
+         (lo (+ lo (pbr-direct-lum (v! 0 0 1000)
                                    frag-pos
                                    v
                                    n
@@ -262,16 +264,36 @@
          ;;                          color)))
          ;; ---------- END
          ;;(ambient (* color ao (vec3 .03)))
-         (ambient (pbr-ambient-map-r irradiance-map
-                                     color
-                                     ao n v f0
-                                     roughness))
-         (final-color (+ ambient lo
-                         ))
+         ;; (ambient (pbr-ambient-map-r irradiance-map
+         ;;                             color
+         ;;                             ao n v f0
+         ;;                             roughness))
+
+
+         (r (reflect (- v) n))
+         (f (fresnel-schlick-roughness (max (dot n v) 0)
+                                       f0
+                                       roughness))
+         (ks f)
+         (kd (* (- 1 ks) (- 1 metallic)))
+         (irradiance (s~ (texture irradiance-map n) :xyz))
+         (diffuse (* irradiance color))
+         (prefiltered-color (s~ (texture-lod prefilter-map
+                                             r
+                                             (* roughness 4f0))
+                                :xyz))
+         (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
+         (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
+         (ambient (* (+ specular (* kd diffuse)) ao))
+
+
+         
+         (final-color (+ ambient lo))
          ;; Fog
          (final-color
           (fog-exp2-apply final-color
-                          (v! .3 .2 .1)
+                          ;;(v! .3 .2 .1)
+                          (v! .2 .3 .4)
                           frag-pos
                           cam-pos .02))
          )
@@ -293,11 +315,13 @@
                           (color-mult :float)
                           (color :vec3)
                           (cam-pos :vec3)
-                          (irradiance-map :sampler-cube))
+                          (irradiance-map :sampler-cube)
+                          (prefilter-map :sampler-cube)
+                          (brdf-lut :sampler-2d))
   (let* (;; First change UV, then parallax!
          (uv (treat-uvs uv))
          (normal (normalize frag-norm))
-         (roughness 2f0)
+         (roughness .5f0)
          (ao        1f0)
          (color color)
          ;;----------------------------------------
@@ -312,7 +336,7 @@
          (v (normalize (- cam-pos frag-pos)))
          (lo (vec3 0f0))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 100 200 500)
+         (lo (+ lo (pbr-direct-lum (v! 0 0 1000)
                                    frag-pos
                                    v
                                    n
@@ -321,10 +345,38 @@
                                    metallic
                                    color)))
          ;; ---------- END
-         (ambient (pbr-ambient-map-r irradiance-map
-                                     color
-                                     ao n v f0
-                                     roughness))
+         ;;vec3 R = reflect(-V, N);
+         
+         ;; vec3 F = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+         ;; vec3 kS = F;
+         ;; vec3 kD = 1.0 - kS;
+         ;; kD *= 1.0 - metallic;	  
+         ;; vec3 irradiance = texture(irradianceMap, N).rgb;
+         ;; vec3 diffuse    = irradiance * albedo;
+         ;; const float MAX_REFLECTION_LOD = 4.0;
+         ;; vec3 prefilteredColor = textureLod(prefilterMap, R,  roughness * MAX_REFLECTION_LOD).rgb;   
+         ;; vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+         ;; vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+         ;; vec3 ambient = (kD * diffuse + specular) * ao;
+         (r (reflect (- v) n))
+         (f (fresnel-schlick-roughness (max (dot n v) 0)
+                                       f0
+                                       roughness))
+         (ks f)
+         (kd (* (- 1 ks) (- 1 metallic)))
+         (irradiance (s~ (texture irradiance-map n) :xyz))
+         (diffuse (* irradiance color))
+         (prefiltered-color (s~ (texture-lod prefilter-map
+                                             r
+                                             (* roughness 4f0))
+                                :xyz))
+         (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
+         (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
+         (ambient (* (+ specular (* kd diffuse)) ao))
+         ;; (ambient (pbr-ambient-map-r irradiance-map
+         ;;                             color
+         ;;                             ao n v f0
+         ;;                             roughness))
          ;;(ambient (* color ao (vec3 .3)))
          (final-color (+ ambient lo))
          ;; Fog
@@ -400,6 +452,7 @@
   (cubemap-frag :vec3))
 
 ;;----------------------------------------
+;; GI - IBL - Diffuse ambient
 (defun-g cube-down-frag ((frag-pos :vec3)
                          &uniform
                          (tex :sampler-cube))
@@ -433,6 +486,7 @@
   :vertex (cubemap-vert g-pnt)
   :fragment (cube-down-frag :vec3))
 
+;;--------------------------------------------------
 ;; This gives us a sample vector somewhat oriented around the expected
 ;; microsurface's halfway vector based on some input roughness and the
 ;; low-discrepancy sequence value Xi. Note that Epic Games uses the
@@ -461,8 +515,41 @@
                         (* (z h) n))))
     (normalize sample-vec)))
 
-;;  The GLSL Hammersley function gives us the low-discrepancy sample X
-;;  of the total sample set of size Y.
-(hammersley-nth-2d )
+(defun-g prefilter-frag ((frag-pos :vec3)
+                         &uniform
+                         (environment-map :sampler-cube)
+                         (roughness :float))
+  (let* ((n (normalize frag-pos))
+         ;; make the simplyfying assumption that V equals R equals the normal 
+         (r n)
+         (v r)
+         (total-weight 0f0)
+         (prefiltered-color (vec3 0f0)))
+    (dotimes (i 1024)
+      (let* ((xi (hammersley-nth-2d 1024 i))
+             (h (importance-sample-ggx xi n roughness))
+             (l (normalize (- (* 2 h (dot v h)) v)))
+             (n-dot-l (max (dot n l) 0f0)))
+        (when (> n-dot-l 0)
+          (let* ((d (distribution-ggx n h roughness))
+                 (n-dot-h (max (dot n h) 0))
+                 (h-dot-v (max (dot h v) 0))
+                 (pdf (+ .0001 (/ (* d n-dot-h)
+                                  (* 4 h-dot-v))))
+                 (resolution 512)
+                 (sa-texel (/ (* 4 +pi+)
+                              (* 6 resolution resolution)))
+                 (sa-sample (/ (+ .0001 (* pdf 1024))))
+                 (mip-level (if (= 0 roughness)
+                                0f0
+                                (* .5 (log2 (/ sa-sample sa-texel))))))
+            (incf prefiltered-color
+                  (* (s~ (texture-lod environment-map l mip-level) :xyz)
+                     n-dot-l))
+            (incf total-weight n-dot-l)))))
+    (divf prefiltered-color (vec3 total-weight))
+    (v! prefiltered-color 1)))
 
-(nineveh.math-primitives:radical-inverse-vdc )
+(defpipeline-g prefilter-pipe ()
+  :vertex (cubemap-vert g-pnt)
+  :fragment (prefilter-frag :vec3))
