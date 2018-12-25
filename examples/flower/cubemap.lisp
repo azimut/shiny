@@ -225,4 +225,4 @@
           (attachment-tex fbo 0)
           (asdf:system-relative-pathname
            :shiny
-           (concatenate 'string "static/cubemap_" side ".bmp"))))))
+           (concatenate 'string "static/cubemap_" side ".dds"))))))

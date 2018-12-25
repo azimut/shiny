@@ -26,7 +26,6 @@
 (defvar *t-brdf* nil)
 (defvar *s-brdf* nil)
 
-
 (defparameter *dimensions* '(512 512))
 
 (defun free-cubes ()

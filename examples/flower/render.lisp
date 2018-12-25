@@ -1,6 +1,10 @@
 (in-package :shiny)
 
 (defparameter *exposure* 1f0)
+(defvar *scale* 1f0)
+(defvar *color* (v! .3 .3 .3))
+(defvar *rough* 1f0)
+(defvar *pointlight-pos* (v! 0 0 0))
 
 ;;--------------------------------------------------
 ;; 3D - g-pnt with tangent info in tb-data AND textures
@@ -217,7 +221,7 @@
   (let* (;; First change UV, then parallax!
          ;;(uv (treat-uvs uv))
          (uv (+ (* uv uv-repeat)
-         ;;       (v! 0 (* uv-speed time))
+                (v! 0 (* uv-speed time))
                 ))         
          (uv (parallax-mapping-offset
               uv
@@ -243,7 +247,7 @@
          (n normal)
          (v (normalize (- cam-pos frag-pos)))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 0 0 1000)
+         (lo (+ lo (pbr-direct-lum *light-pos*
                                    frag-pos
                                    v
                                    n
@@ -321,22 +325,22 @@
   (let* (;; First change UV, then parallax!
          (uv (treat-uvs uv))
          (normal (normalize frag-norm))
-         (roughness .5f0)
+         (roughness *rough*)
          (ao        1f0)
          (color color)
          ;;----------------------------------------
          ;; PBR
          ;; metallic
          (metallic .1)
-         (f0 (vec3 .04))
+         ;;(f0 (vec3 .04))
          (f0 color)
-         ;;(f0 (mix f0 color metallic))
+         (f0 (mix f0 color metallic))
          ;; pbr - reflectance equation
          (n normal)
          (v (normalize (- cam-pos frag-pos)))
          (lo (vec3 0f0))
          ;; lights START
-         (lo (+ lo (pbr-direct-lum (v! 0 0 1000)
+         (lo (+ lo (pbr-direct-lum light-pos
                                    frag-pos
                                    v
                                    n
@@ -358,6 +362,7 @@
          ;; vec2 envBRDF  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
          ;; vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
          ;; vec3 ambient = (kD * diffuse + specular) * ao;
+
          (r (reflect (- v) n))
          (f (fresnel-schlick-roughness (max (dot n v) 0)
                                        f0
@@ -373,6 +378,7 @@
          (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
          (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
          (ambient (* (+ specular (* kd diffuse)) ao))
+
          ;; (ambient (pbr-ambient-map-r irradiance-map
          ;;                             color
          ;;                             ao n v f0

@@ -43,8 +43,8 @@
 (defmethod draw ((actor pbr-simple) camera)
   (with-slots (buf scale color) actor
     (map-g #'pbr-simple-pipe buf
-           :scale scale
-           :color (v! .03 .03 .03)
+           :scale *scale*
+           :color *color*
            :time (mynow)
            :color-mult 1f0
            :cam-pos (pos camera)
