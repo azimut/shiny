@@ -2,6 +2,7 @@
 
 (defvar *fbo* nil)
 (defvar *sam* nil)
+(defvar *samd* nil)
 (defvar *bs* nil)
 
 ;; Cubemap with clouds
@@ -114,12 +115,14 @@
          (list :d :dimensions *dimensions*)))
   (setf *sam* (cepl:sample (attachment-tex *fbo* 0)
                            :wrap :clamp-to-edge))
+  (setf *samd* (cepl:sample (attachment-tex *fbo* :d)
+                            :wrap :clamp-to-edge))
   ;;--------------------------------------------------
   (setf (clear-color) (v! 0 0 0 1))
   ;;--------------------------------------------------
   (setf *actors* nil)
-  ;;(make-pbr (v! 0 -2 -10))
-  ;;(make-cubemap)
+  (make-pbr (v! 0 -2 -10))
+  (make-cubemap)
   ;;(make-light-cubemap)
   (make-pbr-simple (v! 0 0 -10))
   NIL)
@@ -163,7 +166,8 @@
                    (cull-face) nil
                    (clear-color) (v! 0 0 0 1))        
         (map-g #'generic-2d-pipe *bs*
-               :sam *sam*)))))
+               :sam *sam*
+               :samd *samd*)))))
 
 (def-simple-main-loop runplay (:on-start #'initialize)
   (draw!))
