@@ -137,8 +137,9 @@
 (defgeneric update (actor))
 (defmethod update (actor))
 (defmethod update ((actor pbr))
-  (with-slots (pos uv-repeat) actor
+  (with-slots (pos uv-repeat uv-speed) actor
     (setf pos (v! 0 -2 0))
+    (setf uv-speed -.2f0)
     ;;(setf uv-repeat 1f0)
     ))
 (defmethod update ((actor pbr-simple))

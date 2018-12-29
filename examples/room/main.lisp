@@ -14,6 +14,8 @@
 (defvar *t-cubemap-live* nil)
 (defvar *s-cubemap-live* nil)
 
+(defvar *cloud-tex* nil)
+
 ;; Cubemap to store the mix between the clouds and own floor geometry
 ;; ???
 
@@ -27,7 +29,7 @@
 (defvar *t-brdf* nil)
 (defvar *s-brdf* nil)
 
-(defparameter *dimensions* '(256 256))
+(defparameter *dimensions* '(512 512))
 
 (defun free-cubes ()
   (when *t-cubemap-prefilter*    
@@ -40,7 +42,11 @@
     (free *t-cubemap-live*)
     (setf *t-cubemap-live* NIL)))
 
-(defun initialize ()  
+(defun initialize ()
+  (unless *cloud-tex*
+    (setf *cloud-tex*
+          (get-tex "static/Cloud04_8x8.tga")))
+  (init-particles 100)
   (unless *t-cubemap*
     ;; (setf *t-cubemap*
     ;;       (make-cubemap-tex
@@ -124,8 +130,8 @@
   (setf *actors* nil)
   ;;(make-pbr (v! 0 -2 0))
   ;;(make-pbr)
-  ;;(make-piso)
-  (make-thing)
+  (make-piso)
+  ;;(make-thing)
   (make-cubemap)
   ;;(make-light-cubemap)
   ;;(make-pbr-simple (v! 0 0 -10))
@@ -165,6 +171,7 @@
       (loop :for actor :in *actors* :do
            (draw actor *currentcamera* time))
       (draw-particles))
+    
     (swap-particles)
     (as-frame
       (with-setf* ((depth-mask) nil

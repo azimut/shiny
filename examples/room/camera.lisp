@@ -64,7 +64,7 @@
 ;;--------------------------------------------------
 (defmethod update ((camera orth))
   (setf (pos camera) (v! 0 0 0))
-  (setf (frame-size camera) (v2! 10))
+  ;;(setf (frame-size camera) (v2! 10))
   (setf (rot camera)
         ;; TOP
         (q:from-axis-angle (v! 1 0 0)
@@ -73,18 +73,18 @@
         ;; (q:from-axis-angle (v! 1 0 0)
         ;;                    (radians -45))
         ))
-
+}
 (defmethod update ((camera pers))
   (let ((time (mynow)))
     (with-slots (pos rot) camera
       ;;(setf rot (q:identity))
-      (setf pos (v! 0 0 30))
+      (setf pos (v! 0 0 0))
       (setf rot (q:*
                  (q:from-axis-angle (v! 1 0 0)
-                                    (radians -20))
+                                    (radians -10))
                  ;;(q:identity)
                  (q:from-axis-angle (v! .2 .9 0)
-                                    (radians (* 360
+                                    (radians (* 20
                                                 (sin (* .1 time)))))
                  ))
       ;; (setf rot (q:from-axis-angle
