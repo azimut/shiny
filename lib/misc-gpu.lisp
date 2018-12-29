@@ -53,24 +53,20 @@
 
 (defun-g norm-from-map ((normal-map :sampler-2d)
                         (uv :vec2))
-  (let* ((norm-from-map
-          (s~ (texture normal-map uv) :xyz))
-         (norm-from-map
-          (normalize (1- (* 2 norm-from-map)))))
-    (v! (x norm-from-map)
-        (y norm-from-map)
-        (z norm-from-map))))
+  (let* ((normal (s~ (texture normal-map uv) :xyz))
+         (normal (normalize (1- (* 2 normal)))))
+    (v! (x normal)
+        (y normal)
+        (z normal))))
 
 ;; Sometimes "y" component is wrong on the normal map.
 (defun-g norm-from-map-flipped ((normal-map :sampler-2d)
                                 (uv :vec2))
-  (let* ((norm-from-map
-          (s~ (texture normal-map uv) :xyz))
-         (norm-from-map
-          (normalize (1- (* 2 norm-from-map)))))
-    (v! (x norm-from-map)
-        (- 1 (y norm-from-map))
-        (z norm-from-map))))
+  (let* ((normal (s~ (texture normal-map uv) :xyz))
+         (normal (normalize (1- (* 2 normal)))))
+    (v! (x normal)
+        (- (y normal))
+        (z normal))))
 
 ;; ?
 ;; From "pushing pixels" don't remember why it's needed
@@ -97,6 +93,15 @@
                                   (depth-map :sampler-2d)
                                   (height-scale :float))
   (let* ((height (x (texture depth-map uv)))
+         (height (- height .5))
+         (p      (* height height-scale)))
+    (+ uv (* (s~ view-dir :xy) p))))
+
+(defun-g parallax-mapping-offset-flipped ((uv :vec2)
+                                          (view-dir :vec3)
+                                          (depth-map :sampler-2d)
+                                          (height-scale :float))
+  (let* ((height (- 1 (x (texture depth-map uv))))
          (height (- height .5))
          (p      (* height height-scale)))
     (+ uv (* (s~ view-dir :xy) p))))
@@ -346,30 +351,33 @@
   (let* ((l (normalize (- light-pos frag-pos)))
          (h (normalize (+ v l)))
          (distance (length (- light-pos frag-pos)))
-         (attenuation (/ 1f0 (* distance distance)))
-         (radiance (* (v! 10 10 10)  attenuation
-                      ))
+         (constant 1f0)
+         (linear .7)
+         (quadratic 1.8)
+         (attenuation (/ 1f0 (+ constant
+                              (* linear distance)
+                              (* quadratic distance distance))))
+         (light-color (v! .9 .9 .9))
+         (radiance light-color attenuation)
          ;; pbr - cook-torrance brdf
          (ndf (distribution-ggx n h roughness))
          (g (geometry-smith n v l roughness))
          (f (fresnel-schlick (max (dot h v) 0) f0))
          ;;
          (ks f)
-         (kd (- 1 ks))
-         (kd (* kd (- 1 metallic)))
+         (kd (* (- (vec3 1) ks)
+                (- 1 metallic)))
          ;;
          (numerator (* ndf g f))
-         (denominator (+ .001
-                         (* (max (dot n v) 0)
-                            (max (dot n l) 0)
-                            4)))
-         (specular (/ numerator denominator))
+         (denominator (* (max (dot n v) 0)
+                         (max (dot n l) 0)
+                         4))
+         (specular (/ numerator (max denominator .001)))
          ;; add to outgoing radiance lo
-         (n-dot-l (max (dot n l) 0))
-         (lo (* (+ specular (/ (* kd color) +PI+))
-                radiance
-                n-dot-l)))
-    lo))
+         (n-dot-l (max (dot n l) 0)))
+    (* (+ specular (/ (* kd color) +PI+))
+       radiance
+       n-dot-l)))
 
 ;;--------------------------------------------------
 ;; Billboarding
@@ -466,9 +474,11 @@
                      (k-mie :float)
                      (sh-rlh :float)
                      (sh-mie :float)
-                     (g :float))
-  (let* ((i-steps 3) ;; 16
-         (j-steps 2) ;; 8
+                     (g :float)
+                     (i-steps :uint)
+                     (j-steps :uint))
+  (let* (;;(i-steps 3) ;; 16
+         ;;(j-steps 2) ;; 8
          (pi +PI+)
          ;; Normalize the sun and view directions
          (p-sun (normalize p-sun))
@@ -716,7 +726,6 @@
 ;;   (setf *brdf* T)
 ;;   (setf (resolution (current-viewport)) (v! 512 512))
 ;;   (map-g-into *f-brdf* #'brdf-pipe *bs*))
-
 (defun-g integrate-brdf ((n-dot-v :float)
                          (roughness :float))
   ;; You might've recalled from the theory tutorial that the geometry
@@ -769,4 +778,39 @@
 (defpipeline-g brdf-pipe (:points)
   :fragment (brdf-frag :vec2))
 
+;;--------------------------------------------------
+;; Defered fog
+;; https://github.com/Unity-Technologies/PostProcessing/
+;; Hardcoded to work ONLY with perspective projection
+(defun-g linear-01-depth ((z :float))
+  (let* ((far 400f0)
+         (near .1)
+         (z (* z (- 1 (/ far near)))))
+    (/ (+ z (/ far near)))))
+;; PostProcessing/Shaders/StdLib.hlsl
+;; PostProcessing/Shaders/Builtins/DeferredFog.shader
+;; PostProcessing/Shaders/API/OpenGL.hlsl
+;; PostProcessing/Shaders/Builtins/Fog.hlsl
+(defun-g compute-fog-distance ((depth :float))
+  (let* ((far 400f0)
+         (near .1)
+         (dist (- (* depth far) near)))
+    dist))
+;;
+(defun-g compute-fog-exp2 ((z :float)
+                           (density :float))
+  (let* ((fog 0f0)
+         (fog (* density z))
+         (fog (exp2 (* (- fog) fog))))
+    (saturate fog)))
 
+(defun-g defered-fog ((fog-color :vec3)
+                      (uv :vec2)
+                      (tex :sampler-2d)
+                      (depth-tex :sampler-2d))
+  (let* ((color (s~ (texture tex uv) :xyz))
+         (depth (x (texture depth-tex uv)))
+         (depth (linear-01-depth depth))
+         (dist  (compute-fog-distance depth))
+         (fog   (- 1f0 (compute-fog-exp2 dist .1))))
+    (mix color fog-color fog)))
