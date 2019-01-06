@@ -9,6 +9,11 @@
                 #:when-let
                 #:when-let*
                 #:iota
+                #:sequence-of-length-p
+                #:last-elt
+                #:first-elt                
+                #:extremum
+                #:ensure-list
                 #:appendf
                 #:lastcar)
   (:import-from #:cm

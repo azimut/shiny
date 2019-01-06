@@ -18,6 +18,9 @@
                 #:when-let*
                 #:iota
                 #:appendf
+                #:sequence-of-length-p
+                #:last-elt
+                #:first-elt
                 #:lastcar)
   (:import-from #:with-setf
                 #:with-setf

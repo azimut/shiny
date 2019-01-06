@@ -17,7 +17,12 @@
                 #:flatten
                 #:when-let
                 #:when-let*
+                #:sequence-of-length-p
+                #:last-elt
+                #:first-elt                
                 #:iota
+                #:extremum
+                #:ensure-list
                 #:appendf
                 #:lastcar)
   (:import-from #:with-setf
@@ -119,3 +124,9 @@
                 #:*SAMPLE-RATE*
                 #:*twopi-div-sr*
                 #:+sample-zero+))
+
+(in-package #:shiny)
+
+(defun quant (beats)
+  "returns the time (+ (now) beats), sc-collider like thing"
+  (+ (now) (* *sample-rate* (* (sample beats) (spb *tempo*)))))
