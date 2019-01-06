@@ -5,30 +5,34 @@
 (dsp! bplay
     ((buf buffer) rate start-pos
      (loop-p boolean) amp left right custom-id
-     lpf hpf bpf)
+     lpf hpf bpf
+     lpr hpr bpr)
   (:defaults (incudine:incudine-missing-arg "BUFFER")
       1 0 nil 1 1 1 1
-      0 0 0)
+      0 0 0
+      2 2 2)
   (with-samples
       ((in (* amp
               (buffer-play
                buf rate start-pos loop-p #'incudine:free))))
     (incudine.vug:maybe-expand in)
     (unless (= 0d0 lpf)
-      (setf in (incudine.vug:lpf in lpf 2)))
+      (setf in (incudine.vug:lpf in lpf lpr)))
     (unless (= 0d0 hpf)
-      (setf in (incudine.vug:hpf in hpf 2)))
+      (setf in (incudine.vug:hpf in hpf hpr)))
     (unless (= 0d0 bpf)
-      (setf in (incudine.vug:hpf in bpf 2)))
+      (setf in (incudine.vug:hpf in bpf bpr)))
     (out (* left in) (* right in))))
 
 (dsp! bplay-downsamp
     ((buf buffer) rate start-pos
      (loop-p boolean) amp left right (downsamp fixnum)
-     lpf hpf bpf)
+     lpf hpf bpf
+     lpr hpr bpr)
   (:defaults (incudine:incudine-missing-arg "BUFFER")
       1 0 nil 1 1 1 1
-      0 0 0)
+      0 0 0
+      2 2 2)
   (with-samples
       ((in (* amp
               (buffer-play
@@ -36,11 +40,11 @@
        (in (incudine.vug:downsamp downsamp in)))
     (incudine.vug:maybe-expand in)
     (unless (= 0d0 lpf)
-      (setf in (incudine.vug:lpf in lpf 2)))
+      (setf in (incudine.vug:lpf in lpf lpr)))
     (unless (= 0d0 hpf)
-      (setf in (incudine.vug:hpf in hpf 2)))
+      (setf in (incudine.vug:hpf in hpf hpr)))
     (unless (= 0d0 bpf)
-      (setf in (incudine.vug:hpf in bpf 2)))
+      (setf in (incudine.vug:hpf in bpf bpr)))
     (out (* left in) (* right in))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -115,12 +119,14 @@
          (rate (/ samples-per-beat sample-rate)))
     rate))
 
-(defun bbuffer-load (filename)
-  (declare (string filename))
+(defun bbuffer-load (filename &optional alias-key)
   "buffer-load wrapper for global hash caching and easy access
   FILENAME is a normal string of a path where to load the file
   (bbuffer-load \"/home/sendai/curso/furi-dream-cc.wav\")"
-  (let* ((hkey (file-namestring filename))
+  (declare (string filename))
+  (let* ((hkey (if alias-key
+                   alias-key
+                   (file-namestring filename)))
          (buf  (gethash hkey *buffers*)))
     (if (not buf)
         (setf (gethash hkey *buffers*)
@@ -134,14 +140,15 @@
     (buf &key (rate 1d0 rate-p) (rpitch 0 rpitch-p) (beat-length 1f0 beat-length-p)
            (start-pos 0d0) (loop-p nil) (amp 1d0) (id 2 id-p)
            (lpf 0) (hpf 0) (bpf 0)
-           (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p))
+           (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p)
+           (lpr 2) (hpr 2) (bpr 2))
   (declare (integer rpitch id downsamp) (boolean loop-p) (float pan))
   "plays the provided buffer either by
    PAN value between 0f0 and 1f0
    RATE plays the buffer to play at rate
    RPITCH bends the whole buffer rate to play to the new pitch offset
    BEAT-LENGTH stretch the whole buffer to play for N beats"
-  (when (stringp buf)
+  (when (or (symbolp buf) (stringp buf))
     (let ((b (gethash buf *buffers*)))
       (if b
           (setf buf b)
@@ -174,22 +181,25 @@
                             :amp amp
                             :left left :right right
                             :lpf lpf :hpf hpf :bpf bpf
+                            :lpr lpr :hpr hpr :bpr bpr                            
                             :downsamp downsamp)
             (bplay-downsamp buf rate start-pos loop-p
                             :amp amp
                             :left left :right right
                             :lpf lpf :hpf hpf :bpf bpf
-                            :downsamp downsamp
-                            :id id))
+                            :lpr lpr :hpr hpr :bpr bpr                            
+                            :downsamp downsamp))
         (if id-p
             (bplay buf rate start-pos loop-p
                    :amp amp
                    :lpf lpf :hpf hpf :bpf bpf
+                   :lpr lpr :hpr hpr :bpr bpr
                    :left left :right right
                    :id id)
             (bplay buf rate start-pos loop-p
                    :amp amp
                    :lpf lpf :hpf hpf :bpf bpf
+                   :lpr lpr :hpr hpr :bpr bpr                   
                    :left left :right right)))))
 
 ;;------------------------------------------------------
@@ -450,6 +460,7 @@
          :do (push-note-parsed iname (file-namestring f))))))
 
 (defun play-instrument (name nkeynum &key (dur 1) (amp 1) (rpitch 0)
+                                       (id 222)
                                        (downsamp 0)
                                        (reson 0)
                                        (left 1) (right 1) (lpf 0) (hpf 0) (bpf 0))
@@ -462,6 +473,7 @@
                                        rpitch
                                        relative-pitch))))
         (play-lsample-f buf dur amp
+                        :id id
                         :rate rate
                         :downsamp downsamp
                         :reson reson
