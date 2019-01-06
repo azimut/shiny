@@ -86,13 +86,14 @@
 (defclass piso (pbr) ())
 (defclass thing (pbr) ())
 
-(defun make-piso (&optional (pos (v! 0 0 0)) (rot (q:identity)))
+(defun make-piso (&optional (pos (v! 0 0 0)) (rot (q:identity))
+                    (uv-speed 0f0))
   (let ((obj
          (make-instance
           'piso
           :buf (lattice 100 100 2 2 t)
           :pos pos
-          :uv-speed 0f0
+          :uv-speed uv-speed
           :uv-repeat 10f0
           :rot rot)))
     (push obj *actors*)
@@ -136,12 +137,15 @@
 
 (defgeneric update (actor))
 (defmethod update (actor))
+(defparameter *uvs* -.2)
 (defmethod update ((actor pbr))
   (with-slots (pos uv-repeat uv-speed) actor
-    (setf pos (v! 0 -2 0))
-    (setf uv-speed -.2f0)
+    ;;(setf pos (v! 0 -2 0))
+    (setf uv-speed *uvs*)
     ;;(setf uv-repeat 1f0)
-    ))
+    )
+  )
+(defvar *rotcube* 1f0)
 (defmethod update ((actor pbr-simple))
   (with-slots (pos rot color roughness metallic) actor
     (setf pos (v! 0 0 -4))
@@ -151,7 +155,7 @@
     ;;(setf color (v! .01 .01 .01))
     (setf rot (q:from-axis-angle
                (v! 1 .2 .8)
-               (radians (mod (* 10 (mynow)) 360))))
+               (radians (* *rotcube* (mod (* 10 (mynow)) 360)))))
     ;; (setf pos (v! 0 0 (+ -10  (- (* 5 (sin (mynow)))))))
     ))
 (defmethod update ((actor box)))

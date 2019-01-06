@@ -52,10 +52,11 @@
            :prefilter-map *s-cubemap-prefilter*
            :irradiance-map *s-cubemap-live*)))
 
+(defvar *scale* 1f0)
 (defmethod draw ((actor pbr-simple) camera (time single-float))
   (with-slots (buf scale color roughness metallic) actor
     (map-g #'pbr-simple-pipe buf
-           :scale scale
+           :scale *scale*
            :color color
            :time time
            ;; Lighting
@@ -66,8 +67,8 @@
            :world-view (world->view camera)
            :view-clip  (projection camera)
            ;; PBR
-           :roughness roughness
-           :metallic metallic
+           :roughness .1
+           :metallic .9
            ;; IBL
            :brdf-lut *s-brdf*
            :prefilter-map *s-cubemap-prefilter*

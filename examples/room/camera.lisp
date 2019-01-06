@@ -21,8 +21,9 @@
    :fov 60f0))
 
 (defparameter *camera* (make-instance 'pers))
+(defparameter *camera2* (make-instance 'pers))
 (defparameter *camera1* (make-instance 'orth))
-(defparameter *cameras* (list *camera* *camera1*))
+(defparameter *cameras* (list *camera* *camera2*))
 (defparameter *camera-cubemap*
   (make-instance 'pers :fov 90f0))
 (defparameter *currentcamera* *camera*)
@@ -73,23 +74,28 @@
         ;; (q:from-axis-angle (v! 1 0 0)
         ;;                    (radians -45))
         ))
-}
+(defun rot1 ()
+  (let ((time (* (get-internal-real-time) .001)))
+    (q:from-axis-angle (v! .2 .9 0)
+                       (radians (* 10
+                                   (sin (* .1 time)))))))
+
+(defparameter *dec* (make-line (iota 1020 :start 460 :step -.1)))
+(defparameter *dec* (make-cycle '(460)))
 (defmethod update ((camera pers))
   (let ((time (mynow)))
     (with-slots (pos rot) camera
       ;;(setf rot (q:identity))
       (setf pos (v! 0 0 0))
       (setf rot (q:*
-                 (q:from-axis-angle (v! 1 0 0)
-                                    (radians -10))
+                 (q:from-axis-angle (v! 0 0 1)
+                                    (radians (mod (* 20 (mynow)) 360)))
                  ;;(q:identity)
-                 (q:from-axis-angle (v! .2 .9 0)
-                                    (radians (* 20
-                                                (sin (* .1 time)))))
+                 (rot1)
                  ))
       ;; (setf rot (q:from-axis-angle
       ;;            (v! 0 1 0)
-      ;;            (radians (* 90 0))))
+      ;;            (radians (next *dec*))))
       ;; (setf pos (v! (+ 0 (* 0 (cos (* .5 time))))
       ;;               (+ 0 (* .1 (sin (* .5 time))))
       ;;               (+ 0 (* 1 (cos (* .5 time))))))

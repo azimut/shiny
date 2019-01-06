@@ -130,6 +130,7 @@
 (defun-g frag-2d ((uv :vec2)
                   &uniform
                   (sam :sampler-2d)
+                  (sam2 :sampler-2d)
                   (samd :sampler-2d))
   (let* (;; (color (defered-fog
          ;;            ;;(v! .5 .6 .7)
@@ -138,9 +139,11 @@
          ;;          sam
          ;;          samd))
          (color (s~ (texture sam uv) :xyz))
+         (color2 (s~ (texture sam2 uv) :xyz))
          ;; (color
          ;;  (s~ (nineveh.anti-aliasing:fxaa3 uv sam (v2! (/ 1 320f0))) :xyz))
-         (ldr (nineveh.tonemapping:tone-map-reinhard color *exposure*))
+         (final-color (+ color color2))
+         (ldr (tone-map-reinhard final-color *exposure*))
          (luma (rgb->luma-bt601 ldr))
          )
     ;;(v! (pow ldr (vec3 2.2)) 1)    
@@ -293,7 +296,7 @@
                           (v! .18 .17843138 .1552941)
                           ;;(v! .2 .3 .4)
                           frag-pos
-                          cam-pos .02))
+                          cam-pos .03))
          )
     
     (v! final-color 1)
