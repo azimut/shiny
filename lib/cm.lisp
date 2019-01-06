@@ -3,6 +3,20 @@
 ;;--------------------------------------------------
 ;; CM helpers
 ;;--------------------------------------------------
+;;
+;; Reference:
+;; https://ccrma.stanford.edu/courses/220b-winter-2006/cm/doc/dict/patterns-topic.html
+;;
+;; TODO:
+;; (make-graph)
+;; (make-markov)
+;; (make-thunk)
+;; (make-rewrite)
+;; (make-transposer)
+;; (make-chord)
+;; (make-join)
+;; (make-copier)
+
 (defun make-cycle (elements &optional (for-elements 1 for-elements-p))
   (when elements ;; do not make a cycle of just nil
     (if for-elements-p
@@ -35,8 +49,7 @@
       (new cm:accumulation :of elements :for for-elements)
       (new cm:accumulation :of elements)))
 
-(defun make-weighting
-    (elements &optional (for-elements 1 for-elements-p))
+(defun make-weighting (elements &optional (for-elements 1 for-elements-p))
   ;; try to add :weight keyword if only provided 2 elements
   ;; we push since order doesn't really matter...
   (let ((sane-elements '()))
@@ -54,8 +67,19 @@
         (new weighting :of sane-elements :for for-elements)
         (new weighting :of sane-elements))))
 
+;; FIXME!!
+(defun make-stutter
+    (elements &optional (for 1))
+  (cm:new cm:cycle
+    :of elements
+    :for
+    (cm:new cm:cycle :of for)))
+
 (defun make-palindrome (elements)
   (cm:new cm:palindrome :of elements :elide t))
+
+(defun make-range (from to &optional (by 1))
+  (cm:new cm:range :from from :to to :by by))
 
 ;; took from jazz.cm
 (defun rancyc (data prob)
@@ -70,3 +94,48 @@
        :while (not (position cycle queue))
        :finally (return queue)
        :do (push cycle queue))))
+
+;;------------------------------------------------------------
+;; TODO: sub-cycles, like (make-var '(4 2) '(1 2 (2 (3 4))))
+;; Version that takes 2 lists
+(defgeneric make-var (for elements)
+  (:documentation "alternative to make-cycles that looks more like a foxdot pattern
+   Returns a LIST of cycles and symbols. FOR is useful to stutter something.")
+  (:method ((for fixnum) (elements list))
+    (loop :for element :in elements :collect
+         (if (and (= for 1) (or (null element) (not (listp element))))
+             element
+             (cm:new cm:cycle :of element :for for))))
+  (:method ((for list) (elements list))
+    (loop
+       :for element :in elements
+       :for f :in for
+       :collect
+         (if (and (= f 1) (or (null element) (not (listp element))))
+             element
+             (cm:new cm:cycle :of element :for f)))))
+
+;; Version that takes 1+N arguments
+(defgeneric make-cycles (for &rest rest)
+  (:documentation "returns a list of cycles or symbols using FOR as the :for param
+   tries to avoid creating cycles when FOR=1
+   kind of useful to mimic stutter OR creating alternating patterns
+   a'la () in FoxDot")
+  (:method ((for fixnum) &rest rest)
+    (if (= 1 for)
+        (mapcar (lambda (x) (if (listp x)
+                           (cm:new cm:cycle :of x :for for)
+                           x))
+                rest)
+        (mapcar (lambda (x) (cm:new cm:cycle :of (ensure-list x) :for for))
+                rest)))
+  (:method ((for list) &rest rest)
+    (loop
+       :for f :in for
+       :for r :in rest :collect
+         (if (= 1 f)
+             r
+             (cm:new cm:cycle
+               :of (ensure-list r)
+               :for f)))))
+
