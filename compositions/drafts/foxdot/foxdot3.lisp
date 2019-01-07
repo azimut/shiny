@@ -1,6 +1,10 @@
 (in-package #:shiny)
-;; Scuffer version of "ghost-in-the-machine.py"
-;; From "Qirky/ten-lines-or-less"
+;; "ghost-in-the-machine.lisp"
+;; scuffer version of FoxDot's song "ghost-in-the-machine.py"[1]
+;; using lisp's "Common Music" patterns. And some custom helpers[2].
+;;
+;; [1]: github.com/Qirky/ten-lines-or-less
+;; [2]: github.com/azimut/shiny
 ;;--------------------------------------------------
 ;; Scale.default="minor"; Clock.bpm=120
 (setf (bpm *tempo*) 120f0)
@@ -13,27 +17,30 @@
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/g/upper/0_Stab.wav" 'G)
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/colon/hh01.wav" 'C)
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/0_hihat_closed.wav" '-)
-(let ((pan (make-cycle '(0f0 1f0)))
-      (shift (make-cycle
-              (make-var '(6 2) '(0 3))))
-      (notes (make-cycle
-              (make-var 1 '(G (C -))))))
+;; TODO: pshift
+(let ((pan   (make-cycle '(0f0 1f0)))
+      (shift (make-cycle (make-var '(6 2) '(0 3))))
+      (notes (make-cycle (make-var 1 '(G (C -))))))
   (defun d1 (time)
-    (bbplay (next notes) :amp .3 :rate -.5 :pan (next pan) :rpitch (next shift))
+    (bbplay (next notes)
+            :amp .3 :rate -.5
+            :pan (next pan) :rpitch (next shift))
     (aat (+ time #[1 b]) #'d1 it)))
 (aat (tempo-sync #[4 b]) #'d1 it)
 (defun d1 ())
 ;;--------------------------------------------------
 ;; d2 >> play("x-", sample=2).sometimes("stutter", 4, dur=3)
-(defun d2 ())
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/x/lower/2_kick_drum.wav" 'x)
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/2_hihat_closed.wav" '--)
+(defun d2 ())
+;; TODO: usage of make-weighting is WRONG there
 (let ((notes (make-cycle
               (list
-               (make-cycle '(x --) (make-weighting '(4 5 6 7 8 9 10 12)))
-               (make-cycle '(x --) 4)))))
+               (make-cycle '(x --)
+                           (make-weighting (iota 12 :start 4)))
+               (make-cycle (make-var 4 '(x --)) 1)))))
   (defun d2 (time)
-    (bbplay (next notes) :amp .5)
+    (bbplay (next notes) :amp .4)
     (aat (+ time #[1 b]) #'d2 it)))
 (aat (tempo-sync #[4 b]) #'d2 it)
 ;;--------------------------------------------------
@@ -45,7 +52,7 @@
       (hpf (make-cycle '(0 2000))))
   (defun d3 (time)
     (when-let ((n (next notes)))
-      (bbplay n :amp .5 :lpf (next lpf) :hpf (next hpf) :lpr .5 :hpr 1))
+      (bbplay n :amp .5 :lpf (next lpf) :hpf (next hpf) :lpr .5 :hpr .5))
    (aat (+ time #[1 b]) #'d3 it)))
 (aat (tempo-sync #[4 b]) #'d3 it)
 ;;--------------------------------------------------
@@ -63,7 +70,9 @@
               (make-var '(6 2 6 2) '(0 6 5 2)))))
   (defun b1 (time)
     (let ((d (next dur)))
-      (p time (nth (next notes) scale) 30 d 0)
+      (setf ;;*mul* d
+            *mess* d)
+      (p time (nth (next notes) scale) (rcosr 30 5 5) d 0)
       (aat (+ time #[d b]) #'b1 it))))
 (aat (tempo-sync #[4 b]) #'b1 it)
 ;;--------------------------------------------------
@@ -85,23 +94,45 @@
                           1)))))
   (defun p2 (time)
     (let ((d (next dur)))
-      (p time (print (nth (next notes) scale)) 40 d 10)
+      (if (odds .5)
+          (setf *messy* (* (random 2f0) d))
+          (setf *messx* (* (random 2f0) d)))
+      (play-midi time (nth (next notes) scale) 40 d 0)
       (aat (+ time #[d b]) #'p2 it))))
 (aat (tempo-sync #[4 b]) #'p2 it)
 (fp 10 10)
 (defun p2 ())
 ;;--------------------------------------------------
 ;;k1 >> klank(oct=5, lpf=200, lpr=0.5)
+(dsp! dsp-klank
+    (freq1 freq2 freq3 freq4 freq5 freq6 freq7 freq8  amp lpf lpr)
+  (:defaults 523.2503 587.32855 622.253
+             698.4553 783.98944 830.608
+             932.3258 1046.5002
+             .01 200 .5)
+  (with-samples ((n (white-noise))
+                 ;;(n (* n (impulse 2 1 .1)))
+                 ;;(n 523.2503)
+                 (in (+ (incudine.vug:ringz n freq1 1)
+                        (incudine.vug:ringz n freq2 1)
+                        (incudine.vug:ringz n freq3 1)
+                        (incudine.vug:ringz n freq4 1)))
+                 ;;(in (downsamp 2 in))
+                 (in (lpf in lpf lpr))
+                 (in (* amp in)))
+    (stereo in)))
 (defun k1 ())
 (incudine:free (node 25))
 (let* ((scale (ov-scale :C5 :minor))
        (notes (nths '(0 1 2 3) scale))
        (midinotes (mapcar #'midihz notes)))
   (defun k1 (time)
+    (setf *instances* (between 10 100))
+    (setf *mul* 1f0)
     (destructuring-bind (a b c d) midinotes
-      (meniere::dsp-klank a b c d  :amp .001 :lpf 200 :lpr .5 :id 100))
+      (dsp-klank a b c d  :amp .001 :lpf 200 :lpr .5 :id 100))
     ;;(aat (+ time #[1 b]) #'k1 it)
     ))
 (aat (tempo-sync #[4 b]) #'k1 it)
-(set-control 100 :amp .002)
+(set-control 100 :amp .0001)
 (incudine:free (node 100))
