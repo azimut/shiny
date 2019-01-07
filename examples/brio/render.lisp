@@ -79,12 +79,18 @@
 
 ;;--------------------------------------------------
 ;; 3D - g-pnt mesh without tangents
-
+(defparameter *mess* .0f0)
+(defparameter *messx* .0f0)
+(defparameter *messy* .0f0)
+(defparameter *mul* 0f0)
 (defun-g vert
     ((vert g-pnt) &uniform
      (model-world :mat4) (world-view :mat4) (view-clip :mat4)
-     (scale :float))
-  (let* ((pos        (* scale (pos vert)))
+     (scale :float) (time :float))
+  (let* ((pos        (* scale (+ (v! (* *mul* (cos (* *messx* time gl-instance-id)))
+                                     (* *mul* (sin (* *messy* time gl-instance-id)))
+                                     (* *mul* (sin (* *mess* time gl-instance-id))))
+                                 (pos vert))))
          (norm       (norm vert))
          (tex        (tex vert))
          (world-norm (* (m4:to-mat3 model-world) norm))
@@ -93,7 +99,7 @@
          (clip-pos   (* view-clip   view-pos)))
     (values clip-pos
             tex
-            world-norm
+            (+ gl-instance-id world-norm)
             (s~ world-pos :xyz))))
 
 ;; http://wiki.ogre3d.org/tiki-index.php?page=-Point+Light+Attenuation
@@ -107,6 +113,12 @@
   (let* (
          ;;--------------------
          (final-color color)
+	 ;; float3 dpdx = ddx(i.worldPos);
+	 ;; float3 dpdy = ddy(i.worldPos);
+	 ;; i.normal = normalize(cross(dpdy, dpdx));
+         (dpdx (d-fdx frag-pos))
+         (dpdy (d-fdy frag-pos))
+         (frag-norm (normalize (cross dpdy dpdx)))
          (final-color
           (dir-light-apply final-color
                            (v! 20 20 20)
@@ -138,11 +150,11 @@
          ;;            uv
          ;;          sam
          ;;          samd))
-         (color (s~ (texture sam uv) :xyz))
-         (color2 (s~ (texture sam2 uv) :xyz))
+         (final-color (s~ (texture sam uv) :xyz))
+;;         (color2 (s~ (texture sam2 uv) :xyz))
          ;; (color
          ;;  (s~ (nineveh.anti-aliasing:fxaa3 uv sam (v2! (/ 1 320f0))) :xyz))
-         (final-color (+ color color2))
+;;         (final-color (+ color color2))
          (ldr (tone-map-reinhard final-color *exposure*))
          (luma (rgb->luma-bt601 ldr))
          )
@@ -350,26 +362,26 @@
                                    metallic
                                    color)))
          ;; ---------- END
-         (r (reflect (- v) n))
-         (f (fresnel-schlick-roughness (max (dot n v) 0)
-                                       f0
-                                       roughness))
-         (ks f)
-         (kd (* (- 1 ks) (- 1 metallic)))
-         (irradiance (s~ (texture irradiance-map n) :xyz))
-         (diffuse (* irradiance color))
-         (prefiltered-color (s~ (texture-lod prefilter-map
-                                             r
-                                             (* roughness 4f0))
-                                :xyz))
-         (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
-         (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
-         (ambient (* (+ specular (* kd diffuse)) ao))
+         ;; (r (reflect (- v) n))
+         ;; (f (fresnel-schlick-roughness (max (dot n v) 0)
+         ;;                               f0
+         ;;                               roughness))
+         ;; (ks f)
+         ;; (kd (* (- 1 ks) (- 1 metallic)))
+         ;; (irradiance (s~ (texture irradiance-map n) :xyz))
+         ;; (diffuse (* irradiance color))
+         ;; (prefiltered-color (s~ (texture-lod prefilter-map
+         ;;                                     r
+         ;;                                     (* roughness 4f0))
+         ;;                        :xyz))
+         ;; (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
+         ;; (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
+         ;; (ambient (* (+ specular (* kd diffuse)) ao))
          ;; (ambient (pbr-ambient-map-r irradiance-map
          ;;                             color
          ;;                             ao n v f0
          ;;                             roughness))
-         ;;(ambient (* color ao (vec3 .3)))
+         (ambient (* color ao (vec3 .3)))
          (final-color (+ ambient lo))
          ;; Fog
          ;; (final-color

@@ -65,4 +65,9 @@
 ;;--------------------------------------------------
 (defmethod update ((camera orth)))
 (defmethod update ((camera pers))
-  (setf (pos camera) (v! 0 0 2)))
+  (setf (pos camera) (v! 0 0 3))
+;;  (setf (rot camera) (q:identity))
+  (setf (rot camera)
+        (q:from-axis-angle (v! 0 1 0)
+                           (radians (* 360 (* .1 (mynow))))))
+  )

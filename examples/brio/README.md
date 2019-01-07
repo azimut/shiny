@@ -1,2 +1,1 @@
-* PBR and IBL tweaks for better generalization
-* Improved cubemap helpers
+* Code for "ghost-in-the-machine.lisp"

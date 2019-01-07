@@ -6,7 +6,7 @@
 (defvar *rough* 1f0)
 (defvar *pointlight-pos* (v! 0 0 0))
 
-(defparameter *light-pos* (v! 0 1000 3000))
+(defparameter *light-pos* (v! 0 1000 300))
 (defparameter *light-color* (v! .9 .9 .9))
 (defparameter *exposure* 1f0)
 (defparameter *parallax-scale* .01f0)
@@ -116,7 +116,8 @@
   (let ((obj
          (make-instance
           'pbr-simple
-          :buf (box 1 2 .3 t)
+          :buf (sphere)
+          ;;:buf (box 1 2 .3 t)
           :pos pos
           :rot rot)))
     (push obj *actors*)
@@ -128,7 +129,7 @@
   (let ((obj (make-instance 'box
                             :pos pos
                             :scale scale
-                            :buf (box) ;;(box 3 10 1)
+                            :buf (sphere) ;;(box) ;;(box 3 10 1)
                             )))
     (appendf *actors* (list obj))
     obj))
@@ -136,7 +137,22 @@
 (defgeneric update (actor))
 (defmethod update (actor))
 (defmethod update ((actor pbr)))
-(defmethod update ((actor pbr-simple)))
-(defmethod update ((actor box)))
+(defmethod update ((actor pbr-simple))
+  (with-slots (rot scale color metallic roughness) actor
+    (setf metallic .1)
+    (setf roughness .9)
+    (setf color (v! .03 (+ 1 (sin (* .002 (get-internal-real-time)))) .03))
+    (setf scale (+ 1 (cos (* .001 (get-internal-real-time)))))
+    (setf rot (q:from-axis-angle (v! 1 1 1)
+                                 (radians (mod (* (get-internal-real-time) .1)
+                                               360))))))
+(defmethod update ((actor box))
+  (with-slots (rot scale color) actor
+    (setf color (v3! (+ .5 (sin (* .002 (get-internal-real-time))))))
+    
+    (setf scale (+ .01 (coerce  (get-db) 'single-float)))
+    (setf rot (q:from-axis-angle (v! 1 1 1)
+                                 (radians (mod (* (get-internal-real-time) .1)
+                                               360))))))
 
 
