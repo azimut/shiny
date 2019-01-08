@@ -1,20 +1,79 @@
 (in-package :shiny)
 
-;; Needs (rt-start) first.
+;; TODO:
+;;  - right now it uses (at) to stop (word-play),
+;;    might be buffer-play can support other thing
+;;    ... I could have used (buffer-read) and (phasor-loop)
+;;    ... on the other hand it makes easy to play backwards
+;;  - Make it quickload-able
+;;  - Add slice support. With start and stop as relative values
 
-(dsp! bplay
-    ((buf buffer) rate start-pos
-     (loop-p boolean) amp left right custom-id
-     lpf hpf bpf
-     lpr hpr bpr)
+(defvar *buffers* (make-hash-table :test #'equal)
+  "Global cache for all buffers loaded through (bbufer-load).
+   Key is the (file-namestring). Example: \"sample.wav\"
+   Value is the actual buffer object.")
+(defvar *sample-words* (make-hash-table :test #'equal))
+(defvar *instruments* (make-hash-table))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DSPs helpers - These assume a blocksize of 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-vug buffer-loop-play ((buffer buffer)
+                              rate
+                              start-pos
+                              loopstart loopend)
+  (with-samples ((frame (phasor-loop rate start-pos loopstart loopend)))
+    (buffer-read buffer frame :interpolation :cubic)))
+
+(dsp! play-lsample-f ((buf buffer) dur amp start-pos loopstart loopend rate
+                      left right
+                      lpf hpf bpf
+                      lpr hpr bpr
+                      reson
+                      (downsamp fixnum))
+  "Plays given buffer for DUR in seconds. If greater than buffer loops
+   from LOOPSTART to LOOPEND frame. It can be used to play an instrument
+   sample and sustain the looped part. Or to play a slice of audio alone from
+   the rest of the buffer."
+  (:defaults nil 1 .5 0 0 0 1
+             1 1
+             0 0 0
+             1 1 1
+             0
+             0)
+  (with-samples ((in (buffer-loop-play buf rate start-pos loopstart loopend))
+                 (in (* amp in))
+                 (in (* in (envelope (make-envelope '(0 1 1 0) '(0 .9 .1))
+                                     1 dur #'incudine:free))))
+    (incudine.vug:maybe-expand in)
+    ;;
+    (unless (= 0d0 reson)
+      (setf in (incudine.vug:reson in reson 2)))
+    ;;
+    (unless (= 0 downsamp)
+      (setf in (incudine.vug:downsamp downsamp in)))
+    ;;
+    (unless (= 0d0 lpf)
+      (setf in (incudine.vug:lpf in lpf lpr)))
+    (unless (= 0d0 hpf)
+      (setf in (incudine.vug:hpf in hpf hpr)))
+    (unless (= 0d0 bpf)
+      (setf in (incudine.vug:hpf in bpf bpr)))
+    (out (* left in) (* right in))))
+
+(dsp! bplay ((buf buffer) rate start-pos
+             (loop-p boolean) amp left right custom-id
+             lpf hpf bpf
+             lpr hpr bpr end-frame)
+  "Plays given buffer without control for how long is played, it gracefully
+   accepts negative rates or audio filters."
   (:defaults (incudine:incudine-missing-arg "BUFFER")
       1 0 nil 1 1 1 1
       0 0 0
-      2 2 2)
+      2 2 2 0)
   (with-samples
-      ((in (* amp
-              (buffer-play
-               buf rate start-pos loop-p #'incudine:free))))
+      ((in (buffer-play buf rate start-pos loop-p #'incudine:free end-frame))
+       (in (* amp in)))
     (incudine.vug:maybe-expand in)
     (unless (= 0d0 lpf)
       (setf in (incudine.vug:lpf in lpf lpr)))
@@ -24,20 +83,24 @@
       (setf in (incudine.vug:hpf in bpf bpr)))
     (out (* left in) (* right in))))
 
-(dsp! bplay-downsamp
-    ((buf buffer) rate start-pos
-     (loop-p boolean) amp left right (downsamp fixnum)
-     lpf hpf bpf
-     lpr hpr bpr)
+;; NOTE: for some reason downsampling doesn't work as an optional filter.
+;;       hence we need a separate dsp!
+(dsp! bplay-downsamp ((buf buffer) rate start-pos
+                      (loop-p boolean) amp left right (downsamp fixnum)
+                      lpf hpf bpf
+                      lpr hpr bpr)
+  "This version accepts downsampling. Plays given buffer without
+   control for how long is played, it gracefully accepts negative
+   rates or audio filters."  
   (:defaults (incudine:incudine-missing-arg "BUFFER")
       1 0 nil 1 1 1 1
       0 0 0
       2 2 2)
   (with-samples
-      ((in (* amp
-              (buffer-play
-               buf (* downsamp rate) start-pos loop-p #'incudine:free)))
-       (in (incudine.vug:downsamp downsamp in)))
+      ((in (buffer-play
+            buf (* downsamp rate) start-pos loop-p #'incudine:free))
+       (in (incudine.vug:downsamp downsamp in))
+       (in (* amp in)))
     (incudine.vug:maybe-expand in)
     (unless (= 0d0 lpf)
       (setf in (incudine.vug:lpf in lpf lpr)))
@@ -50,20 +113,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Description: These one help slicing buffers into smaller pieces and
-;; reference those by a shortname.
-
-;; TODO:
-;;  - right now it uses (at) to stop (word-play),
-;;    might be buffer-play can support other thing
-;;    ... I could have used (buffer-read) and (phasor-loop)
-;;    ... on the other hand it makes easy to play backwards
-;;  - Make it quickload-able
-;;  - Add slice support. With start and stop as relative values
-
-(defvar *buffers* (make-hash-table :test #'equal))
-(defvar *sample-words* (make-hash-table :test #'equal))
 
 (defun list-buffers ()
   (alexandria:hash-table-keys *buffers*))
@@ -141,8 +190,9 @@
            (start-pos 0d0) (loop-p nil) (amp 1d0) (id 2 id-p)
            (lpf 0) (hpf 0) (bpf 0)
            (left 1d0) (right 1d0) (downsamp 1 downsamp-p) (pan .5 pan-p)
-           (lpr 2) (hpr 2) (bpr 2))
-  (declare (integer rpitch id downsamp) (boolean loop-p) (float pan))
+           (lpr 2) (hpr 2) (bpr 2)
+           (sets '() sets-p) (set nil set-p))
+  (declare (integer rpitch id downsamp) (boolean loop-p))
   "plays the provided buffer either by
    PAN value between 0f0 and 1f0
    RATE plays the buffer to play at rate
@@ -150,62 +200,70 @@
    BEAT-LENGTH stretch the whole buffer to play for N beats"
   (when (or (symbolp buf) (stringp buf))
     (let ((b (gethash buf *buffers*)))
-      (if b
-          (setf buf b)
-          (error "No buffer with that name on *buffers*"))))
+      (when b
+        (setf buf b))))
   ;; TODO: big check so we can send nil to beat-length without crashing
-  (let ((sample-rate (buffer-sample-rate buf))
-        (frames (buffer-frames buf)))
-    (when rpitch-p
-      (mulf rate (pitch-to-ratio rpitch)))
-    (when beat-length-p
-      ;; need to calculate the total duration in sec
-      ;; to provide it to (beat-to-ratio
-      (let ((dur (/ frames sample-rate)))
-        (mulf rate (beat-to-ratio beat-length
-                                  sample-rate
-                                  dur))))
-    ;; "hack" to work with buffer-play vug
-    (when (< rate 0)
-      (setf start-pos (- frames (/ frames 20))))
+  (when (and (incudine:buffer-p buf)
+             (eq sets-p set-p))
+    (let ((sample-rate (buffer-sample-rate buf))
+          (frames (buffer-frames buf)))
+      
+      (when rpitch-p
+        (mulf rate (pitch-to-ratio rpitch)))
+      
+      (when beat-length-p
+        ;; need to calculate the total duration in sec
+        ;; to provide it to (beat-to-ratio
+        (let ((dur (/ frames sample-rate)))
+          (mulf rate (beat-to-ratio beat-length
+                                    sample-rate
+                                    dur))))
+      
+      ;; "hack" to work with buffer-play vug
+      (when (< rate 0)
+        (setf start-pos (- frames (/ frames 20))))
 
-    (when pan-p
-      (setf pan (alexandria:clamp pan 0f0 1f0))
-      (cond ((> pan .5) (decf left  (* 2 (- pan .5))))
-            ((< pan .5) (decf right (* 2 (abs (- pan .5)))))))
+      (when pan-p
+        (setf pan (alexandria:clamp pan 0f0 1f0))
+        (cond ((> pan .5) (decf left  (* 2 (- pan .5))))
+              ((< pan .5) (decf right (* 2 (abs (- pan .5)))))))
     
-    (if downsamp-p
-        (if id-p
-            (bplay-downsamp buf rate start-pos loop-p
-                            :id id
-                            :amp amp
-                            :left left :right right
-                            :lpf lpf :hpf hpf :bpf bpf
-                            :lpr lpr :hpr hpr :bpr bpr                            
-                            :downsamp downsamp)
-            (bplay-downsamp buf rate start-pos loop-p
-                            :amp amp
-                            :left left :right right
-                            :lpf lpf :hpf hpf :bpf bpf
-                            :lpr lpr :hpr hpr :bpr bpr                            
-                            :downsamp downsamp))
-        (if id-p
-            (bplay buf rate start-pos loop-p
-                   :amp amp
-                   :lpf lpf :hpf hpf :bpf bpf
-                   :lpr lpr :hpr hpr :bpr bpr
-                   :left left :right right
-                   :id id)
-            (bplay buf rate start-pos loop-p
-                   :amp amp
-                   :lpf lpf :hpf hpf :bpf bpf
-                   :lpr lpr :hpr hpr :bpr bpr                   
-                   :left left :right right)))))
+      (if downsamp-p
+          (if id-p
+              (bplay-downsamp buf rate start-pos loop-p
+                              :id id
+                              :amp amp
+                              :left left :right right
+                              :lpf lpf :hpf hpf :bpf bpf
+                              :lpr lpr :hpr hpr :bpr bpr
+                              :downsamp downsamp)
+              (bplay-downsamp buf rate start-pos loop-p
+                              :amp amp
+                              :left left :right right
+                              :lpf lpf :hpf hpf :bpf bpf
+                              :lpr lpr :hpr hpr :bpr bpr
+                              :downsamp downsamp))
+          (if id-p
+              (bplay buf rate start-pos loop-p
+                     :amp amp
+                     :lpf lpf :hpf hpf :bpf bpf
+                     :lpr lpr :hpr hpr :bpr bpr
+                     :left left :right right
+                     :id id)
+              (bplay buf rate start-pos loop-p
+                     :amp amp
+                     :lpf lpf :hpf hpf :bpf bpf
+                     :lpr lpr :hpr hpr :bpr bpr                   
+                     :left left :right right))))))
 
 ;;------------------------------------------------------
+;; Description: These one help slicing buffers into smaller pieces and
+;; reference those by a shortname.
+;;
 ;; Slice of a single buffer, dedicated to words or phrases
-
 (defstruct phrase
+  "file-namestring and time in seconds at which start playing
+   and for how long"
   filename
   start-at
   dur)
@@ -222,10 +280,12 @@
 
 (defun word-play
     (phrase &key (rate 1) (rpitch 1 rpitch-p) (beat-length 1 beat-length-p)
-              (loop-p nil) (amp 1f0) (id 2)
+              (loop-p nil) (amp 1f0) (id 2 id-p)
               corrupt
-              (downsamp 1 downsamp-p)
+              (downsamp 0 downsamp-p)
               (left 1f0) (right 1f0) (pan 1f0 pan-p)
+              (lpf 0) (hpf 0) (bpf 0)
+              (lpr 1) (hpr 1) (bpr 1)
               (corrupt-center 1f0)
               (corrupt-radius .1)
               (corrupt-period 1))
@@ -238,53 +298,62 @@
   (when (or (and phrase (stringp phrase))
             (and phrase (not (eq phrase :end-of-data))))
     (let* ((obj (gethash phrase *sample-words*))
+           ;; Seconds
            (dur (phrase-dur obj))
-           (buf (gethash (phrase-filename obj)
-                         *buffers*))
+           (str (phrase-start-at obj))
+           (buf (gethash (phrase-filename obj) *buffers*))
            (sample-rate (buffer-sample-rate buf))
-           (start-pos (* sample-rate
-                         (phrase-start-at obj))))
+           ;; Frames
+           (start-pos (* sample-rate str))
+           (end-pos   (+ start-pos (* sample-rate dur))))
+      
       ;; pitch to ratio - from sonic-pi
-      (if rpitch-p
-          (mulf rate (pitch-to-ratio rpitch)))
+      (when rpitch-p
+        (mulf rate (pitch-to-ratio rpitch)))
+
+      ;; Update duration now based on the rate
+      (setf dur (/ dur (abs rate)))
+      
       ;; play for beat-length
-      (if beat-length-p
-          (mulf rate (beat-to-ratio beat-length
-                                    sample-rate
-                                    dur)))
+      (when beat-length-p
+        (mulf rate (beat-to-ratio beat-length
+                                  sample-rate
+                                  dur)))
+      
       ;; change where to start when played backwards
       (when (< rate 0)
-        (incf start-pos (* dur sample-rate)))
-
+        (rotatef start-pos end-pos))
+      
       (when pan-p
         (setf pan (alexandria:clamp pan 0f0 1f0))
         (cond ((> pan .5) (decf left  (* 2 (- pan .5))))
               ((< pan .5) (decf right (* 2 (abs (- pan .5)))))))
           
       ;; start voice
-      (if downsamp-p
-          (bplay-downsamp buf rate start-pos loop-p
+      (if id-p
+          (play-lsample-f buf dur amp start-pos
+                          :downsamp downsamp
+                          :rate rate
                           :left left
                           :right right
-                          :amp amp
-                          :downsamp downsamp
+                          :lpf lpf :hpf hpf :bpf bpf
+                          :lpr lpr :hpr hpr :bpr bpr
                           :id id)
-          (bplay buf rate start-pos loop-p
-                 :left left
-                 :right right
-                 :amp amp
-                 :id id))
+          (play-lsample-f buf dur amp start-pos
+                          :downsamp downsamp                  
+                          :rate rate
+                          :left left
+                          :right right
+                          :lpf lpf :hpf hpf :bpf bpf
+                          :lpr lpr :hpr hpr :bpr bpr
+                          :amp amp))
       (when corrupt
         (corrupt-node (now)
                       id
                       :center corrupt-center
                       :radius corrupt-radius
                       :period corrupt-period))
-      ;; kill voice
-      (let ((dur (* (/ (abs rate)) dur)))
-        (at (+ (now) (* *sample-rate* dur)) #'incudine:free (node id)))
-      T)))
-
+      T))) ;; ?
 
 ;;--------------------------------------------------
 ;; An instrument is composed of different sound files
@@ -293,8 +362,6 @@
 ;; play longer than designed without change pitch.
 ;; NOTE: Using some of ormf's code.
 ;;--------------------------------------------------
-
-(defparameter *instruments* (make-hash-table))
 
 (defclass instrument ()
   ((name  :initarg :name
@@ -318,44 +385,6 @@
 (defun clean-instruments ()
   (clean-buffers)
   (clrhash *instruments*))
-
-;;--------------------------------------------------
-
-(define-vug buffer-loop-play
-    ((buffer buffer) rate start-pos loopstart loopend)
-  (with-samples ((frame (phasor-loop rate start-pos loopstart loopend)))
-    (buffer-read buffer frame :interpolation :cubic)))
-
-(dsp! play-lsample-f
-    ((buf buffer) dur amp start-pos loopstart loopend rate
-     left right
-     lpf hpf bpf
-     reson
-     (downsamp fixnum))
-  (:defaults nil 1 .5 0 0 0 1
-             1 1
-             0 0 0
-             0
-             0)
-  (with-samples ((in (buffer-loop-play buf rate start-pos loopstart loopend))
-                 (in (* amp in))
-                 (in (* in (envelope (make-envelope '(0 1 1 0) '(0 .9 .1))
-                                     1 dur #'incudine:free))))
-    (incudine.vug:maybe-expand in)
-    ;;
-    (unless (= 0d0 reson)
-      (setf in (incudine.vug:reson in reson 2)))
-    ;;
-    (unless (= 0 downsamp)
-      (setf in (incudine.vug:downsamp downsamp in)))
-    ;;
-    (unless (= 0d0 lpf)
-      (setf in (incudine.vug:lpf in lpf 2)))
-    (unless (= 0d0 hpf)
-      (setf in (incudine.vug:hpf in hpf 2)))
-    (unless (= 0d0 bpf)
-      (setf in (incudine.vug:hpf in bpf 2)))
-    (out (* left in) (* right in))))
 
 ;;--------------------------------------------------
 
@@ -459,11 +488,14 @@
       (loop :for f :in (directory (concatenate 'string dir "*.wav"))
          :do (push-note-parsed iname (file-namestring f))))))
 
-(defun play-instrument (name nkeynum &key (dur 1) (amp 1) (rpitch 0)
-                                       (id 222)
-                                       (downsamp 0)
-                                       (reson 0)
-                                       (left 1) (right 1) (lpf 0) (hpf 0) (bpf 0))
+(defun play-instrument (name nkeynum
+                        &key (dur 1) (amp 1) (rpitch 0)
+                          (id 222)
+                          (downsamp 0)
+                          (reson 0)
+                          (left 1) (right 1)
+                          (lpf 0) (hpf 0) (bpf 0)
+                          (lpr 1) (hpr 1) (bpr 1))
   (declare (symbol name) (integer nkeynum) (number dur amp rpitch))
   (with-slots (keys) (gethash name *instruments*)
     (with-slots (filename loopend loopstart keynum) (aref keys nkeynum)
@@ -477,4 +509,6 @@
                         :rate rate
                         :downsamp downsamp
                         :reson reson
-                        :lpf lpf :hpf hpf :bpf bpf :left left :right right)))))
+                        :lpf lpf :hpf hpf :bpf bpf
+                        :lpr lpr :hpr hpr :bpr bpr
+                        :left left :right right)))))
