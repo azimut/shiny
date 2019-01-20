@@ -98,20 +98,24 @@
 ;;------------------------------------------------------------
 ;; TODO: sub-cycles, like (make-var '(4 2) '(1 2 (2 (3 4))))
 ;; Version that takes 2 lists
-(defgeneric make-var (for elements)
-  (:documentation "alternative to make-cycles that looks more like a foxdot pattern
-   Returns a LIST of cycles and symbols. FOR is useful to stutter something.")
-  (:method ((for fixnum) (elements list))
-    (loop :for element :in elements :collect
-         (if (and (= for 1) (or (null element) (not (listp element))))
+(defgeneric make-var (elements for)
+  (:documentation "Returns a LIST of cycles and/or symbols.
+FOR >1 is useful to stutter ELEMENTS.")
+  (:method ((elements list) (for fixnum))
+    (loop
+       :for element :in elements
+       :collect
+         (if (and (= for 1)
+                  (or (null element) (not (listp element))))
              element
              (cm:new cm:cycle :of element :for for))))
-  (:method ((for list) (elements list))
+  (:method ((elements list) (for list))
     (loop
        :for element :in elements
        :for f :in for
        :collect
-         (if (and (= f 1) (or (null element) (not (listp element))))
+         (if (and (= f 1)
+                  (or (null element) (not (listp element))))
              element
              (cm:new cm:cycle :of element :for f)))))
 
