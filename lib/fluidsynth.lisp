@@ -80,9 +80,6 @@
 
 ;;--------------------------------------------------
 
-;; (defgeneric pa (time notes offset velocity channel duration &key pan)
-;;   (:documentation "Play the given notes as an arpeggio"))
-
 (defgeneric pa (time notes velocity duration channel offset &key pan)
   (:documentation "Play the given notes as an arpeggio"))
 (defmethod pa ((time double-float) (notes number) (velocity integer) (duration number) (channel integer) (offset number) &key pan)
@@ -232,11 +229,11 @@
 
 ;; ---------------------------------------------------
 
-(defun fchorus-toggle (toggle)
-  (case toggle
-    (0 (fluidsynth:set-chorus-on *synth* 0))
-    (1 (fluidsynth:set-chorus-on *synth* 1))
-    (t (format nil "set 0 or 1 dummy!"))))
+(let ((enabled 0))
+  (defun fchorus-toggle ()
+    (setf enabled (mod (1+ enabled) 2))
+    (fluidsynth:set-chorus-on *synth* enabled)
+    (if (zerop enabled) :DISABLED :ENABLED)))
 
 (defun fchorus (&key (nr        3 nr-set)
                      (level 2.0d0 level-set)
@@ -256,11 +253,11 @@
 
 ;;--------------------------------------------------
 
-(defun freverb-toggle (toggle)
-  (case toggle
-    (0 (fluidsynth:set-reverb-on *synth* 0))
-    (1 (fluidsynth:set-reverb-on *synth* 1))
-    (t (format nil "set 1 to enable or 0 disable"))))
+(let ((enabled 0))
+  (defun freverb-toggle ()
+    (setf enabled (mod (1+ enabled) 2))
+    (fluidsynth:set-reverb-on *synth* enabled)
+    (if (zerop enabled) :DISABLED :ENABLED)))
 
 (defun freverb (&key (roomsize 0.2d0 roomsize-p)
                      (damp     0.0d0 damp-p)
@@ -325,7 +322,7 @@
 ;;--------------------------------------------------
 
 (defun fload (path)
-  "Load given soundfont into synth"
+  "Load given .sf2 soundfont"
   (declare (type string path))
   (assert (probe-file path))
   (assert (string= "sf2" (last-elt (cl-ppcre:split #\. path))))
