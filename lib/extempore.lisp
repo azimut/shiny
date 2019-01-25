@@ -186,7 +186,8 @@
     (mixolydian . (2 2 1 2 2 1)) 
     (aeolian . (2 1 2 2 1 2))
     (minor . (2 1 2 2 1 2))
-    (locrian . (1 2 2 1 2 2))))
+    (locrian . (1 2 2 1 2 2))
+    (bartok . (2 2 1 2 1 2))))
 
 ;; returns a scale based on a chord (standard jazz translations)
 (defvar *pc-chord->scale*
@@ -398,6 +399,7 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
    - the second argument is the \"amplitude\" of the oscillation
    - the third argument is the \"period\" of the oscillation. 
    Ex: (cosr 5 3 1/2)"
+  (declare (number centre amplitude period))
   (let ((beat (float (/ (get-internal-real-time) 36000) 1f0)))
     (+ centre
        (* amplitude
@@ -448,7 +450,7 @@ retuns true or false"
   (if (member (mod pitch 12) pc) t))
 
 (defun pc-quantize (pitch-in pc)
-  "Always slelects a higher value before a lower value where distance is equal.
+  "Always selects a higher value before a lower value where distance is equal.
  arg 1: pitch to quantize to pc
  arg 2: pc to quantize pitch against
  returns quantized pitch or #f if non available"
