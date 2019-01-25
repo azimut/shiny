@@ -5,11 +5,11 @@
 ;; SOMECEPL> (take 2 '(0 1 2 3 4 5))
 ;; (0 1)
 
-(defun take (n l)
-  (cond ((< n 0) (error "index negative"))
-        ((= n 0) ())
-        ((null l) (error "index too large"))
-        (t (cons (car l) (take (- n 1) (cdr l))))))
+;; (defun take (n l)
+;;   (cond ((< n 0) (error "index negative"))
+;;         ((= n 0) ())
+;;         ((null l) (error "index too large"))
+;;         (t (cons (car l) (take (- n 1) (cdr l))))))
 
 
 ;; https://github.com/tororo060608/danmachi/blob/master/src/util.lisp
@@ -220,6 +220,14 @@
         (:mixolydian-6     . ,(rotate melodic-minor 4)) ;; bartok,hindu,mm
         (:half-diminished  . ,(rotate melodic-minor 5))
         (:altered-scale    . ,(rotate melodic-minor 6)) ;; super-locrian
+        ;; from nudruz
+        (:goodmode          . (1 1 3 1 1 2 3))
+        (:stravmode         . (2 1 2))     ;; "Shur"
+        (:hyperlydian       . (2 2 2 1))
+        (:hyperphrygian     . (1 2 2))     ;; "Segah"
+        (:shushtar          . (1 2 1 3))
+        (:bayati            . (2 2 1 2 1)) ;; "Bayati Shiraz"
+        (:humayun           . (1 3 1 2 2))
         ;; end of ??
         (:whole-tone        . (2 2 2 2 2 2))
         (:whole             . (2 2 2 2 2 2))
@@ -249,7 +257,7 @@
         (:augmented2        . (1 3 1 3 1 3))
         (:scriabin          . (1 3 3 2 3))
         (:harmonic-major    . (2 2 1 2 1 3 1))
-        (:melodic-minor-desc. (2 1 2 2 1 2 2))
+        (:melodic-minor-desc . (2 1 2 2 1 2 2))
         (:romanian-minor    . (2 1 3 1 2 1 2))
         (:hindu             . (2 2 1 2 1 2 2))
         (:iwato             . (1 4 1 4 2))
@@ -383,20 +391,20 @@
   (mapcar (lambda (x) (if (keywordp x) (degree x) x))
           degrees))
 
-(defun ov-scale (x y &optional z)
+(defun ov-scale (root scale &optional l-degrees)
   "Returns a list of notes for the specified scale. The root must be
    in midi note format i.e. :C4 or :Bb4
 
 
    (scale :c4 :major)  ; c major      -> (60 62 64 65 67 69 71 72)
    (scale :Bb4 :minor) ; b flat minor -> (70 72 73 75 77 78 80 82)"
-  (if z
-      (let ((root    (note x))
-            (degrees (resolve-degrees z)))
+  (if l-degrees
+      (let ((root    (note root))
+            (degrees (resolve-degrees l-degrees)))
         (cons root
-              (mapcar (lambda (x) (+ root (nth-interval y x)))
+              (mapcar (lambda (x) (+ root (nth-interval scale x)))
                       degrees)))
-      (ov-scale x y (myrange 8 :min 1))))
+      (ov-scale root scale (myrange 8 :min 1))))
 
 (defvar +chord+
   (let ((major  '(0 4 7))
@@ -543,15 +551,6 @@
          (notes     (filter (lambda (x) (when (<= x max-pitch) x)) notes)))
     (sort (pick-random-list notes num-pitches) #'<)))
 
-;;; Extra
-(defun ov-pc-scale (scale-name-key)
-  "> (ov-pc-scale :todi)
-  (0 1 3 6 7 8 11)"
-  (declare (type keyword scale-name-key))
-  (butlast
-   (loop :for i :in (append '(0) (cdr (assoc scale-name-key +scale+)))
-      :with n = 0 :collect (incf n i))))
-
 #|
 Scales can be quickly generated using the scale function, which takes a root note and the type of scale as arguments.
 
@@ -616,3 +615,35 @@ https://github.com/overtone/overtone/blob/36221f68733fc5921aeb60a2a8b10e99426f23
                      prob max
                      (cons head result)))
         (reverse result))))
+
+
+;;--------------------------------------------------
+;; CUSTOM
+;;; Extra
+(defun ov-pc-scale (scale-name-key)
+  "> (ov-pc-scale :todi)
+  (0 1 3 6 7 8 11)"
+  (declare (type keyword scale-name-key))
+  (butlast
+   (loop :for i :in (append '(0) (cdr (assoc scale-name-key +scale+)))
+         :with n = 0 :collect (incf n i))))
+
+(defun list-scales ()
+  "returns a list with the keyword names of all overtone scales"
+  (mapcar #'car +scale+))
+(defun list-in-list (small-list big-list)
+  "returns T or NIL if SMALL-LIST is into BIG-LIST"
+  (let ((len (length small-list)))
+    (length= len (intersection small-list big-list))))
+(defun guess-scale (l)
+  "given a list L of midi notes returns a list of possible compatiple
+   pitch classes for the notes given"
+  (let* ((m12       (mod12 l))
+         (scales    (list-scales))
+         (pc-scales (mapcar (lambda (x) (ov-pc-scale x)) scales)))
+    (remove NIL
+            (mapcar (lambda (s p)
+                      (when (list-in-list m12 p)
+                        s))
+                    scales
+                    pc-scales))))
