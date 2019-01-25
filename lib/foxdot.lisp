@@ -242,8 +242,13 @@
 ;; Returns a pattern with the original pattern’s values shifted left
 ;; in order by n number of places. Negative numbers shift the values
 ;; right.
-(defun fx-rotate (l n)
-  (alexandria:rotate l n))
+(defgeneric fx-rotate (l n)
+  (:method ((l list) (n fixnum))
+    (alexandria:rotate l n))
+  (:method ((l list) (n list))
+    (loop
+       :for rot :in n
+       :append (alexandria:rotate (copy-list l) (- rot)))))
 ;;------------------------------
 ;; sample(n) =~ (choose-n) =~ (pickn)
 (defun fx-sample (l n)
@@ -358,3 +363,28 @@
 ;;   (let ((new '()))
 ;;     (loop :for n :in (myrange (lcm (length pat) 4))
 ;;        :do )))
+
+;; TODO: a more similar mapping of file and sample number.
+(defvar *fx-samples* (make-hash-table))
+(defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/")
+(defun fx-clear ()
+  (clrhash *fx-samples*)
+  (setf *fx-samples* NIL))
+(defun fx-load-simple (path symbol)
+  (when-let* ((path (concatenate 'string *fx-path* path))
+              (buf  (bbuffer-load path symbol)))
+    buf))
+(defun fx-load (path symbol)
+  (when-let* ((path (concatenate 'string *fx-path* path))
+              (buf (bbuffer-load path)))
+    (if (gethash symbol *fx-samples*)
+        (vector-push-extend buf (gethash symbol *fx-samples*))
+        (let ((init (make-array 0 :adjustable T :fill-pointer 0)))
+          (vector-push-extend buf init)
+          (setf (gethash symbol *fx-samples*)
+                init)))))
+(defun fx-buf (symbol &optional (sample 0))
+  (when-let* ((elements (gethash symbol *fx-samples*))
+              (n-elements (1- (fill-pointer elements)) )
+              (buf (aref elements (mod sample n-elements))))
+    buf))
