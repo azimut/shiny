@@ -14,10 +14,10 @@ Experiments on music composition in Lisp with some ocassional OpenGL interaction
 * compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
 * compositions/[empty.lisp](https://www.youtube.com/watch?v=bybN395ssVQ) - csound through cffi, 3d scene and some fluidsynth
 * compositions/[otomata.lisp](https://www.youtube.com/watch?v=ocUyPuTSQbA) - using OSC calls to create a sheet score with inscore on the fly
-* compositions/[cc.lisp](https://www.youtube.com/watch?v=gJM-q3yq7SU) - using [viseq](https://github.com/azimut/viseq) to sequence a video 
+* compositions/[cc.lisp](https://www.youtube.com/watch?v=gJM-q3yq7SU) - using [viseq](https://github.com/azimut/viseq) to sequence a video
 
 ## Goals
-I found both libraries really interesting and the only sane way to do livecoding.
+I found both CEPL, incudine and lisp really interesting and the only sane way to do livecoding.
 
 My goal is learn enough of both topics by taking popular and forgotten topics of both areas and mixing them in interesting ways.
 
@@ -34,6 +34,7 @@ You don't need to have all these, but some .asd files or examples will require t
 * https://github.com/ormf/cm/
 * https://github.com/gogins/csound-extended/tree/develop/nudruz
 * https://github.com/azimut/viseq
+* https://github.com/ormf/fomus
 
 Non-lisp:
 * https://github.com/ReneNyffenegger/csound-instruments/
@@ -56,12 +57,13 @@ And for visualizations with OpenGL/CEPL see:
 ```
 
 ## ChangeLog
-
+> Jan 2019: I am trying to put stable things from here into a different repo along with documentation https://github.com/azimut/meniere/
 > Nov 2018: BREAKING CHANGE - (pa) finally has a more similar syntax to (p)
 
 ### WHY?
 
 See [ABOUT.md](ABOUT.md)
 
-## References
-https://www.hfmdk-frankfurt.info/fileadmin/Dateien/lehrende/algorithmische-komposition.pdf
+## Other resources
+* https://www.hfmdk-frankfurt.info/fileadmin/Dateien/lehrende/algorithmische-komposition.pdf
+* http://ojs.aamusicologia.org.ar/index.php/ram/article/view/177/169
