@@ -13,12 +13,14 @@
 (defun cumsum (l)
   "> (cumsum '(20 30 40 50 60))
   (20 50 90 140 200)"  
-  (loop :for x :in l :with z = 0
-     :collect (incf z x)))
+  (loop
+     :for x :in l
+     :with z = 0
+     :collect (incf z (if (listp x) (car x) x))))
 
 (defun d2o (l)
   "durations to offsets"
-  (append (list 0f0) (cumsum (cdr l))))
+  (append '(0f0) (cumsum (cdr l))))
 
 (setf *random-state* (make-random-state t))
 
@@ -263,9 +265,13 @@ See also: `pbjorklund'"
           0 (min (length l) n)))
 
 ;; Apparently same idea of nudruz.lisp
-(defun nths (lnth l)
-  "get nth elements from lnth list"
-  (remove nil (loop :for i :in lnth :collect (nth i l))))
+(defgeneric nths (lnth l)
+  (:documentation "get nth elements from lnth list")
+  (:method ((lnth list) l)
+    (let ((len (1- (length l))))
+      (remove nil (loop :for i :in lnth :collect (nth (min i len) l)))))
+  (:method ((lnth fixnum) l)
+    (nth lnth l)))
 
 
 (defun nth-set (n new-value l)
@@ -294,12 +300,23 @@ See also: `pbjorklund'"
          (+ e inc-by)
          e)))
 
-(defun lrandom (n &optional (min .2) (random .5))
+(defun lrandom-sum (n &optional (min .2) (random .5) zero-p)
   "returns a list of N elements starting with zero
    of (1- random) numbers"
   (declare (number n min random))
   (let ((lran (loop :repeat (1- n) :collect (+ min (random random)))))
-    (append '(0) (loop :for i :in lran :with z = 0 :collect (setf z (+ i z))))))
+    (if zero-p
+        (append '(0) (loop :for i :in lran :with z = 0 :collect (setf z (+ i z))))
+        (loop :for i :in lran :with z = 0 :collect (setf z (+ i z))))))
+
+(defun lrandom (n &optional (min .2) (random .5) zero-p)
+  "returns a list of N elements starting with zero
+   of (1- random) numbers"
+  (declare (number n min random))
+  (let ((lran (loop :repeat n :collect (+ min (random random)))))
+    (if zero-p
+        (append '(0) lran)
+        lran)))
 
 (defun l-add (add n)
   "Returns a list with N and N+ADD
@@ -346,3 +363,32 @@ See also: `pbjorklund'"
 (defmethod pc-extend ((n list) (pc list) &rest nths)
   (let ((l (car (last n))))
     (append (butlast n) (apply #'pc-extend l nths))))
+
+;;--------------------------------------------------
+(defun split-string (s)
+  (declare (type string s))
+  (cl-ppcre:split :whitespace-char-class s))
+
+(defun split-string-and-add (s &rest rest)
+  (declare (type string s))
+  (if rest
+      (append (cl-ppcre:split :whitespace-char-class s) rest)
+      (cl-ppcre:split :whitespace-char-class s)))
+
+(defun at-times (time time-offsets &rest args)
+  (declare (type double-float time)
+           (type list time-offsets)
+           (optimize (speed 3)))
+  (mapcar
+   (lambda (o)
+     (apply #'at (+ time (* *SAMPLE-RATE* (* (SAMPLE o) (SPB *TEMPO*))))
+            args))
+   time-offsets))
+
+;; From nudruz.lisp
+(defun mod12 (input)
+  "MOD12 -- returns number or list, mod 12 [old function]
+  (mod12 '(23 36)) = (11 0)"
+  (cond ((eql input 'r) 'r)
+        ((numberp input) (mod input 12))
+	(t (mapcar #'mod12 input))))
