@@ -120,7 +120,8 @@
   (if for-p
       (loop
         :for element :in elements
-        :for f :in (ensure-list for)
+        :for f :in (repeat (length elements)
+                           (ensure-list for))
         :collect
            (if (and (= f 1) (or (null element) (not (listp element))))
                element
