@@ -108,7 +108,7 @@
   (declare (type string language))
   (when *tmp* (incudine:free *tmp*))
   (with-espeak (:AUDIO_OUTPUT_SYNCHRONOUS 0 (cffi:null-pointer) 0)
-    (with-sinsy
+    (with-sinsy ()
       (espeak_setsynthcallback (cffi:callback ctest))
       (cffi:with-foreign-object (l :int)
         (espeak_setvoicebyname language)
@@ -155,7 +155,7 @@
 ;;   (when (gethash phonemes shiny::*buffers*)
 ;;     (incudine:free (gethash phonemes shiny::*buffers*)))
 ;;   (with-espeak (:AUDIO_OUTPUT_SYNCHRONOUS 0 (cffi:null-pointer) 0)
-;;     (with-sinsy
+;;     (with-sinsy ()
 ;;       (espeak_setsynthcallback (cffi:callback ctest))
 ;;       (cffi:with-foreign-object (l :int)
 ;;         (espeak_setvoicebyname language)
@@ -171,35 +171,79 @@
 ;;               (chunk-to-buffer (sinsy_ng_getaudiodata l)
 ;;                                (cffi:mem-ref l :int)))))))
 
-
-
-(defun sim (phonemes notes durations breaths &optional (language "en") (speed 960))
-  "Returns a new buffer with the SPEECH rendered into it."
-  (declare (type string language))
+(defun sim (phonemes note duration breath &optional (language "en")
+                                                    (speed 960))
+  "Returns a new buffer with the SPEECH rendered into it, buffer is saved
+   on *BUFFERS* with PHONEMES for key"
+  (declare (type string phonemes language))
   (when (gethash phonemes shiny::*buffers*)
     (incudine:free (gethash phonemes shiny::*buffers*)))
   (with-espeak (:AUDIO_OUTPUT_SYNCHRONOUS 0 (cffi:null-pointer) 0)
-    (with-sinsy
+    (with-sinsy ()
       (espeak_setsynthcallback (cffi:callback ctest))
       (cffi:with-foreign-object (l :int)
         (espeak_setvoicebyname language)
-        (sinsy_ng_addnote (round (* speed durations))
+        (sinsy_ng_addnote (round (* speed duration))
                           phonemes
-                          notes
+                          note
                           T
                           T
                           1
                           1
-                          breaths)
+                          breath)
         (setf (gethash phonemes shiny::*buffers*)
               (chunk-to-buffer (sinsy_ng_getaudiodata l)
                                (cffi:mem-ref l :int)))))))
 
-
-(defun sims (phrase notes durations breaths &optional (language "es"))
-  (let ((cnotes (shiny::make-cycle (alexandria:ensure-list notes)))
+(defun sims (phrase notes durations breaths &optional (language "en"))
+  "Creates separate buffers for each list element on PHRASE."
+  (declare (type list phrase))
+  (let ((cnotes     (shiny::make-cycle (alexandria:ensure-list notes)))
         (cdurations (shiny::make-cycle (alexandria:ensure-list durations)))
-        (cbreaths (shiny::make-cycle (alexandria:ensure-list breaths))))
+        (cbreaths   (shiny::make-cycle (alexandria:ensure-list breaths))))
     (mapcar
-     (lambda (p) (sim p (cm:next cnotes) (cm:next cdurations) (cm:next cbreaths) language))
+     (lambda (p)
+       (sim p (cm:next cnotes) (cm:next cdurations) (cm:next cbreaths) language))
      phrase)))
+
+
+(defun sim1 (word phonemes note duration breath &optional (language "en")
+                                                          (syl-type 0)
+                                                          accent
+                                                          stacatto
+                                                          (slur-type 0)
+                                                          (speed 960))
+  "WORD is the index on buffers
+   PHONEMES chunks to render, might include a space"
+  (declare (type string word language)
+           (type list phonemes))
+  (when (gethash word shiny::*buffers*)
+    (incudine:free (gethash phonemes shiny::*buffers*)))
+  (with-espeak (:AUDIO_OUTPUT_SYNCHRONOUS 0 (cffi:null-pointer) 0)
+    (with-sinsy ()
+      (espeak_setsynthcallback (cffi:callback ctest))
+      (cffi:with-foreign-object (l :int)
+        (espeak_setvoicebyname language)
+        (let ((cduration (shiny::make-cycle (alexandria:ensure-list duration)))
+              (cnotes (shiny::make-cycle (alexandria:ensure-list note)))
+              (cbreath (shiny::make-cycle (alexandria:ensure-list breath)))
+              (csyl-type (shiny::make-cycle (alexandria:ensure-list syl-type)))
+              (caccent (shiny::make-cycle (alexandria:ensure-list accent)))
+              (cstacatto (shiny::make-cycle (alexandria:ensure-list stacatto)))
+              (cslur-type (shiny::make-cycle (alexandria:ensure-list slur-type))))
+          (mapcar
+           (lambda (phoneme)
+             (if (string= " " phoneme)
+                 (sinsy_ng_addrest (round (* speed .1)))
+                 (sinsy_ng_addnote (round (* speed (cm:next cduration)))
+                                   phoneme
+                                   (cm:next cnotes)
+                                   (cm:next caccent)
+                                   (cm:next cstacatto)
+                                   (cm:next cslur-type)
+                                   (cm:next csyl-type)
+                                   (cm:next cbreath))))
+           phonemes))
+        (setf (gethash word shiny::*buffers*)
+              (chunk-to-buffer (sinsy_ng_getaudiodata l)
+                               (cffi:mem-ref l :int)))))))
