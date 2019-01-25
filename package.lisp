@@ -1,4 +1,4 @@
-(uiop:define-package shiny
+(uiop:define-package #:shiny
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:use #:cl
@@ -11,7 +11,8 @@
                 #:iota
                 #:sequence-of-length-p
                 #:last-elt
-                #:first-elt                
+                #:first-elt
+                #:length=
                 #:extremum
                 #:ensure-list
                 #:appendf
