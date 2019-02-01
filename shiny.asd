@@ -1,12 +1,14 @@
 (asdf:defsystem "shiny"
   :author "azimut <azimut.github@protonmail.com>"
-  :description "incudine"  
+  :description "incudine"
   :license "GPL-3.0"
   :version "0.1"
   :serial t
   :depends-on (#:swank
                #:cm
                #:incudine
+               #:yacc
+               #:cl-lex
                #:cl-ppcre)
   :components ((:file "package")
                (:file "lib/musicutils")

@@ -1,9 +1,11 @@
 (uiop:define-package #:shiny
-  (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
+    (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:use #:cl
         #:cl-ppcre
-        #:incudine)
+        #:incudine
+        #:yacc
+        #:cl-lex)
   (:import-from #:alexandria
                 #:flatten
                 #:when-let
@@ -35,6 +37,8 @@
                 #:ran
                 #:drunk ;; brownian noise
                 #:between
+                #:ransegs ;; list of ran
+                #:vary ;; nr around
                 ;; patterns
                 #:next
                 #:new
@@ -97,7 +101,7 @@
                 #:db->lin
                 #:+twopi+
                 #:rt-eval
-              ;  #:barrier
+                                        ;  #:barrier
                 #:return-value-p
                 #:sample->fixnum
                 #:non-negative-sample

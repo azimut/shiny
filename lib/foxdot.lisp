@@ -370,13 +370,15 @@
 (defun fx-clear ()
   (clrhash *fx-samples*)
   (setf *fx-samples* NIL))
-(defun fx-load-simple (path symbol)
-  (when-let* ((path (concatenate 'string *fx-path* path))
-              (buf  (bbuffer-load path symbol)))
+(defun fx-load-simple (path symbol-string)
+  (when-let* ((symbol (alexandria:symbolicate symbol-string))
+              (path   (concatenate 'string *fx-path* path))
+              (buf    (bbuffer-load path symbol)))
     buf))
-(defun fx-load (path symbol)
+(defun fx-load (path symbol-string)
   (when-let* ((path (concatenate 'string *fx-path* path))
-              (buf (bbuffer-load path)))
+              (buf (bbuffer-load path))
+              (symbol (alexandria:symbolicate symbol-string)))
     (if (gethash symbol *fx-samples*)
         (vector-push-extend buf (gethash symbol *fx-samples*))
         (let ((init (make-array 0 :adjustable T :fill-pointer 0)))
@@ -386,5 +388,69 @@
 (defun fx-buf (symbol &optional (sample 0))
   (when-let* ((elements (gethash symbol *fx-samples*))
               (n-elements (1- (fill-pointer elements)) )
-              (buf (aref elements (mod sample n-elements))))
+              (buf (aref elements (if (= n-elements 0)
+                                      0
+                                      (mod sample n-elements)))))
     buf))
+
+;;--------------------------------------------------
+;; Pattern support similar to the one that Foxdot's
+;; play() provides
+
+(define-string-lexer foxdot-lexer
+  ("[A-Za-z-@_]"
+   (return (values :variable    (intern $@))))
+  ("\\("      (return (values :left-paren  :left-paren)))
+  ("\\)"      (return (values :right-paren :left-paren)))
+  ("{"        (return (values :left-brace  :left-brace)))
+  ("}"        (return (values :right-brace :right-brace))))
+
+(defun lex-line (string)
+  (loop
+     :with lexer := (foxdot-lexer string)
+     :for  tok   := (funcall lexer)
+     :while tok
+     :collect tok))
+
+(defun mc (l)
+  (if (listp l)
+      (make-cycle l 1)
+      l))
+(defun mw (l)
+  (if (listp l)
+      (make-weighting l 1)
+      l))
+
+;; Shitty version that only accepts () and {},
+;;  plus [] for heaps
+(define-parser foxdot-parser
+  (:start-symbol fox)
+  (:terminals (:left-paren
+               :right-paren
+               :left-brace
+               :right-brace
+               :variable))
+  (fox parenthosis
+       bracitis
+       :variable)
+  (parenthosis
+   (:left-paren sequence :right-paren
+                (lambda (_lp sequence _rp) (declare (ignore _lp _rp))
+                   (mc sequence))))
+  (bracitis
+   (:left-brace sequence :right-brace
+                (lambda (_lb sequence _rb) (declare (ignore _lb _rb))
+                   (mw sequence))))
+  (sequence fox
+            (fox sequence
+                 (lambda (fox sequence)
+                   (if (listp sequence)
+                       (cons fox sequence)
+                       (list fox sequence))))))
+
+(defun fx-pat (pat)
+  (let (;; given that we are going to get a cycle anyway
+        ;; we just force a cycle around the pattern given
+        ;; avoiding having to update the grammar (HACKS!)
+        (pattern (format NIL "(~a)" pat)))
+    (parse-with-lexer (foxdot-lexer pattern) foxdot-parser)))
