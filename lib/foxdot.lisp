@@ -403,7 +403,8 @@
   ("\\("      (return (values :left-paren  :left-paren)))
   ("\\)"      (return (values :right-paren :left-paren)))
   ("{"        (return (values :left-brace  :left-brace)))
-  ("}"        (return (values :right-brace :right-brace))))
+  ("}"        (return (values :right-brace :right-brace)))
+  ("\\s"     (return (values :null NIL))))
 
 (defun lex-line (string)
   (loop
@@ -413,10 +414,12 @@
      :collect tok))
 
 (defun mc (l)
+  ;;(format T "~{ ~a~}~%" l)
   (if (listp l)
       (make-cycle l 1)
       l))
 (defun mw (l)
+  ;;  (format T "~{ ~a~}~%" l)
   (if (listp l)
       (make-weighting l 1)
       l))
@@ -429,9 +432,11 @@
                :right-paren
                :left-brace
                :right-brace
+               :null
                :variable))
   (fox parenthosis
        bracitis
+       :null
        :variable)
   (parenthosis
    (:left-paren sequence :right-paren
@@ -444,7 +449,8 @@
   (sequence fox
             (fox sequence
                  (lambda (fox sequence)
-                   (if (listp sequence)
+                   (if (and (not (null sequence)) ;; Support NIL
+                            (listp sequence))
                        (cons fox sequence)
                        (list fox sequence))))))
 
