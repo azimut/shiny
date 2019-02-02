@@ -1,17 +1,55 @@
 (in-package :shiny)
 
+;; ## Using with incudine
+
+;; Most straightforward usage I can think of is having aubio read an incudine buffer. Just have aubio and incudine use the same type for samples. And do something like:
+;; ```
+;; (defun test-onset (source-buffer)
+;;   "returns a list of the seconds where a set is found"
+;;   (declare (incudine:buffer source-buffer))
+;;   (let* ((buffer-frames (buffer-frames source-buffer))
+;;          (sample-rate (round (buffer-sample-rate source-buffer)))
+;;          (slices (loop :for slice :from 0 :by 512 :to buffer-frames
+;;                     :collect slice))
+;;          (sets '())
+;;          (frames '())
+;;          (total-seconds (coerce (/ buffer-frames sample-rate) 'double-float)))
+;;     (assert (= 44100 sample-rate))
+;;     (aubio:with-onset (onset :sample-rate sample-rate)
+;;       (aubio:with-fvec (out-fvec 1)
+;;         (cffi:with-foreign-object (fvec '(:pointer (:struct fvec_t)))
+;;           (cffi:with-foreign-slots ((data length) fvec (:struct fvec_t))
+;;             (setf length 512)
+;;             (loop
+;;                :for slice :in slices :do
+;;                (setf data (cffi:inc-pointer (buffer-data source-buffer)
+;;                                             (* 8 2 slice)))
+;;                ;; Perform onset calculation
+;;                (sb-int:with-float-traps-masked (:divide-by-zero)
+;;                  (aubio:aubio_onset_do onset fvec out-fvec))
+;;                ;; Retrieve result
+;;                (let ((onset-new-peak (aubio:fvec_get_sample out-fvec 0)))
+;;                  (when (> onset-new-peak 0)
+;;                    (let ((set (aubio:aubio_onset_get_last_s onset)))
+;;                      (push set sets)
+;;                      (push (round (* set sample-rate)) frames)))))
+;;             (push total-seconds sets)
+;;             (push buffer-frames frames)
+;;             (values (reverse sets) (reverse frames))))))))
+;; ```
+
+
 ;; Only works when aubio is compiled to use double for samples
 ;;(ql:quickload :aubio/double)
 
+;; Define aubio fvec_t struct to hack a new one using Incudine's buffers
 (cffi:defcstruct fvec_t
-	(length :unsigned-int)
-	(data :pointer))
-
-(defparameter *fvec*
-  (cffi:foreign-alloc '(:pointer (:struct fvec_t))))
+  (length :unsigned-int)
+  (data :pointer))
 
 (defun test-onset (source-buffer)
-  "returns a list of the seconds where a set is found"
+  "returns a 2 VALUES lists of the seconds where a set is found and
+   the buffer frame where it happened"
   (declare (incudine:buffer source-buffer))
   (let* ((buffer-frames (buffer-frames source-buffer))
          (sample-rate (round (buffer-sample-rate source-buffer)))
@@ -23,22 +61,24 @@
     (assert (= 44100 sample-rate))
     (aubio:with-onset (onset :sample-rate sample-rate)
       (aubio:with-fvec (out-fvec 1)
-        (cffi:with-foreign-object (fvec '(:pointer (:struct fvec_t)))
-          (cffi:with-foreign-slots ((data length) fvec (:struct fvec_t))
+        (cffi:with-foreign-object
+            (fvec '(:pointer (:struct fvec_t)))
+          (cffi:with-foreign-slots
+              ((data length) fvec (:struct fvec_t))
             (setf length 512)
             (loop
                :for slice :in slices :do
-               (setf data (cffi:inc-pointer (buffer-data source-buffer)
-                                            (* 8 2 slice)))
+                 (setf data (cffi:inc-pointer (buffer-data source-buffer)
+                                              (* 8 2 slice)))
                ;; Perform onset calculation
-               (sb-int:with-float-traps-masked (:divide-by-zero)
-                 (aubio:aubio_onset_do onset fvec out-fvec))
+                 (sb-int:with-float-traps-masked (:divide-by-zero)
+                   (aubio:aubio_onset_do onset fvec out-fvec))
                ;; Retrieve result
-               (let ((onset-new-peak (aubio:fvec_get_sample out-fvec 0)))
-                 (when (> onset-new-peak 0)
-                   (let ((set (aubio:aubio_onset_get_last_s onset)))
-                     (push set sets)
-                     (push (round (* set sample-rate)) frames)))))
+                 (let ((onset-new-peak (aubio:fvec_get_sample out-fvec 0)))
+                   (when (> onset-new-peak 0)
+                     (let ((set (aubio:aubio_onset_get_last_s onset)))
+                       (push set sets)
+                       (push (round (* set sample-rate)) frames)))))
             (push total-seconds sets)
             (push buffer-frames frames)
             (values (reverse sets) (reverse frames))))))))
@@ -110,37 +150,81 @@
                    (push p pitches))
                  (setf last-pitch p)))
             (values (reverse pitches) (reverse confidences))))))))
+;;--------------------------------------------------
 
 (defun remove-sides (l &optional (n 1))
   (declare (list l) (alexandria:non-negative-integer n))
   (let ((len (length l)))
     (subseq l (+ 0 n) (- len n))))
 
-(defun get-sets (l)
-  (declare (list l))
+(defun get-sets (l &optional (slicer #'cddr))
+  "Takes list L of frames and groups them in pairs.
+   Examples:
+  (get-sets (nth-value 1 (test-onset ...)))
+  (get-sets (nth-value 1 (test-onset ...)) #'cdr)"
+  (declare (type list l) (type function slicer))
   (assert (>= (length l) 4))
-  (let* ((sets (butlast (cdr l))) ;; remove non-real sets
+  (let* ((sets (remove-sides l)) ;; remove non-real sets
          (set-pairs
-          (loop
-             :for (x y) :on sets :by #'cddr
-             :collect (list x y))))
-    (mapcar (lambda (x)
-              (destructuring-bind (sec1 sec2) x
-                  (list (round (* 44100 sec1)) (round (* 44100 sec2)))))
-            set-pairs)))
+          (loop :for (x y) :on sets :by slicer :collect
+               (list x y))))
+    ;; Remove sets with NIL
+    (remove-if (lambda (x) (member NIL x)) set-pairs)))
+
+
+(defun save-sets (buf &optional (slicer #'cddr))
+  "saves provided buffer OR buffer-name sets into *BUFFER-SETS*
+   as an array"
+  (declare (function slicer))
+  (when (or (symbolp buf) (stringp buf))
+    (let ((b (gethash buf *buffers*)))
+      (when b
+        (setf buf b))))
+  (when-let* ((buffer-p (buffer-p buf))
+              (buffer-name (file-namestring (buffer-file buf)))
+              (sets (get-sets
+                     (remove-sides
+                      (nth-value 1 (test-onset buf)))
+                     slicer))
+              (lsets (length sets))
+              (sets-array (make-array (list lsets 2) :initial-contents sets)))
+    (setf (gethash buffer-name *buffer-sets*) sets-array)))
+
+(defun save-beats (buf &optional (slicer #'cddr))
+  "saves provided buffer OR buffer-name sets into *BUFFER-SETS*
+   as an array"
+  (declare (function slicer))
+  (when (or (symbolp buf) (stringp buf))
+    (let ((b (gethash buf *buffers*)))
+      (when b
+        (setf buf b))))
+  (when-let* ((buffer-p (buffer-p buf))
+              (buffer-name (file-namestring (buffer-file buf)))
+              (sets (get-sets
+                     (remove-sides
+                      (nth-value 1 (test-beats buf)))
+                     slicer))
+              (lsets (length sets))
+              (sets-array (make-array (list lsets 2) :initial-contents sets)))
+    (setf (gethash buffer-name *buffer-sets*) sets-array)))
 
 (defun get-longest-set (l)
-  (let* ((sets (butlast (cdr l)))
-         (sec1 (car sets))
-         (sec2 (lastcar sets)))
-    (mapcar (lambda (x) (round (* x 44100))) (list sec1 sec2))))
+  (let* ((sets (remove-sides l))
+         (sec1 (first-elt sets))
+         (sec2 (last-elt  sets)))
+    (mapcar (lambda (x) (round (* x 44100)))
+            (list sec1 sec2))))
+
+;;--------------------------------------------------
 
 (defun play-n-set (buffer sets n)
-  (declare (incudine:buffer buffer) (list sets) (integer n))
+  (declare (incudine:buffer buffer)
+           (list sets)
+           (integer n))
   (assert (< n (length sets)))
   (let* ((set (nth n sets))
-        (frame-start (first set))
-        (frame-end (lastcar set)))
+         (frame-start (first set))
+         (frame-end (lastcar set)))
     (play-lsample-f
      buffer
      :id 100
