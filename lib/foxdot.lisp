@@ -398,7 +398,7 @@
 ;; play() provides
 
 (define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_]"
+  ("[A-Za-z-@_*]"
    (return (values :variable    (intern $@))))
   ("\\("      (return (values :left-paren  :left-paren)))
   ("\\)"      (return (values :right-paren :left-paren)))
