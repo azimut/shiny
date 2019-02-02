@@ -17,64 +17,70 @@
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/g/upper/0_Stab.wav" 'G)
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/colon/hh01.wav" 'C)
 (bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/0_hihat_closed.wav" '-)
-;; TODO: pshift
-(let ((pan   (make-cycle '(0f0 1f0)))
-      (shift (make-cycle (make-var '(6 2) '(0 3))))
-      (notes (make-cycle (make-var 1 '(G (C -))))))
+;; TODO: pshift, room
+(let ((pan   (make-cycle '(0 1)))
+      (notes (make-cycle (make-var '(G (C -)) 1)))
+      (shift (make-cycle (make-var '(0 3) '(6 2)))))
   (defun d1 (time)
     (bbplay (next notes)
-            :amp .3 :rate -.5
-            :pan (next pan) :rpitch (next shift))
+            :rate -.5
+            :rpitch (next shift)
+            :pan (next pan)
+            :amp .3)
     (aat (+ time #[1 b]) #'d1 it)))
 (aat (tempo-sync #[4 b]) #'d1 it)
 (defun d1 ())
 ;;--------------------------------------------------
 ;; d2 >> play("x-", sample=2).sometimes("stutter", 4, dur=3)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/x/lower/2_kick_drum.wav" 'x)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/2_hihat_closed.wav" '--)
-(defun d2 ())
+(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/x/lower/2_kick_drum.wav" 'x)o
+(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/2_hihat_closed.wav" '-)
 ;; TODO: usage of make-weighting is WRONG there
 (let ((notes (make-cycle
               (list
-               (make-cycle '(x --)
-                           (make-weighting (iota 12 :start 4)))
-               (make-cycle (make-var 4 '(x --)) 1)))))
+               (make-cycle
+                '(x -)
+                (make-weighting (iota 12 :start 4)))
+               (make-cycle (make-var '(x -) 4) 1)))))
   (defun d2 (time)
     (bbplay (next notes) :amp .4)
     (aat (+ time #[1 b]) #'d2 it)))
 (aat (tempo-sync #[4 b]) #'d2 it)
+(defun d2 ())
 ;;--------------------------------------------------
-;; d3 >> play("  I ", sample=2, hpf=(0,2000), lpf=(300,0), hpr=0.5)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/i/upper/2_rock_snare.wav" 'II)
-(defun d3 ())
-(let ((notes (make-cycle '(NIL NIL II NIL)))
-      (lpf (make-cycle '(300 0)))
-      (hpf (make-cycle '(0 2000))))
+;; d3 >> play("  I ", sample=2,
+;;                    hpf=(0,2000),
+;;                    lpf=(300,0),
+;;                    hpr=0.5)
+(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/i/upper/2_rock_snare.wav" 'I)
+(let ((notes (make-cycle '(nil nil I nil)))
+      (lpf   (make-cycle '(300 0)))
+      (hpf   (make-cycle '(0 2000))))
   (defun d3 (time)
-    (when-let ((n (next notes)))
-      (bbplay n :amp .5 :lpf (next lpf) :hpf (next hpf) :lpr .5 :hpr .5))
-   (aat (+ time #[1 b]) #'d3 it)))
+    (bbplay (next notes)
+            :amp .5
+            :lpf (next lpf) :lpr .5
+            :hpf (next hpf) :hpr .5)
+    (aat (+ time #[1 b]) #'d3 it)))
 (aat (tempo-sync #[4 b]) #'d3 it)
+(defun d3 ())
 ;;--------------------------------------------------
 ;; b1 >> dbass(var([0,6,5,2],[6,2]),
 ;;                dur=PDur(3,8,[0,2]),
 ;;                sus=2,
 ;;                chop=4,
 ;;                rate=4)
-(defun b1 ())
 (let ((scale (ov-scale :C5 :minor))
       (dur (make-cycle
             (list (make-cycle (pdur 3 8 0))
                   (make-cycle (pdur 3 8 2)))))
       (notes (make-cycle
-              (make-var '(6 2 6 2) '(0 6 5 2)))))
+              (make-var '(0 6 5 2) '(6 2 6 2)))))
   (defun b1 (time)
-    (let ((d (next dur)))
-      (setf ;;*mul* d
-            *mess* d)
+    (let ((d (next dur)))      
       (p time (nth (next notes) scale) (rcosr 30 5 5) d 0)
       (aat (+ time #[d b]) #'b1 it))))
 (aat (tempo-sync #[4 b]) #'b1 it)
+(defun b1 ())
 ;;--------------------------------------------------
 ;; p2 >> blip([0,1,[[3,4],2]], dur=[4,3,1],
 ;;                             drive=PWhite(0.2,0.7),
@@ -94,14 +100,11 @@
                           1)))))
   (defun p2 (time)
     (let ((d (next dur)))
-      (if (odds .5)
-          (setf *messy* (* (random 2f0) d))
-          (setf *messx* (* (random 2f0) d)))
-      (play-midi time (nth (next notes) scale) 40 d 0)
+      (p time (nth (next notes) scale) 40 d 0)
       (aat (+ time #[d b]) #'p2 it))))
 (aat (tempo-sync #[4 b]) #'p2 it)
-(fp 10 10)
 (defun p2 ())
+(fp 0 0)
 ;;--------------------------------------------------
 ;;k1 >> klank(oct=5, lpf=200, lpr=0.5)
 (dsp! dsp-klank

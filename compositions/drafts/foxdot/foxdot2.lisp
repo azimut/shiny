@@ -8,8 +8,8 @@
 (freverb :roomsize .25d0 :level 40d0 :width 10d0)
 (freset)
 (fg 2f0)
-(fp 0 18)
-(fpan 0 0)
+(fp 0 18);; (fp 0 0)
+(fpan 0 60)
 ;; C1 >> blip(((0,2,4,6) + var([0,3],[24,8])) % 7,
 ;;            dur=8,
 ;;            sus=2,
@@ -21,11 +21,14 @@
        (e (cm:new cm:transposer
             :of '(0 2 4 6)
             :stepping
-            (make-cycle (make-cycles '(4 1) 0 3)))))
+            (make-cycle
+             (make-var '(0 3) '(3 1))))))
   (defun f (time)
-    (p time (nths (mapcar (lambda (x) (mod x 7)) (next e)) scale) 50 16 (pick 10 0))
-    (aat (+ time #[8 b])
-         #'f it)))
+    (p time (nths (mapcar (lambda (x) (mod x 7))
+                          (next e))
+                  scale)
+       50 8 0)
+    (aat (+ time #[8 b]) #'f it)))
 
 (defun f ())
 (aat (tempo-sync #[1 b]) #'f it)
@@ -43,11 +46,13 @@
 ;;            chop=4,
 ;;            oct=4)
 
-(fg 1f0)
+(fg 2f0)
 
 (let ((scale (ov-scale :C5 :harmonic-major))
       (r (make-cycle
-          (list (make-cycle '(0) (make-weighting '(4 5 6 7 8 9 10 11 12)))
+          (list (make-cycle
+                 '(0)
+                 (make-weighting '(4 5 6 7 8 9 10 11 12)))
                 (make-cycle '(0 1 2 3) 1))))
       (e (make-cycle
           (list
@@ -56,7 +61,7 @@
            (list 0 4 6 7)
            (list 0 4 9 7)))))
   (defun fff (time)
-    (play-midi time (cm:transpose (nths (cm:pattern-value e) scale) -12) 40 2.5 0)
+    (p time (cm:transpose (nths (cm:pattern-value e) scale) -12) 40 2.5 0)
     (aat (+ time #[2.5 b]) #'fff it))
   (defun ff (time)
     (let* ((c (next e))
