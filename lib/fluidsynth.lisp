@@ -64,7 +64,7 @@
       pitch)))
 (defmethod p ((time double-float) (pitch symbol) (velocity fixnum) (duration symbol) (channel fixnum) &key pan)
   "Play given note on american notation, at CM rhythm"
-  (unless (and (eql :_ pitch) (eql 'cm::r pitch))
+  (unless (and (eql :_ pitch) (eql 'cm::r pitch) (eql NIL pitch))
     (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch)))
           (d (cm:rhythm duration)))
       (declare (fixnum n))
@@ -75,6 +75,7 @@
 (defmethod p ((time double-float) (pitch symbol) (velocity fixnum) (duration number) (channel fixnum) &key pan)
   "Play given note on american notation"
   (when (and (> duration 0)
+             (not (eql NIL pitch))
              (not (eql :_ pitch))
              (not (eql 'cm::r pitch)))
     (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch))))
