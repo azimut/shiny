@@ -1,4 +1,4 @@
-(uiop:define-package shiny
+(uiop:define-package #:shiny
   (:shadowing-import-from #:cm #:between) ;; between is in tmp-func but undef
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:shadowing-import-from #:cepl #:free)
@@ -17,10 +17,11 @@
                 #:flatten
                 #:when-let
                 #:when-let*
+                #:iota
                 #:sequence-of-length-p
                 #:last-elt
-                #:first-elt                
-                #:iota
+                #:first-elt
+                #:length=
                 #:extremum
                 #:ensure-list
                 #:appendf
@@ -36,8 +37,8 @@
                 ;; modify a list, like a chord
                 #:invert
                 ;; CEPL?!??
-;;                #:transpose
-                #:shuffle
+                ;;                #:transpose
+                ;;#:shuffle
                 ;; lazy evaluation, can be next'd
                 #:pval
                 ;; random boolean

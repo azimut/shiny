@@ -7,6 +7,8 @@
         #:yacc
         #:cl-lex)
   (:import-from #:alexandria
+                #:switch
+                #:eswitch
                 #:flatten
                 #:when-let
                 #:when-let*
