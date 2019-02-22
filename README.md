@@ -4,17 +4,17 @@
 
 Experiments on music composition in Lisp with some ocassional OpenGL interaction with CEPL.
 
-## Demo(s)
+## Examples
 
-* compositions/[molecularmusic.lisp](https://www.youtube.com/watch?v=ubgOlfUOztU) - music pattern with simple 3d graphics
-* compositions/[snow_world.lisp](https://www.youtube.com/watch?v=vUjnlnctdDI) - game sprite based animation
-* compositions/[notalent.lisp](https://www.youtube.com/watch?v=Unc9Hx3KdGU) - 2d sdf functions based on the pixelshader cards
-* compositions/[mondaycv.lisp](https://www.youtube.com/watch?v=Ltb_nNCyqoI) - opencv video sequencing
-* compositions/[gme.lisp](https://www.youtube.com/watch?v=DasB0di7iAw) - opencv multi video sequencing, with live nsf (nintento sound format) sequencing
-* compositions/[all-i-wanted.lisp](https://www.youtube.com/watch?v=OwanBI9jTt8) - opencv multi video sequencing, with incudine synths and samples sliced from Furi
-* compositions/[empty.lisp](https://www.youtube.com/watch?v=bybN395ssVQ) - csound through cffi, 3d scene and some fluidsynth
-* compositions/[otomata.lisp](https://www.youtube.com/watch?v=ocUyPuTSQbA) - using OSC calls to create a sheet score with inscore on the fly
-* compositions/[cc.lisp](https://www.youtube.com/watch?v=gJM-q3yq7SU) - using [viseq](https://github.com/azimut/viseq) to sequence a video
+* compositions/molecularmusic.lisp - music pattern with simple 3d graphics
+* compositions/snow_world.lisp - game sprite based animation
+* compositions/notalent.lisp - 2d sdf functions based on the pixelshader cards
+* compositions/mondaycv.lisp - opencv video sequencing
+* compositions/gme.lisp - opencv multi video sequencing, with live nsf (nintento sound format) sequencing
+* compositions/all-i-wanted.lisp - opencv multi video sequencing, with incudine synths and samples sliced from Furi
+* compositions/empty.lisp - csound through cffi, 3d scene and some fluidsynth
+* compositions/otomata.lisp - using OSC calls to create a sheet score with inscore on the fly
+* compositions/cc.lisp - using [viseq](https://github.com/azimut/viseq) to sequence a video
 
 ## Goals
 I found both CEPL, incudine and lisp really interesting and the only sane way to do livecoding.
@@ -57,7 +57,8 @@ And for visualizations with OpenGL/CEPL see:
 ```
 
 ## ChangeLog
-> Jan 2019: I am trying to put stable things from here into a different repo along with documentation https://github.com/azimut/meniere/
+> Feb 2019: I move the dev of CEPL things into https://github.com/azimut/incandescent
+> Jan 2019: I am trying to put incudine stable things from here into a different repo along with documentation https://github.com/azimut/meniere/
 > Nov 2018: BREAKING CHANGE - (pa) finally has a more similar syntax to (p)
 
 ### WHY?
