@@ -397,7 +397,7 @@
 ;; Pattern support similar to the one that Foxdot's
 ;; play() provides
 
-(define-string-lexer foxdot-lexer
+(cl-lex:define-string-lexer foxdot-lexer
   ("[A-Za-z-@_*]"
    (return (values :variable    (intern $@))))
   ("\\("      (return (values :left-paren  :left-paren)))
@@ -426,7 +426,7 @@
 
 ;; Shitty version that only accepts () and {},
 ;;  plus [] for heaps
-(define-parser foxdot-parser
+(yacc:define-parser foxdot-parser
   (:start-symbol fox)
   (:terminals (:left-paren
                :right-paren
@@ -459,4 +459,4 @@
         ;; we just force a cycle around the pattern given
         ;; avoiding having to update the grammar (HACKS!)
         (pattern (format NIL "(~a)" pat)))
-    (parse-with-lexer (foxdot-lexer pattern) foxdot-parser)))
+    (yacc:parse-with-lexer (foxdot-lexer pattern) foxdot-parser)))

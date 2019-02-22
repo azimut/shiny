@@ -7,8 +7,6 @@
   :depends-on (#:swank
                #:cm
                #:incudine
-               #:yacc
-               #:cl-lex
                #:cl-ppcre)
   :components ((:file "package")
                (:file "lib/musicutils")
@@ -18,7 +16,6 @@
                (:file "lib/drums")
                (:file "lib/incudine")
                (:file "lib/midifile")
-               (:file "lib/foxdot")
                (:file "lib/cryptogram")
                (:file "instruments/incudine-dsps")))
 
@@ -75,3 +72,12 @@
   :serial t
   :depends-on (#:shiny #:cl-morse)
   :components ((:file "lib/morse")))
+
+(asdf:defsystem "shiny/foxdot"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny #:cl-lex #:yacc)
+  :components ((:file "lib/foxdot")))

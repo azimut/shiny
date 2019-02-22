@@ -3,9 +3,7 @@
   (:shadowing-import-from #:incudine #:buffer-data #:buffer #:sample)
   (:use #:cl
         #:cl-ppcre
-        #:incudine
-        #:yacc
-        #:cl-lex)
+        #:incudine)
   (:import-from #:alexandria
                 #:switch
                 #:eswitch
