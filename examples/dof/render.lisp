@@ -1,6 +1,6 @@
 (in-package :shiny)
 
-(defparameter *exposure* .5f0)
+(defparameter *exposure* 10f0)
 
 (defun-g treat-uvs ((uv :vec2))
   (v! (x uv) (- 1.0 (y uv))))
@@ -59,6 +59,7 @@
                        (height-map :sampler-2d))
   (let* ((light-pos *pointlight-pos*)
          ;; Parallax
+
          (tan-cam-dir (- tan-cam-pos tan-frag-pos))
          (newuv (parallax-mapping uv tan-cam-dir height-map .1))
          ;; ---------
@@ -152,15 +153,9 @@
                        (* .07 (pow (length vec-to-light)
                                     2))))))
          (final-color (+ (* color point-light-strength)
-                         (* color direc-light-strength)
-                         ))
-         (final-color (apply-fog final-color
-                                 .02
-                                 frag-pos
-                                 cam-pos
-                                 (v! 0 -100 0))))
-    (v! 1 1 1)
-;;    (v! color 0)
+                         (* color direc-light-strength))))
+    (v! final-color 1)
+    ;;(v! color 0)
     ))
 
 ;;--------------------------------------------------
@@ -170,7 +165,7 @@
   (let* ((uv  (+ .5 (* .5 vert))))
     (values (v! vert 0 1)
             uv)))
-
+(defparameter *exposure* .09)
 (defun-g frag-2d ((uv :vec2) &uniform (sam :sampler-2d))
   (let* ((color (s~ (texture sam uv) :xyz))
          ;; (color
@@ -231,6 +226,7 @@
          ;; Fog
          ;;(fog-color (v! 0 1 1))
          (fog-color (* 1 (v! 0.14901961 0.3019608 0.69803923)))
+         
          ;;(fog-factor (fog-linear frag-pos cam-pos .1 30))
          ;;(fog-factor (fog-exp2 frag-pos cam-pos .16))
          ;;(normal (normalize frag-norm))
@@ -254,12 +250,11 @@
          ;; (final-color
          ;;  (+ (* color point-light-strength)
          ;;     (* color direc-light-strength)))
-         (color (apply-fog color
-                           .07
-                           frag-pos
-                           cam-pos
-                           (v! 0 100 0))))    
-    (v! color 1)))
+         )    
+    (v! ;;(mix fog-color color (vec3 (saturate fog-factor)))
+     color
+     1
+     )))
 
 (defpipeline-g tex-pipe ()
   :vertex (vert g-pnt)
@@ -323,69 +318,61 @@
   :geometry (billboard-geom)
   :fragment (billboard-frag :vec2))
 
+;;--------------------------------------------------
+;; https://forum.unity.com/threads/lineareyedepth-and-linear01depth-in-a-compute-shader-returning-infinity.487608/
+;; (defun-g linear-eye-depth ((d :float))
+;;   (let* ((near .1)
+;;          (far 400f0)
+;;          (x (- 1 (/ near far)))
+;;          (y (/ near far))
+;;          (z (/ x near))
+;;          (w (/ y near)))
+;;     (/ 1 (+ (* z d) w))))
+
+;; (defun-g linear-eye-depth ((d :float))
+;;   (let ((d (- 1 d))
+;;         (n .1)
+;;         (f 400f0))
+;;     (/ (* n f)
+;;        (+ f (* d (- n f))))))
+
+
+(defun-g dof-frag ((uv :vec2) &uniform (tex :sampler-2d))
+  (let* ((depth (x (texture tex uv)))
+         (depth (linear-eye-depth depth))
+         (focus-distance 20f0)
+         (focus-range 5f0)
+         (coc (/ (- depth focus-distance)
+                 focus-range))
+         (coc (clamp coc -1 1)))
+    coc))
+
+(defpipeline-g dof-pipe (:points)
+  :fragment (dof-frag :vec2))
 
 ;;--------------------------------------------------
-(defun-g pbr-frag ((uv :vec2)
-                   (frag-norm :vec3)
-                   (frag-pos :vec3)
-                   (tbn :mat3)
-                   (tan-light-pos :vec3)
-                   (tan-cam-pos :vec3)
-                   (tan-frag-pos :vec3)
-                   &uniform
-                   (time :float)
-                   (cam-pos :vec3)
-                   (rough :sampler-2d)
-                   (albedo :sampler-2d)
-                   (height-map :sampler-2d)
-                   (normal-map :sampler-2d)
-                   (ao :sampler-2d))
-  (let* (;;(n (normalize frag-norm))
-         (tan-cam-dir (- tan-cam-pos tan-frag-pos))
-         (uv (parallax-mapping uv tan-cam-dir height-map .001))
-         (n (* tbn (norm-from-map normal-map uv)))
-         (v (normalize (- cam-pos frag-pos)))
-         (metallic .001)
-         (f0 (vec3 .04))
-         (color (pow (s~ (texture albedo uv) :xyz) (vec3  2.2)))
-         (ao-color (x (texture ao uv)))
-         (f0 (mix f0 color metallic))
-         ;; reflectance
-         (lo (vec3 0f0))
-         ;; calculate per light radiance
-         (light-pos (+ cam-pos (v! (* 5 (sin time))
-                         0
-                         (* 5 (cos time))
-                         )))
-         (l (normalize (- light-pos frag-pos)))
-         (h (normalize (+ v l)))
-         (distance (length (- light-pos frag-pos)))
-         (attenuation (/ 1 (* distance distance)))
-         (radiance (* (v! 1 1 1) attenuation))
-         ;; cook-torrance brdf
-         (roughness (x (texture rough uv)))
-         (ndf (distribution-ggx n h roughness))
-         (g   (geometry-smith n v l roughness))
-         (f (fresnel-schlick (max (dot h v) 0) f0))
-         ;;
-         (ks f)
-         (kd (* (- (vec3 1) ks)
-                (- 1 metallic)))
-         (numerator (* ndf g f))
-         (denominator (* 4 (max (dot n v) 0) (max (dot n l) 0)))
-         (specular (/ numerator (max denominator .001)))
-         ;; add to outgoing radiance lo
-         (n-dot-l (max (dot n l) 0))
-         (lo (* (+ specular (/ (* kd color) 3.141516))
-                radiance
-                n-dot-l))
-         (ambient (* (vec3 .03) color ao-color))
-         (final-color (+ ambient lo))
-         (final-color (/ final-color (+ color (vec3 1))))
-         (final-color (pow final-color (vec3 (/ 1 2.2)))))
-    final-color))
+;; Bokeh - DOF
+(defun-g bokeh-frag ((uv :vec2)
+                     &uniform
+                     (scene :sampler-2d)
+                     (texel-size :vec2))
+  (let ((color (v! 0 0 0))
+        (weight 0))
+    ;; (for (u -4) (<= u 4) (++ u)
+    ;;      (for (v -4) (<= v 4) (++ v)
+    ;;           (let (;;(o (* uv texel-size))
+    ;;                 (o uv)
+    ;;                 )
+    ;;             (when (<= (length o) 4)
+    ;;               (multf o (* texel-size 2))
+    ;;               (incf color (s~ (texture scene (+ uv o)) :xyz))
+    ;;               (incf weight 1)))))
+    ;; (v! (* color (/ 1f0 weight))
+    ;;     1)
+    (texture scene uv)
+    )
+  
+  )
 
-(defpipeline-g pbr-pipe ()
-  :vertex (vert-with-tbdata g-pnt tb-data)
-  :fragment (pbr-frag :vec2 :vec3 :vec3
-                      :mat3 :vec3 :vec3 :vec3))
+(defpipeline-g bokeh-pass (:points)
+  :fragment (bokeh-frag :vec2))

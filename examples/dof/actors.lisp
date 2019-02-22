@@ -37,12 +37,6 @@
    (buf   :initarg :buf   :initform (box))
    (scale :initarg :scale :initform 1f0)))
 
-(defclass pbr (actor)
-  ((albedo    :initarg :albedo)
-   (ao        :initarg :ao)
-   (height    :initarg :height)
-   (normal    :initarg :normal)
-   (roughness :initarg :roughness)))
 
 (defclass celestial-sphere (actor)
   ((buf :initform (sphere 10 10 10))))
@@ -70,26 +64,9 @@
   (let ((obj (make-instance 'piso :pos pos :rot rot)))
     (push obj *actors*)
     obj))
-(defun make-pbr (&optional (pos (v! 0 0 0)))
-  (let ((obj
-         (make-instance
-          'pbr
-          :buf (sphere 1 30 30 t)
-          :pos pos
-          :albedo (get-tex "static/37.Paint01-1k/rock01_albedo.jpg" nil t :rgb8)
-          :ao (get-tex "static//rock01_ao.jpg" nil t :r8)
-          :height (get-tex "static//rock01_height.jpg" nil t :r8)
-          :normal (get-tex "static//rock01_normal.jpg" nil t :rgb8)
-          :roughness (get-tex "static/
-[200~37.Paint01-1k/rock01_roughness.jpg" nil t :r8))))
-    (push obj *actors*)
-    obj))
 
 (defgeneric update (actor))
 (defmethod update (actor))
-(defmethod update ((actor pbr))
-  (setf (rot actor) (q:from-axis-angle (v! 0 1 0)
-                                       (radians (* 20 (sin (mynow)))))))
 (defmethod update ((actor celestial-sphere))
   (setf (rot actor) (q:from-axis-angle (v! 0 1 0)
                                        (radians 90))))

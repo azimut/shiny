@@ -1,8 +1,8 @@
 (in-package :shiny)
 
 (defparameter *dirlight-pos* (v! 1000 1000 1000))
-(defparameter *dirlight-mul* .5)
-(defparameter *pointlight-pos* (v! 0 0 0))
+(defparameter *dirlight-mul* 1f0)
+(defparameter *pointlight-pos* (v! 0 2 0))
 
 (defun render-all-the-things (actor camera)
   (update actor)
@@ -24,34 +24,26 @@
 
 (defmethod draw ((actor piso) camera)
   (with-slots (buf scale tex) actor
-    (map-g #'tex-pipe buf
-           :scale 1f0
-           :albedo tex
-           :cam-pos (pos camera)
+    (map-g #'generic-pipe buf
+           :scale scale
+           :color (v! .2 .2 .2)
            :model-world (model->world actor)
            :world-view (world->view camera)
-           :view-clip  (projection camera))))
+           :view-clip  (projection camera))
+    ;; (map-g #'tex-pipe buf
+    ;;        :scale 1f0
+    ;;        :albedo tex
+    ;;        :cam-pos (pos camera)
+    ;;        :model-world (model->world actor)
+    ;;        :world-view (world->view camera)
+    ;;        :view-clip  (projection camera))
+    ))
 
 (defmethod draw ((actor box) camera)
   (with-slots (buf scale) actor
     (map-g #'generic-pipe buf
            :scale scale
            :color (v! .9 .9 .9)
-           :model-world (model->world actor)
-           :world-view (world->view camera)
-           :view-clip  (projection camera))))
-
-
-(defmethod draw ((actor pbr) camera)
-  (with-slots (buf albedo normal height roughness scale ao) actor
-    (map-g #'pbr-pipe buf
-           :scale scale
-           :albedo albedo
-           :height-map height
-           :ao ao
-           :time (mynow)
-           :rough roughness
-           :cam-pos (pos camera)
            :model-world (model->world actor)
            :world-view (world->view camera)
            :view-clip  (projection camera))))
@@ -72,10 +64,17 @@
                  ;;(depth-test-function) #'always
                  ;;(depth-mask) nil
                  )
-      (map-g #'light-pipe buf
-             :color (v! .5 .2 .5)
-             :scale 20f0
-             :time (mynow)
-             :model-world (model->world actor)
-             :world-view (world->view camera)
-             :view-clip  (projection camera)))))
+      (map-g #'generic-pipe buf
+           :scale 10f0
+           :color (v! .1 .9 .9)
+           :model-world (model->world actor)
+           :world-view (world->view camera)
+           :view-clip  (projection camera))
+      ;; (map-g #'light-pipe buf
+      ;;        :color (v! .5 .2 .5)
+      ;;        :scale 20f0
+      ;;        :time (mynow)
+      ;;        :model-world (model->world actor)
+      ;;        :world-view (world->view camera)
+      ;;        :view-clip  (projection camera))
+      )))

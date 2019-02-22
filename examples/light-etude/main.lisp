@@ -83,7 +83,7 @@
                                :ai-process-calc-tangent-space))
           'ai:meshes)
          0))
-  (when *ass* (cepl:free (slot-value *ass* 'buf)))
+  (when *ass*       (cepl:free (slot-value *ass* 'buf)))
   (when *ass-light* (cepl:free (slot-value *ass-light* 'buf)))
   (setf *ass*
         (make-instance 'assimp-thing-with-maps
@@ -115,8 +115,8 @@
   ;;                       (list 3 :element-type :rgb16f) ;; nor
   ;;                       :d))
   (setf *fbo* (make-fbo ;;(list 0 :element-type :rgb16f) ;; pos
-                        (list 0 :element-type :rgb16f) ;; nor
-                        :d))
+               (list 0 :element-type :rgb16f) ;; nor
+               :d))
   (setf *dimensions-fbo* (dimensions (attachment-tex *fbo* 0)))
   ;; (setf *sam* (cepl:sample (attachment-tex *fbo* 0) :wrap :clamp-to-edge))
   ;; (setf *sam1* (cepl:sample (attachment-tex *fbo* 1) :wrap :clamp-to-edge))
@@ -224,7 +224,7 @@
     (with-fbo-bound (*fbo*)
       (clear-fbo *fbo*)
       (loop :for actor :in *actors* :do
-         (draw actor *currentcamera*)))
+           (draw actor *currentcamera*)))
 
     ;; Really poor implementation of the awesome and more effective bloom from:
     ;; https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
@@ -234,6 +234,7 @@
     ;;                (cull-face) nil
     ;;                (clear-color) (v! 0 0 0 1)
     ;;                (depth-test-function) #'always)
+    ;;;;--------------------------------------------------
     ;;     (with-fbo-bound (*half-fbo*)
     ;;       (clear-fbo *half-fbo*)
     ;;       (map-g #'bloom-pipe *bs*
@@ -259,6 +260,7 @@
     ;;              :sam *sam-eighth-fbo*
     ;;              :x (/ 1f0 (round (* .5 (* .5 (* .5 width)))))
     ;;              :y (/ 1f0 (round (* .5 (* .5 (* .5 height)))))))
+    ;;;;--------------------------------------------------
     ;;     ;; END downscale BEGIN upscale
     ;;     (with-blending *blend*
     ;;       (with-fbo-bound (*eighth-fbo*)
@@ -289,6 +291,7 @@
     ;;                :sam *sam-half-fbo*
     ;;                :x (/ 1f0 width)
     ;;                :y (/ 1f0 height))))
+    ;;--------------------------------------------------
     ;;     ;; END upscale BEGIN merge
     ;;     (with-fbo-bound (*fbo-terciary*)
     ;;       (clear-fbo *fbo-terciary*)
@@ -299,23 +302,22 @@
     ;;              :x (/ 1f0 width)
     ;;              :y (/ 1f0 height)))))
     (as-frame
-      
       (with-setf* ((depth-mask) nil
                    (cull-face) nil
                    (clear-color) (v! 0 0 0 1)
                    (depth-test-function) #'always)
-          (map-g #'ssao-pipe *bs*
-;;                 :g-position *sam-pos*
-                 :g-normal *sam-nor*
-                 :g-depth *sam-depth*
-                 :kernel *kernel*
-                 :kernel-effect *kernel-effect*
-                 :radius *radius*
-;;                 :world-view (world->view *currentcamera*)
-                 :tex-noise *noise-sam*
-                 :random-kernel *ubo-kernel*
-                 :res (v! *dimensions-fbo*)
-                 :view-clip (projection *currentcamera*))))
+        (map-g #'ssao-pipe *bs*
+               ;;                 :g-position *sam-pos*
+               :g-normal *sam-nor*
+               :g-depth *sam-depth*
+               :kernel *kernel*
+               :kernel-effect *kernel-effect*
+               :radius *radius*
+               ;;                 :world-view (world->view *currentcamera*)
+               :tex-noise *noise-sam*
+               :random-kernel *ubo-kernel*
+               :res (v! *dimensions-fbo*)
+               :view-clip (projection *currentcamera*))))
     ;; (as-frame
     ;;   (map-g #'generic-2d-pipe *bs*
     ;;          ;;:sam *sam-terciary*

@@ -222,10 +222,10 @@
                    (time :float)
                    (color :vec3)
                    ;; Lighting
-                   (light-pos :vec3)                 
+                   (light-pos :vec3)
                    (cam-pos :vec3)
                    ;; PBR
-                   (metallic :float)                   
+                   (metallic :float)
                    (albedo :sampler-2d)
                    (ao-map :sampler-2d)
                    (height-map :sampler-2d)
@@ -244,18 +244,18 @@
               height-map
               .03))
          (roughness (x (texture rough-map uv)))
-         (ao        (x (texture ao-map uv)))         
+         (ao        (x (texture ao-map uv)))
          (color (* color (expt (s~ (texture albedo uv) :xyz)
                                (vec3 2.2))))
          ;; Normal Mapping
          ;;(normal (normalize frag-norm))
-         (normal (norm-from-map normal-map uv))         
+         (normal (norm-from-map normal-map uv))
          (normal (normalize (* tbn normal)))
          ;;----------------------------------------
          ;; PBR
          ;; metallic
          (n normal)
-         (v (normalize (- cam-pos frag-pos)))         
+         (v (normalize (- cam-pos frag-pos)))
          (metallic .1)
          (f0 (vec3 .04))
          ;;(f0 color)
@@ -300,7 +300,7 @@
          (env-brdf (texture brdf-lut (v! (max (dot n v) 0) (* roughness 4f0))))
          (specular (* prefiltered-color (+ (* f (x env-brdf)) (y env-brdf))))
          (ambient (* (+ specular (* kd diffuse)) ao))
-         
+
          (final-color (+ ambient lo))
          ;; Fog
          (final-color

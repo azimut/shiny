@@ -1,25 +1,8 @@
 (in-package :shiny)
 
 (defparameter *exposure* 1f0)
-(defun-g parallax-mapping ((tex-coords :vec2)
-                           (view-dir :vec3)
-                           (depth-map :sampler-2d)
-                           (height-scale :float))
-  (let* ((height (x (texture depth-map tex-coords)))
-         (p      (* (/ (s~ view-dir :xy) (z view-dir))
-                    (* height height-scale))))
-    (- tex-coords p)))
-
 (defun-g treat-uvs ((uv :vec2))
   (v! (x uv) (- 1.0 (y uv))))
-
-(defun-g norm-from-map ((normal-map :sampler-2d) (uv :vec2))
-  (let* ((norm-from-map (s~ (texture normal-map uv) :xyz))
-         (norm-from-map (normalize
-                         (- (* norm-from-map 2.0) 1.0))))
-    (v! (x norm-from-map)
-        (- (y norm-from-map))
-        (z norm-from-map))))
 
 ;;--------------------------------------------------
 ;; (defun-g assimp-norm-geom ((normals (:vec3 3)))
@@ -86,12 +69,7 @@
 ;;   :fragment (assimp-norm-frag))
 
 ;; 3D - assimp-mesh with textures
-(defstruct-g assimp-mesh
-  (pos :vec3)
-  (normal :vec3)
-  (uv :vec2)
-  (tangent :vec3)
-  (bitangent :vec3))
+
 
 (defstruct-g (random-kernel :layout :std-140)
   (random-v3 (:vec3 64)))
@@ -384,9 +362,9 @@
 ;; I had to change to send the view-clip matrix
 ;;   instead of the world-view matrix to the helper func above
 ;; https://github.com/McNopper/OpenGL/blob/master/Example28/shader/ssao.frag.glsl
-(defparameter *kernel* 20)
-(defparameter *radius* .2)
-(defparameter *kernel-effect* 4f0)
+(defparameter *kernel* 10)
+(defparameter *radius* .1)
+(defparameter *kernel-effect* 1f0)
 (defun-g ssao-frag ((uv :vec2)
                     &uniform
                     (kernel :int)

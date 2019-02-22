@@ -353,10 +353,10 @@
          ;; reflectance
          (lo (vec3 0f0))
          ;; calculate per light radiance
-         (light-pos (+ cam-pos (v! (* 5 (sin time))
-                         0
-                         (* 5 (cos time))
-                         )))
+         (light-pos (+ cam-pos
+                       (v! (* 5 (sin time))
+                           0
+                           (* 5 (cos time)))))
          (l (normalize (- light-pos frag-pos)))
          (h (normalize (+ v l)))
          (distance (length (- light-pos frag-pos)))
