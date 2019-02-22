@@ -357,17 +357,18 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
  example:
  (pc:relative 64 -2 '(0 2 4 5 7 9 11)) => 60
  (pc:relative 69 3 '(0 2 4 5 7 9 11)) => 74"
-  (setf i (round i))
-  (if (= i 0)
-      pitch
-      (let* ((inc (if (< i 0) '- '+)))
-        (labels ((f (p cnt)
-                   (progn (if (ispitch p pc)
-                              (setf cnt (funcall inc cnt 1)))
-                          (if (= cnt i)
-                              p
-                              (f (funcall inc p 1) cnt)))))
-          (f (funcall inc pitch 1) 0)))))
+  (when (numberp pitch)
+    (setf i (round i))
+    (if (= i 0)
+        pitch
+        (let* ((inc (if (< i 0) '- '+)))
+          (labels ((f (p cnt)
+                     (progn (if (ispitch p pc)
+                                (setf cnt (funcall inc cnt 1)))
+                            (if (= cnt i)
+                                p
+                                (f (funcall inc p 1) cnt)))))
+            (f (funcall inc pitch 1) 0))))))
 
 (defun pc-degree (value pc)
   "Returns a scale degree of a given value (pitch) based on a pc"
