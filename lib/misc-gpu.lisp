@@ -569,6 +569,12 @@
          (zw (/ (/ (+ 1 (/ f n)) 2) f)))
     (/ 1 (+ (* zz d) zw))))
 
+(defun-g read-depth ((z :float))
+  (let* ((pfn (+ 400 .1))
+         (mfn (- 400 .1))
+         (coef (* 2f0 .1)))
+    (/ coef (- pfn (* z mfn)))))
+
 ;; https://learnopengl.com/Advanced-OpenGL/Depth-testing
 ;; Because the linearized depth values range from near to far most of
 ;; its values will be above 1.0 and displayed as completely white. By
@@ -674,39 +680,39 @@
 ;; by applying the Viewport transformation to it. window.x =
 ;; viewport.x + viewport.width * (cube.x+1)/2
 
-;; (defun screen-coord (res &optional (pos (v! 0 0 -10)))
-;;   (let* ((pos4 (v! pos 1))
-;;          (cpos4 (m4:*v (world->view *currentcamera*)
-;;                        pos4))
-;;          (cpos4 (m4:*v (projection *currentcamera*)
-;;                        cpos4))
-;;          (w (w cpos4))
-;;          (ndc (v4:/s cpos4 w)))
-;;     ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
-;;     (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
-;;                          (+ (* (x res) .5 ) 0))
-;;                       (+ (* (y res) .5 (y ndc))
-;;                          (+ (* (y res) .5))))
-;;                   res))
+(defun screen-coord (res &optional (pos (v! 0 0 -10)))
+  (let* ((pos4 (v! pos 1))
+         (cpos4 (m4:*v (world->view *currentcamera*)
+                       pos4))
+         (cpos4 (m4:*v (projection *currentcamera*)
+                       cpos4))
+         (w (w cpos4))
+         (ndc (v4:/s cpos4 w)))
+    ;; https://stackoverflow.com/questions/42751427/transformations-from-pixels-to-ndc
+    (v2:abs (v2:/ (v! (+ (* (x res) .5 (x ndc))
+                         (+ (* (x res) .5 ) 0))
+                      (+ (* (y res) .5 (y ndc))
+                         (+ (* (y res) .5))))
+                  res))
     
-;;     ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
-;;     ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
-;;     ;;     (+ (* (+ 1 (y ndc)) (/ (y res) 2))))
+    ;; https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glViewport.xml
+    ;; (v! (+ (* (+ 1 (x ndc)) (/ (x res) 2)))
+    ;;     (+ (* (+ 1 (y ndc)) (/ (y res) 2))))
 
-;;     ;; screen.x = ((view.w * 0.5) * ndc.x) +
-;;     ;;            ((w * 0.5) + view.x)
-;;     ;; screen.y = ((view.h * 0.5) * ndc.y) +
-;;     ;;            ((h * 0.5) + view.y)
-;;     ;;
-;;     ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
-;;     ;;                            (/ (+ 1 (x ndc)) 2)))
-;;     ;;                   (+ .5 (* (y res)
-;;     ;;                            (/ (- 1 (y ndc)) 2))))
-;;     ;;               res))
-;;     ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
-;;     ;;             (v! 1 1))
-;;     ;;       (v2:*s res .5))    
-;;     ))
+    ;; screen.x = ((view.w * 0.5) * ndc.x) +
+    ;;            ((w * 0.5) + view.x)
+    ;; screen.y = ((view.h * 0.5) * ndc.y) +
+    ;;            ((h * 0.5) + view.y)
+    ;;
+    ;; (v2:abs (v2:/ (v! (+ .5 (* (x res)
+    ;;                            (/ (+ 1 (x ndc)) 2)))
+    ;;                   (+ .5 (* (y res)
+    ;;                            (/ (- 1 (y ndc)) 2))))
+    ;;               res))
+    ;; (v2:* (v2:+ (v2:/s (s~ cpos4 :xy) w)
+    ;;             (v! 1 1))
+    ;;       (v2:*s res .5))    
+    ))
 
 ;;--------------------------------------------------
 ;; Pipeline to create a BRDF 2d lut

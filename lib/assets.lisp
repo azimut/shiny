@@ -25,6 +25,7 @@
 
 ;;------------------------------------------------------------
 ;; Helpers for tangent-space calculations
+;; FIXME: They seem wrong on spheres, probably on everything else too?
 
 (defstruct-g tb-data
   (tangent :vec3)
@@ -60,19 +61,19 @@
          (bitangent1
           (v3:normalize
            (v! (* f (+ (* (- (x delta-uv2)) (x edge1))
-                       (* (x delta-uv1) (x edge2))))
+                       (*    (x delta-uv1)  (x edge2))))
                (* f (+ (* (- (x delta-uv2)) (y edge1))
-                       (* (x delta-uv1) (y edge2))))
+                       (*    (x delta-uv1)  (y edge2))))
                (* f (+ (* (- (x delta-uv2)) (z edge1))
-                       (* (x delta-uv1) (z edge2))))))))
+                       (*    (x delta-uv1)  (z edge2))))))))
     (list tangent1 bitangent1)))
 
 (defun tbdata-from-vertex-and-indices (g-verts g-indices)
-  (let* ((verts (pull1-g g-verts))
+  (let* ((verts   (pull1-g g-verts))
          (indices (pull-g g-indices))
-         (result (make-gpu-array
-                  nil :dimensions (first (dimensions verts))
-                  :element-type 'tb-data)))
+         (result  (make-gpu-array
+                   nil :dimensions (first (dimensions verts))
+                   :element-type 'tb-data)))
     (with-gpu-array-as-c-array (data result)
       (loop :for (i0 i1 i2)
          :on indices
@@ -176,7 +177,7 @@
 ;; Dirt - image loader into CEPL sampler
 
 (defvar *samplers* (make-hash-table :test #'equal))
-
+(defun free-all-tex ())
 (defun get-tex (path &optional (force nil) (mipmap t) (image-format :rgba8))
   (when force
     (let ((s (gethash path *samplers*)))
@@ -198,16 +199,23 @@
 ;;--------------------------------------------------
 ;; Assimp - 3d object loader
 
+(defstruct-g assimp-mesh
+  (pos       :vec3)
+  (normal    :vec3)
+  (uv        :vec2)
+  (tangent   :vec3)
+  (bitangent :vec3))
+
 (defun assimp-mesh-to-stream (mesh)
   (declare (ai:mesh mesh))
-  (with-slots ((vertices ai:vertices)
-               (normals ai:normals)
-               (tangents ai:tangents)
-               (bitangents ai:bitangents)
+  (with-slots ((vertices       ai:vertices)
+               (faces          ai:faces)               
+               (normals        ai:normals)
                (texture-coords ai:texture-coords)
-               (faces ai:faces))
+               (tangents       ai:tangents)
+               (bitangents     ai:bitangents))
       mesh
-    (let* ((texture-coords (elt texture-coords 0)))
+    (let ((texture-coords (elt texture-coords 0)))
       (assert (= (length bitangents)
                  (length tangents)
                  (length normals)
@@ -221,7 +229,7 @@
           (loop
              :for indices :across faces
              :for i :from 0 :by 3
-             :do (setf (aref-c c-arr i) (aref indices 0)
+             :do (setf (aref-c c-arr i)       (aref indices 0)
                        (aref-c c-arr (+ i 1)) (aref indices 1)
                        (aref-c c-arr (+ i 2)) (aref indices 2))))
         (with-gpu-array-as-c-array (c-arr v-arr)
