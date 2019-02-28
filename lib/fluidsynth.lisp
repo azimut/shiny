@@ -19,14 +19,6 @@
 
 ;;--------------------------------------------------
 
-(declaim (inline calc-beats))
-(defun calc-beats (offset)
-  (declare ;;(type alexandria:non-negative-real offset)
-   (optimize (speed 3)))
-  (the double-float (* *SAMPLE-RATE* (* (sample offset) (spb *TEMPO*)))))
-
-;;--------------------------------------------------
-
 (defgeneric p (time pitch velocity duration channel &key pan))
 
 ;; Stop reusing p here. WHY?
@@ -394,6 +386,10 @@
 (defun fpan (channel pan)
   (declare (type (integer 0 127) pan))
   (fluidsynth:cc *synth* channel 10 pan))
+
+(defun fvol (channel vol)
+  (declare (type (integer 0 127) vol))
+  (fluidsynth:cc *synth* channel 7 vol))
 
 (defun all-pan (&optional (pan 64) (max-channels 32))
   "Set PAN on all channels"
