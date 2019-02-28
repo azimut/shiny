@@ -15,6 +15,7 @@
                (:file "lib/overtone")
                (:file "lib/drums")
                (:file "lib/incudine")
+               (:file "lib/buffers")
                (:file "lib/midifile")
                (:file "lib/cryptogram")
                (:file "instruments/incudine-dsps")))
@@ -27,6 +28,15 @@
   :serial t
   :depends-on (#:shiny #:incudine-fluidsynth)
   :components ((:file "lib/fluidsynth")))
+
+(asdf:defsystem "shiny/alsaseq"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny #:cl-alsaseq)
+  :components ((:file "lib/alsaseq")))
 
 (asdf:defsystem "shiny/csound"
   :author "azimut <azimut.github@protonmail.com>"
