@@ -29,6 +29,15 @@
   :depends-on (#:shiny #:incudine-fluidsynth)
   :components ((:file "lib/fluidsynth")))
 
+(asdf:defsystem "shiny/lv2"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny #:incudine-lv2)
+  :components ((:file "lib/lv2")))
+
 (asdf:defsystem "shiny/alsaseq"
   :author "azimut <azimut.github@protonmail.com>"
   :description "incudine"
