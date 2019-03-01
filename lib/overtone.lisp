@@ -178,7 +178,7 @@
         ((stringp n)  (gethash :midi-note (note-info n)))
         (t (error "Bad argument."))))
 
-;; NOTE: hack in 
+;; NOTE: hack in
 (defparameter +scale+
   (flet ((rotate (scale-sequence offset)
            (take (length scale-sequence)
@@ -616,6 +616,20 @@ https://github.com/overtone/overtone/blob/36221f68733fc5921aeb60a2a8b10e99426f23
                      (cons head result)))
         (reverse result))))
 
+;; sputter variation that always returns a list of the same length of the input
+(defun stutter (list &optional (prob .25) (result '()))
+  (let ((head (first list))
+        (tail (rest  list))
+        (max  (length list)))
+    (if (and head (< (length result) max))
+        (if (< (random 1f0) prob)
+            (sputter (cons head tail)
+                     prob max
+                     (cons head result))
+            (sputter tail
+                     prob max
+                     (cons head result)))
+        (reverse result))))
 
 ;;--------------------------------------------------
 ;; CUSTOM
@@ -625,8 +639,8 @@ https://github.com/overtone/overtone/blob/36221f68733fc5921aeb60a2a8b10e99426f23
   (0 1 3 6 7 8 11)"
   (declare (type keyword scale-name-key))
   (butlast
-   (loop :for i :in (append '(0) (cdr (assoc scale-name-key +scale+)))
-         :with n = 0 :collect (incf n i))))
+   (loop :for i :in (cons 0 (cdr (assoc scale-name-key +scale+)))
+      :with n = 0 :collect (incf n i))))
 
 (defun list-scales ()
   "returns a list with the keyword names of all overtone scales"
