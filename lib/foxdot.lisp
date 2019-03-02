@@ -460,3 +460,9 @@
         ;; avoiding having to update the grammar (HACKS!)
         (pattern (format NIL "(~a)" pat)))
     (yacc:parse-with-lexer (foxdot-lexer pattern) foxdot-parser)))
+
+(defun fx-parse (sym)
+  (declare (type symbol sym))
+  (if (eq '- sym)
+      NIL
+      T))
