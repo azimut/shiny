@@ -20,7 +20,7 @@
 
 (defun d2o (l)
   "durations to offsets"
-  (append '(0f0) (cumsum (cdr l))))
+  (cons 0f0 (cumsum (cdr l))))
 
 (setf *random-state* (make-random-state t))
 
@@ -381,7 +381,7 @@ See also: `pbjorklund'"
            (optimize (speed 3)))
   (mapcar
    (lambda (o)
-     (apply #'at (+ time (* *SAMPLE-RATE* (* (SAMPLE o) (SPB *TEMPO*))))
+     (apply #'at  (+ time (calc-beats o))
             args))
    time-offsets))
 
@@ -392,3 +392,20 @@ See also: `pbjorklund'"
   (cond ((eql input 'r) 'r)
         ((numberp input) (mod input 12))
 	(t (mapcar #'mod12 input))))
+
+(defun random-mute (l &optional (mute-prob .5))
+  "takes a list L and returns a new list with the same elements
+   but some replaced with zero"
+  (declare (type list l)
+           (type single-float mute-prob))
+  (loop :for note :in l :collect
+       (if (> (random 1f0) mute-prob)
+           note
+           0)))
+
+(defun zbeat (time beat)
+  "Returns true when TIME matches is at BEAT"
+  (declare (type double-float time)
+           (type fixnum beat))
+  (zerop (mod time (calc-beats beat))))
+
