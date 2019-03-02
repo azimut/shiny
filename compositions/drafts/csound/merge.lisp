@@ -24,9 +24,9 @@
           :filename "stringphaser"
           :filepath "/home/sendai/projects/csound-instruments/costello/")
 
-(start-csound (gethash :phaser *orcs*))
-(start-thread)
 (load-csound (get-orchestra :phaser))
+(start-csound (get-orchestra :phaser))
+(start-thread)
 
 ;; i19 0  5      3000   6.07
 ; Global instrument for ensemble/phaser effect. p4 sets amount
@@ -38,10 +38,10 @@
 (make-play phaser-effect "i22" :change .9)
 (make-play phaser-reverb "i99" :p1 .93 :p2 1.2 :p3 1 :p4 7000 :p5 1)
 
-(play-phaser-reverb 24)
-(play-phaser-effect 20 :change .1)
+(play-phaser-reverb 10)
+(play-phaser-effect 10 :change .1)
 (play-phaser 70 1)
-(play-phaser (make-chord 60 70 3 (scale 0 'minor)) 2 :amp 100)
+(play-phaser (make-chord 60 70 3 (scale 0 'minor)) 2 :amp 500)
 
 ;;--------------------------------------------------
 
@@ -55,7 +55,7 @@
 (load-csound (get-orchestra :wavmodfm))
 
 (make-play wavmodfm "i1" :amp 3000 :freq 440)
-(play-wavmodfm (make-chord 40 60 3 (scale 0 'minor)) 2 :amp (pick 2000 3000))
+(play-wavmodfm (make-chord 40 60 3 (scale 0 'minor)) 2 :amp 1000)
 
 ;;--------------------------------------------------
 
@@ -89,7 +89,7 @@
 (load-csound (get-orchestra :otis))
 (start-thread)
 
-(make-play otis15 "i15" :freq 443.713 :p6 200 :p7 .401)
+(make-play otis15 "i15" :freq 443.713 :amp 200 :pan .401)
 (make-play drums "i7" :amp .799 :ampfunc 3 :freq 203 :ratio 1.416 :p8 4.99 :p9 .511)
 (make-play drone "i8"  :freq 60 :amp .399 :p6 9.999 :p7 3)
 (make-play bell "i5" :freq 60 :amp .032 :p6 4 :p7 70.006 :p8 169.437)
@@ -102,7 +102,7 @@
 (play-drone 58 10 :amp .1  :p7 1)
 (play-bell-arp '(60 62 65) 2 2 :p8 20)
 (play-drums 200 .05)
-(play-otis15 50 8 :p7 .9)
+(play-otis15 50 8 :amp 1000 :pan .9)
 ;;--------------------------------------------------
 
 (make-orc :physmodl

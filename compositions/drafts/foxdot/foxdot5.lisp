@@ -8,11 +8,15 @@
 (clean-buffers)
 
 (setf (bpm *tempo*) 160d0)
-
-(let ((pat (fx-pat "(x-)-{-x}{x-}d---")))
+(let ((pat (fx-pat "(x-)-{-x}{x-}d---"))
+      ;;(pat (fx-pat "(v-)-{-v}{v-}d---"))
+      )
   (defun f (time)
-    (bbplay (next pat) :amp .5)
+    (let ((b (print (next pat))))
+      (bbplay b :amp .5))
     (aat (+ time #[1 b]) #'f it)))
 
 (aat (tempo-sync #[4 b]) #'f it)
 (defun f ())
+
+

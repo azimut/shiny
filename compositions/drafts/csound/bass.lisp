@@ -41,6 +41,7 @@
 ;;--------------------------------------------------
 (start-csound (get-orchestra :drumkit))
 (start-thread)
+(load-csound (get-orchestra :drumkit))
 
 (make-play bass "i1"
            :amp 10000  :wave 1
@@ -68,4 +69,4 @@
 (play-hihat 1)
 (play-bass 60 1)
 (play-snare 2)
-(play-crash 60 2 :pan1 .9)
+(play-crash 60 2 :pan1 .3)

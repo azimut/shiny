@@ -1,7 +1,7 @@
 (in-package :shiny)
 
 (start-csound (get-orchestra :xanadu))
-(load-csound (get-orchestra :xanadu))
+(load-csound  (get-orchestra :xanadu))
 (start-thread)
 
 ;; XANADU
