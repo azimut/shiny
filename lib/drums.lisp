@@ -39,29 +39,55 @@
   (print-unreadable-object (obj out :type t)
     (format out "~s" (pattern-name obj))))
 
-(defgeneric parse-pattern (pattern))
-(defmethod parse-pattern (pattern))
-(defmethod parse-pattern ((pattern string))
-  (loop
-     :for c
-     :across (string-downcase pattern)
-     :when (or (eq c #\1) (eq c #\x) (eq c #\0)
-               (eq c #\~) (eq c #\-))
-     :collect
-     (if (or (eq c #\x)
-             (eq c #\0)
-             (eq c #\1))
-         t
-         nil)))
+(defgeneric parse-pattern (pattern &key true-char))
+(defmethod parse-pattern ((pattern string) &key (true-char #\x))
+  (values
+   (loop
+      :for c
+      :across (string-downcase pattern)
+      :when (or (eq c #\x) (eq c #\1) (eq c #\0)
+                (eq c #\~) (eq c #\-))
+      :collect
+        (if (eq true-char c)
+            t
+            nil))
+   pattern))
 
-(defmethod parse-pattern ((pattern list))
+;; FIXME: not consistent with string version
+(defmethod parse-pattern ((pattern list) &key true-char)
   (loop :for beat :in pattern :collect
-     (if (= 0 beat) nil t)))
+       (if (= 0 beat) nil t)))
 
-(defun parse-patternc (s)
-  (let ((p (parse-pattern s)))
-    (when p
-      (make-cycle p))))
+(defun parse-patternc (s &key (true-char #\x))
+  (when-let ((p (parse-pattern s :true-char true-char)))
+    (make-cycle p)))
+
+;; Shorthands
+(defun parse1 (pattern)
+  (values
+   (loop
+      :for c
+      :across (string-downcase pattern)
+      :when (or (eq c #\x) (eq c #\1) (eq c #\0)
+                (eq c #\~) (eq c #\-))
+      :collect
+        (if (eq c #\1)
+            t
+            nil))
+   pattern))
+(defun parsex (pattern)
+  (values
+   (loop
+      :for c
+      :across (string-downcase pattern)
+      :when (or (eq c #\x) (eq c #\1) (eq c #\0)
+                (eq c #\~) (eq c #\-))
+      :collect
+        (if (eq c #\x)
+            t
+            nil))
+   pattern))
+
 
 (defun make-pattern (name short-name &key bd ch oh sn)
   (declare (string name) (symbol short-name))
@@ -69,10 +95,10 @@
         (make-instance
          'drum-pattern
          :name name
-         :bd (parse-pattern bd)
-         :ch (parse-pattern ch)
-         :oh (parse-pattern oh)
-         :sn (parse-pattern sn))))
+         :bd (parse-pattern bd :true-char #\0)
+         :ch (parse-pattern ch :true-char #\0)
+         :oh (parse-pattern oh :true-char #\0)
+         :sn (parse-pattern sn :true-char #\0))))
 
 (defun list-patterns ()
   (alexandria:hash-table-keys *patterns*))
@@ -456,9 +482,12 @@
   (defpattern k (((T NIL NIL NIL) (TTTT)) .4)
      (p time 60 60 1 0))"
   (let ((lets (loop :for pattern :in patterns :collect
-                   `(,(gensym) (make-cycle (if (stringp ,pattern)
-                                               (parse-pattern ,pattern)
-                                               ,pattern))))))
+                   `(,(gensym)
+                      (if (cm:pattern? ,pattern)
+                          ,pattern
+                          (make-cycle (if (stringp ,pattern)
+                                          (parse-pattern ,pattern)
+                                          ,pattern)))))))
     `(let (,@lets
            (d  ,dur))
        (defun ,name (time)
