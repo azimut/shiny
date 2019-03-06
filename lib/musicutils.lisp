@@ -406,6 +406,6 @@ See also: `pbjorklund'"
 (defun zbeat (time beat)
   "Returns true when TIME matches is at BEAT"
   (declare (type double-float time)
-           (type fixnum beat))
+           (type number beat))
   (zerop (mod time (calc-beats beat))))
 
