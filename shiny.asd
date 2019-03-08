@@ -18,7 +18,7 @@
                (:file "lib/buffers")
                (:file "lib/midifile")
                (:file "lib/cryptogram")
-               (:file "instruments/incudine-dsps")))
+               (:file "lib/csound-live-code.lisp")))
 
 (asdf:defsystem "shiny/fluidsynth"
   :author "azimut <azimut.github@protonmail.com>"
