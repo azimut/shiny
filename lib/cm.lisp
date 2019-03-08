@@ -36,13 +36,17 @@
   "loops over elements in a continuous cycle"
   (cm:new cm:line :of elements))
 
-(defun make-rotation (elements &optional (for-elements 1 for-elements-p))
+(defun make-rotation (elements &optional (rotations '(0 1 1)) (for-elements 1 for-elements-p))
   "A constantly rotating pattern.
    > (next (make-rotation '(1 2 3 4)) 30)
    (1 2 3 4 2 3 4 1 3 4 1 2 4 1 2 3 1 2 3 4 2 3 4 1 3 4 1 2 4 1)"
+  (declare (type list rotations))
   (if for-elements-p
-      (cm:new cm:rotation :of elements :for for-elements)
-      (cm:new cm:rotation :of elements)))
+      (cm:new cm:rotation :of elements
+              :rotations rotations
+              :for for-elements)
+      (cm:new cm:rotation :of elements
+              :rotations rotations)))
 
 (defun make-accumulation (elements &optional (for-elements 1 for-elements-p))
   "For each item, generates all items up to and including the current item.
