@@ -68,5 +68,4 @@
     (declare (type list nhex))
     (loop
        :for n :in nhex
-       :for n-beat := (calc-beats n)
-       :thereis (zerop (if (zerop n-beat) 0d0 (mod time n-beat))))))
+       :thereis (= n (mod (/ time #[1 b]) 16)))))
