@@ -17,12 +17,27 @@
 ;;   endif
 ;; endop
 
+;; https://rosettacode.org/wiki/Bitwise_operations#Common_Lisp
+(defun rotl (x width bits)
+  "Compute bitwise left rotation of x by 'bits' bits, represented on 'width' bits"
+  (logior (logand (ash x (mod bits width))
+                  (1- (ash 1 width)))
+          (logand (ash x (- (- width (mod bits width))))
+                  (1- (ash 1 width)))))
+
+(defun rotr (x width bits)
+  "Compute bitwise right rotation of x by 'bits' bits, represented on 'width' bits"
+  (logior (logand (ash x (- (mod bits width)))
+                  (1- (ash 1 width)))
+          (logand (ash x (- width (mod bits width)))
+                  (1- (ash 1 width)))))
+
 ;; http://lisptips.com/post/44509805155/formatting-integers-in-different-radixes
 ;; decimal to ...
-(defun :hex (value &optional (size 4))
+(defun :hex (value &optional (size 8))
   "(:hex 666) => 029A"
   (format NIL "~v,'0X" size value))
-(defun :bits (value &optional (size 8))
+(defun :bits (value &optional (size 16))
   "(:bits 42) => 00101010"
   (format NIL "~v,'0B" size value))
 ;; ... to decimal
@@ -41,11 +56,18 @@
     bin-string))
 
 ;; TODO: formatting
-(defun hexbeat (hex &key offset)
+(defun hexbeat (hex &optional (offset 0))
   "returns binary string of the HEX beat provided"
-  (declare (type string hex))
+  (declare (type string hex)
+           (type fixnum offset))
   (let* ((decimal (parse-integer hex :radix 16))
-         (binary  (format NIL "~v,'0B" 16 decimal)))
+         (decimal-offset
+          (cond ((plusp offset)
+                 (rotl decimal 16 (abs offset)))
+                ((minusp offset)
+                 (rotr decimal 16 (abs offset)))
+                ((zerop offset) decimal)))
+         (binary  (format NIL "~v,'0B" 16 decimal-offset)))
     binary))
 
 (defun hexbeat-nths (hex)
@@ -68,4 +90,7 @@
     (declare (type list nhex))
     (loop
        :for n :in nhex
-       :thereis (= n (mod (/ time #[1 b]) 16)))))
+       :thereis (= n (mod (/ time (calc-beats 1)) 16)))))
+
+
+
