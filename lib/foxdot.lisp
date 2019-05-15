@@ -233,22 +233,25 @@
 ;; are swapped, and so on.
 ;; FIXME: returns a shorter list than FoxDot
 (defun fx-swap (l n)
-  (loop
-     :for d :from 0 :by n
-     :for u :from n :by n :to (length l)
-     :append (reverse (subseq l d u))))
+  (loop :for d :from 0 :by n
+        :for u :from n :by n :to (length l)
+        :append (reverse (subseq l d u))))
 ;;------------------------------
 ;; rotate(n)
 ;; Returns a pattern with the original pattern’s values shifted left
 ;; in order by n number of places. Negative numbers shift the values
 ;; right.
+
 (defgeneric fx-rotate (l n)
-  (:method ((l list) (n fixnum))
+  (:method ((l sequence) (n fixnum))
     (alexandria:rotate l n))
+  (:method ((l vector) (n list))
+    (loop :for rot :in n
+          :append (coerce (alexandria:rotate l (- rot))
+                          'list)))
   (:method ((l list) (n list))
-    (loop
-       :for rot :in n
-       :append (alexandria:rotate (copy-list l) (- rot)))))
+    (loop :for rot :in n
+          :append (alexandria:rotate l (- rot)))))
 ;;------------------------------
 ;; sample(n) =~ (choose-n) =~ (pickn)
 (defun fx-sample (l n)
@@ -398,68 +401,110 @@
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*]"
-   (return (values :variable    (intern $@))))
-  ("\\("      (return (values :left-paren  :left-paren)))
-  ("\\)"      (return (values :right-paren :left-paren)))
-  ("{"        (return (values :left-brace  :left-brace)))
-  ("}"        (return (values :right-brace :right-brace)))
-  ("\\s"     (return (values :null NIL))))
+  ("[A-Za-z-@_*]" (return (values :variable     (intern $@))))
+  ("<"            (return (values :left-pat     :left-pat)))
+  (">"            (return (values :right-pat    :right-pat)))
+  ("\\["          (return (values :left-square  :left-square)))
+  ("\\]"          (return (values :right-square :right-square)))
+  ("\\("          (return (values :left-paren   :left-paren)))
+  ("\\)"          (return (values :right-paren  :left-paren)))
+  ("{"            (return (values :left-brace   :left-brace)))
+  ("}"            (return (values :right-brace  :right-brace)))
+  ("\\s"          (return (values :null         NIL))))
 
 (defun lex-line (string)
-  (loop
-     :with lexer := (foxdot-lexer string)
-     :for  tok   := (funcall lexer)
-     :while tok
-     :collect tok))
+  "REPL helper to test lexer"
+  (loop :with lexer := (foxdot-lexer string)
+        :for  tok   := (funcall lexer)
+        :while tok
+        :collect tok))
 
-(defun mc (l)
-  ;;(format T "~{ ~a~}~%" l)
-  (if (listp l)
-      (make-cycle l 1)
-      l))
-(defun mw (l)
-  ;;  (format T "~{ ~a~}~%" l)
-  (if (listp l)
-      (make-weighting l 1)
-      l))
+;;--------------------------------------------------
+
+(defun mc (&rest elements)
+  (cm:new cm:cycle :of elements :for 1))
+(defun mw (&rest elements)
+  (cm:new cm:weighting :of elements :for 1))
+(defun mh (&rest elements)
+  (cm:new cm:heap :of elements :for 1))
+
+;; Took from comments on clojure's flatten page
+(defun flat-1 (list)
+  (mapcat (alexandria:compose #'ensure-list #'identity)
+          list))
 
 ;; Shitty version that only accepts () and {},
-;;  plus [] for heaps
+;;  plus [] for heaps?
 (yacc:define-parser foxdot-parser
-  (:start-symbol fox)
-  (:terminals (:left-paren
-               :right-paren
-               :left-brace
-               :right-brace
-               :null
-               :variable))
-  (fox parenthosis
-       bracitis
-       :null
-       :variable)
-  (parenthosis
-   (:left-paren sequence :right-paren
-                (lambda (_lp sequence _rp) (declare (ignore _lp _rp))
-                   (mc sequence))))
-  (bracitis
-   (:left-brace sequence :right-brace
-                (lambda (_lb sequence _rb) (declare (ignore _lb _rb))
-                   (mw sequence))))
-  (sequence fox
-            (fox sequence
-                 (lambda (fox sequence)
-                   (if (and (not (null sequence)) ;; Support NIL
-                            (listp sequence))
-                       (cons fox sequence)
-                       (list fox sequence))))))
+  (:start-symbol expression)
+  (:terminals
+   (:left-pat    :right-pat    ;; <> - pattern (also cycles)
+    :left-paren  :right-paren  ;; () - cycle
+    :left-brace  :right-brace  ;; {} - random
+    :left-square :right-square ;; [] - heap
+    :null :variable))
+  (expression (term #'list) ;; NOTE: hardcoded list since it doesn't work otherwise
+              (term expression
+                    (lambda (a b)
+                      (format t "dig: ~a || ~a~%" a b)
+                      (cond ((and (atom  a) (listp b)) (append (list a) b))
+                            ((and (listp a) (atom  b)) (append a (list b)))
+                            ((and (atom  a) (atom  b)) (list a b))
+                            ;; NOTE: in the case the thing to put together are
+                            ;; two different patterns put them together list,
+                            ;; otherwise just cons them.
+                            ;; FIXME: might be this can part of the grammar???
+                            ((and (listp a) (listp b)
+                                  (not (listp (car b)))
+                                  (not (length= 1 (symbol-name (car b)))))
+                             (list a b))
+                            (t (cons a b))))))
+  (term   :null
+          (:variable (lambda (x)
+                       (format t "quote: ~a~%" x)
+                       `(quote ,x)))
+          cycle
+          heap
+          random
+          group)
+  (cycle  (:left-paren expression :right-paren
+                       (lambda (_l e _r) (declare (ignore _l _r))
+                         (format t "cycle: ~a~%" e)
+                         (cons 'mc e))))
+  (heap   (:left-square expression :right-square
+                        (lambda (_l e _r) (declare (ignore _l _r))
+                          (format t "heap: ~a~%" e)
+                          (cons 'mh e))))
+  (random (:left-brace expression :right-brace
+                       (lambda (_l e _r) (declare (ignore _l _r))
+                         (format t "random: ~a~%" e)
+                         (cons 'mw e))))
+  (group  (:left-pat   expression :right-pat
+                       (lambda (_l e _r) (declare (ignore _l _r))
+                         (format t "group: ~a~%" e)
+                         (cons 'mc e)))))
 
-(defun fx-pat (pat)
-  (let (;; given that we are going to get a cycle anyway
-        ;; we just force a cycle around the pattern given
-        ;; avoiding having to update the grammar (HACKS!)
-        (pattern (format NIL "(~a)" pat)))
-    (yacc:parse-with-lexer (foxdot-lexer pattern) foxdot-parser)))
+
+(defun fx-pat (pat &optional (eval t))
+  (let* (;; given that we are going to get a cycle anyway
+         ;; we just force a cycle around the pattern given
+         ;; avoiding having to update the grammar (HACKS!)
+         ;;(pattern pat (format NIL "(~a)" pat))
+         ;;(pattern pat)
+         ;; NOTE: Naive fix of input string
+         (raw-patterns  (if (and (char= #\< (aref pat 0))
+                                 (char= #\> (aref pat (1- (length pat)))))
+                            pat
+                            (progn
+                              (format t "NOTE: forcing pattern between \< \>~%")
+                              (format NIL "\<~a\>" pat))))
+         (lisp-patterns (print
+                         (yacc:parse-with-lexer (foxdot-lexer raw-patterns)
+                                                foxdot-parser)))
+         (cm-patterns   (mapcar #'eval lisp-patterns)))
+    (if eval
+        (if (length= 1 cm-patterns) (first cm-patterns) cm-patterns)
+        (if (length= 1 lisp-patterns) (first lisp-patterns) lisp-patterns))))
 
 (defun fx-parse (sym)
   (declare (type symbol sym))
