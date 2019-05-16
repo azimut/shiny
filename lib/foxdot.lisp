@@ -370,12 +370,16 @@
 ;; TODO: a more similar mapping of file and sample number.
 (defvar *fx-samples* (make-hash-table))
 (defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/")
+(defun fx-guess-path (path)
+  (if (uiop:absolute-pathname-p path)
+      path
+      (concatenate 'string *fx-path* path)))
 (defun fx-clear ()
   (clrhash *fx-samples*)
   (setf *fx-samples* NIL))
 (defun fx-load-simple (path symbol-string)
   (when-let* ((symbol (alexandria:symbolicate symbol-string))
-              (path   (concatenate 'string *fx-path* path))
+              (path   (fx-guess-path path))
               (buf    (bbuffer-load path symbol)))
     buf))
 (defun fx-load (path symbol-string)
@@ -516,6 +520,8 @@
 ;; pre-defined number of beats and is created using a var object with
 ;; the syntax
 ;; var([list_of_values],[list_of_durations]).
+;;
+;; TODO: subvars on vars parameter. var([0,5,2[3,6]],[8,6,1,1])
 (defun var (vars n-beats)
   "Returns a function, that returns a value from VARS, a new one if N-BEATS have passed.
    > (defvar *var1* (var '(1 2) 4))
