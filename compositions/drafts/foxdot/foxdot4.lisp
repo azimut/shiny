@@ -12,12 +12,12 @@
 (fx-load "_/at/gb_noise (4).wav" '@)
 (fx-load "_/at/gb_noise (5).wav" '@)
 
-(let ((s (make-cycle (fx-rotate (iota 8 :start 1) '(0 1 3)))))
+(let ((s (make-cycle (fx-rotate (range 0 7) '(0 1 3)))))
   (defun c1 (time)
     (bbplay (fx-buf '@ (next s)) :amp .2 :rate 4 :pan .25)
-    (aat (+ time #[1 b]) #'c1 it)))
+    (aat (+ time #[.25 b]) #'c1 it)))
 
-(aat (tempo-sync #[1 b]) #'c1 it)
+(aat (tempo-sync #[.25 b]) #'c1 it)
 (defun c1 ())
 ;; c2 >> play("#", dur=40,
 ;;                 room=1,
@@ -28,7 +28,7 @@
   (bbplay 'h :amp .2 :pan .75)
   (aat (+ time #[40 b]) #'c2 it))
 (defun c2 ())
-(aat (tempo-sync #[1 b]) #'c2 it)
+(aat (tempo-sync #[40 b]) #'c2 it)
 
 
 ;; d1 >> play("<V:><  * ><[--]>")
@@ -36,19 +36,18 @@
 (fx-load-simple "_/colon/hh01.wav" '-)
 (fx-load-simple "_/asterix/0_clap.wav" '*)
 (fx-load-simple "_/hyphen/0_hihat_closed.wav" '_)
-(let ((v1 (make-cycle '(V -)))
-      (v2 (make-cycle '(nil nil * nil)))
-      (v3 (make-cycle '(_))))
-  (defun d11 (time)
-    (bbplay (next v3) :amp .2)
-    (aat (+ time #[.5 b]) #'d11 it))
-  (defun d1 (time)
-    (bbplay (next v1) :amp .2)
-    (bbplay (next v2) :amp .2)    
-    (aat (+ time #[1 b]) #'d1 it)))
 
-(aat (tempo-sync #[1 b]) #'d1 it)
-(aat (tempo-sync #[.5 b]) #'d11 it)
+(destructuring-bind (p1 p2 p3) (fx-pat "<V-><  * ><_>")
+  (defun d1 (time)
+    (bbplay (next p1) :amp .2)
+    (bbplay (next p2) :amp .2)
+    (aat (+ time #[1 b]) #'d1 it))
+  (defun d11 (time)
+    (bbplay (next p3) :amp .2)
+    (aat (+ time #[1 b]) #'d11 it)))
+
+(aat (tempo-sync #[1 b])  #'d1 it)
+(aat (tempo-sync #[1 b]) #'d11 it)
 (defun d1 ())
 (defun d11 ())
 ;; b1 >> dbass(dur=PDur(3,8),
@@ -57,23 +56,26 @@
 ;;             shape=PWhite(0,1/2),
 ;;             pan=PWhite(-1,1))
 ;; .sometimes("offadd", 4) + var([0,2],4)
-(let* ((dur (make-cycle (pdur 3 8)))
-       (pan (make-cycle '(0 127)))
-       (scale (ov-scale :C5 :minor))
+(let* ((dur    (make-cycle (pdur 3 8)))
+       (pan    (make-weighting '(0 127)))
+       (scale  (ov-scale :C5 :minor))
        (offset (make-cycle (make-var '((0 2) 4) 1)))
-       (note (make-cycle
-              (list (make-cycle
-                     '(0)
-                     (pval (between 4 12)))
-                    4))))
+       (note   (make-cycle
+                (list (make-cycle
+                       '(0)
+                       (pval (between 4 12)))
+                      4))))
   (defun b1 (time)
     (let ((d (next dur)))
+      (fpan 0 (next pan))
       (p time
          (nth (mod (+ (next offset) (next note)) 7)
               scale)
-         (rcosr 70 5 5) (* 2 d) 0 :pan (next pan))
+         (rcosr 70 5 5) (* 2 d) 0)
       (aat (+ time #[d b]) #'b1 it))))
-(fp 0 20)
+
+(fp 0 90)
+
 (aat (tempo-sync #[1 b]) #'b1 it)
 (defun b1 ())
 ;; p1 >> space([7,6,4,P*(2,1),0],

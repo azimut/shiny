@@ -14,9 +14,9 @@
 ;;                     pan=(-1,1),
 ;;                     room=1,
 ;;                     amp=2)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/g/upper/0_Stab.wav" 'G)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/colon/hh01.wav" 'C)
-(bbuffer-load "/home/sendai/projects/FoxDot/FoxDot/snd/_/hyphen/0_hihat_closed.wav" '-)
+(bbuffer-load "/home/sendai/.local/lib64/python3.4/site-packages/FoxDot/snd/g/upper/0_Stab.wav" 'G)
+(bbuffer-load "/home/sendai/.local/lib64/python3.4/site-packages/FoxDot/snd/_/colon/hh01.wav" 'C)
+(bbuffer-load "/home/sendai/.local/lib64/python3.4/site-packages/FoxDot/snd/_/hyphen/0_hihat_closed.wav" '-)
 ;; TODO: pshift, room
 (let ((pan   (make-cycle '(0 1)))
       (notes (make-cycle (make-var '(G (C -)) 1)))
@@ -76,7 +76,7 @@
       (notes (make-cycle
               (make-var '(0 6 5 2) '(6 2 6 2)))))
   (defun b1 (time)
-    (let ((d (next dur)))      
+    (let ((d (next dur)))
       (p time (nth (next notes) scale) (rcosr 30 5 5) d 0)
       (aat (+ time #[d b]) #'b1 it))))
 (aat (tempo-sync #[4 b]) #'b1 it)

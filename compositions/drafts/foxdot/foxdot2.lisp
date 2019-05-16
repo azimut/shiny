@@ -72,7 +72,7 @@
                                   (next r))
                                  -24)
               (rcosr 30 5 2) .25 1 .25)
-          (p time notes (rcosr 30 5 2) .5 1))
+          (p time notes (rcosr 50 5 2) .5 3))
       )
     (aat (+ time #[.5 b]) #'ff it)))
 
@@ -121,28 +121,32 @@
 (setf (gethash (list 'b 1) *fx-instruments*) "dot (1).wav")
 (setf (gethash (list 'b 2) *fx-instruments*) "dot (2).wav")
 
+;; This one actually, plays the 4 stutter in the time slot of 1 (?, every 3 cycles
+;; d1 >> play("x",sample=1,crush=16,amp=1).every(3, "stutter", 4, pan=[-1,1])
+;;
 ;; d1 >> play("<(x )(sx)d(@hb)>< + +( [ +])>",
 ;;            sample=var([1,2]),
 ;;            crush=var([16,32],2),
 ;;            amp=var([1,0],[60,4]))
-;;      .every(3, "stutter", 4, dur=var([3,1],[7,3]), rate=2, pan=[-1,1])
+;; .every(3, "stutter", 4, dur=var([3,1],[7,3]), rate=2, pan=[-1,1])
+;;
 
-(d1 (now))
+
 (let ((crush (make-cycle '(16 16 32 32)))
       (sam   (make-cycle '(1 2)))
       (other (make-cycle
               (list (make-cycle
-                     (make-var 1 '(NIL + NIL + (NIL ++)))
+                     (make-var '(NIL + NIL + (NIL ++)) 1)
                      3)
                     (make-cycle
-                     (make-var 4 '(NIL + NIL + (NIL ++)))
+                     (make-var '(NIL + NIL + (NIL ++)) 4)
                      (make-cycle '(3 1))))))
       (notes (make-cycle
               (list (make-cycle
-                     (make-var 1 '((x NIL)(s x)d(@ h b)))
+                     (make-var '((x NIL)(s x)d(@ h b)) 1)
                      3)
                     (make-cycle
-                     (make-var 4 '((x NIL)(s x)d(@ h b)))
+                     (make-var '((x NIL)(s x)d(@ h b)) 4)
                      (make-cycle '(3 1)))))))
   (defun d1 (time)
     (let ((pan (pick 0f0 1f0))
