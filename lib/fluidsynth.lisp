@@ -295,7 +295,10 @@
   (declare (type (integer 0 72) sens))
   (fluidsynth:pitch-wheel-sens *synth* channel sens))
 
-(defun fpitch (channel bend)
+;; NOTE: I think the default is correct...sounds like it
+;; http://www.moforte.com/geoShredAssets2.0/help/pitchBendRange.html
+;; "If 8192 equals 12 semitones, then one semitone is pitchbend value  8192 / 12 = 682.66667."
+(defun fpitch (channel &optional (bend 8192))
   "Set the MIDI pitch bend controller value on a MIDI channel.
    0>=bend>=16383"
   (declare (type (integer 0 16383) bend))
