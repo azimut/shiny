@@ -401,16 +401,16 @@
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*]" (return (values :variable     (intern $@))))
-  ("<"            (return (values :left-pat     :left-pat)))
-  (">"            (return (values :right-pat    :right-pat)))
-  ("\\["          (return (values :left-square  :left-square)))
-  ("\\]"          (return (values :right-square :right-square)))
-  ("\\("          (return (values :left-paren   :left-paren)))
-  ("\\)"          (return (values :right-paren  :left-paren)))
-  ("{"            (return (values :left-brace   :left-brace)))
-  ("}"            (return (values :right-brace  :right-brace)))
-  ("\\s"          (return (values :null         NIL))))
+  ("[A-Za-z-@_*+]" (return (values :variable     (intern $@))))
+  ("<"             (return (values :left-pat     :left-pat)))
+  (">"             (return (values :right-pat    :right-pat)))
+  ("\\["           (return (values :left-square  :left-square)))
+  ("\\]"           (return (values :right-square :right-square)))
+  ("\\("           (return (values :left-paren   :left-paren)))
+  ("\\)"           (return (values :right-paren  :left-paren)))
+  ("{"             (return (values :left-brace   :left-brace)))
+  ("}"             (return (values :right-brace  :right-brace)))
+  ("\\s"           (return (values :null         NIL))))
 
 (defun lex-line (string)
   "REPL helper to test lexer"
@@ -511,3 +511,34 @@
   (if (eq '- sym)
       NIL
       T))
+
+;; TimeVar has a series of values that it changes between after a
+;; pre-defined number of beats and is created using a var object with
+;; the syntax
+;; var([list_of_values],[list_of_durations]).
+(defun var (vars n-beats)
+  "Returns a function, that returns a value from VARS, a new one if N-BEATS have passed.
+   > (defvar *var1* (var '(1 2) 4))
+   > (funcall *var1*)
+   1
+   > (funcall *var1*)
+   2"
+  (declare (type list vars))
+  (let ((start-beat
+          (/ (node-uptime 0)
+             (* *SAMPLE-RATE* (* (SAMPLE 1) (SPB *TEMPO*)))))
+        (current-beat  0d0)
+        (elapsed-beats 0d0)
+        (var-index  0)
+        (beat-index 0)
+        (beats (ensure-list n-beats)))
+    (lambda ()
+      (setf current-beat  (/ (node-uptime 0)
+                             (* *SAMPLE-RATE* (* (SAMPLE 1) (SPB *TEMPO*)))))
+      (setf elapsed-beats (- current-beat start-beat))
+      ;;
+      (when (> elapsed-beats (nth beat-index beats))
+        (setf start-beat current-beat)
+        (setf var-index  (mod (1+ var-index)  (length vars)))
+        (setf beat-index (mod (1+ beat-index) (length beats))))
+      (nth var-index vars))))
