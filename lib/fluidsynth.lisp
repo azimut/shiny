@@ -26,18 +26,31 @@
   "Play chord of notes"
   (map nil (lambda (p)
              (declare (fixnum p))
-             (when (> duration 0)
+             (when (and (> p 0) (> duration 0))
                (when pan (fpan channel pan))
                (at time #'fluidsynth:noteon *synth* channel p velocity)
                (at (+ time (calc-beats duration)) #'fluidsynth:noteoff *synth* channel p)))
-       pitch))
+       pitch)
+  pitch)
+(defmethod p ((time double-float) (pitch list) (velocity fixnum) (duration list) (channel fixnum) &key pan)
+  "Play chord of notes"
+  (map nil (lambda (p d)
+             (declare (fixnum p))
+             (when (and (> p 0) (> d 0))
+               (when pan (fpan channel pan))
+               (at time #'fluidsynth:noteon *synth* channel p velocity)
+               (at (+ time (calc-beats d)) #'fluidsynth:noteoff *synth* channel p)))
+       pitch
+       duration)
+  pitch)
 (defmethod p ((time double-float) (pitch list) (velocity fixnum) (duration number) (channel list) &key pan)
   "Play chord of notes, on provided channels"
   (map nil (lambda (p c)
              (declare (fixnum p c))
              (p time p velocity duration c))
        pitch
-       channel))
+       channel)
+  pitch)
 (defmethod p ((time double-float) (pitch fixnum) (velocity fixnum) (duration number) (channel fixnum) &key pan)
   "Play given pitch"
   (when (and (< 0 pitch 127)
