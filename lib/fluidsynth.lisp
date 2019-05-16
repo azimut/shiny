@@ -304,6 +304,12 @@
   (declare (type (integer 0 16383) bend))
   (fluidsynth:pitch-bend *synth* channel bend))
 
+;; From FoxDot
+(defun fspread (channel left-p &optional (semitones .125))
+  (declare (type boolean left-p))
+  (if left-p (fpan channel 0) (fpan channel 127))
+  (fpitch channel (+ 8192 (round (* semitones (/ 8192 12))))))
+
 ;; ---------------------------------------------------
 
 (let ((enabled 0))
