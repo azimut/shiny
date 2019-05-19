@@ -61,100 +61,67 @@
   (format nil "~{~%~a~%~}"
           (alexandria:flatten (remove-if #'null rest))))
 
+;;--------------------------------------------------
+
+(defun csound-send-event (iname duration vars)
+  (declare (type string iname) (type number duration) (type list vars))
+  (csound:csoundreadscore *c* (format nil "~a 0 ~a ~{~A~^ ~}" iname duration vars)))
+
 (defgeneric playcsound (instrument duration &rest rest))
-(defmethod playcsound
-    ((iname string) (duration number) &rest rest)
+(defmethod playcsound ((iname string) (duration number) &rest rest)
+  "pitchless sound"
   (when (> duration 0)
-    ;; finally send only the parameter values
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound:csoundreadscore
-       *c*
-       (format nil "~a 0 ~a ~{~A~^ ~}"
-               iname duration vars-only)))))
+      (csound-send-event iname duration vars-only))))
 
 (defgeneric playcsound-freq (instrument duration keynum &rest rest))
-(defmethod playcsound-freq
-    ((iname string) (duration number) (keynum integer) &rest rest)
+(defmethod playcsound-freq ((iname string) (duration number) (keynum fixnum) &rest rest)
+  "midi number to hz sound"
   (when (and (> duration 0) (> keynum 0))
-    (let ((kpos (1+ (position :freq rest))))
-      (setf (nth kpos rest)
-            (midihz keynum)))
-    ;; finally send only the parameter values
+    (setf (getf rest :freq) (midihz keynum))
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound:csoundreadscore
-       *c* 
-       (format nil "~a 0 ~a ~{~A~^ ~}"
-               iname duration vars-only)))))
-(defmethod playcsound-freq
-    ((iname string) (duration number) (keynum list) &rest rest)
-  (let ((kpos (1+ (position :freq rest))))
-    (mapcar
-     (lambda (keynum)
-       (when (and (> duration 0) (> keynum 0))
-         (setf (nth kpos rest) (midihz keynum))
-         ;; finally send only the parameter values
-         (let ((vars-only (remove-if #'keywordp rest)))
-           (csound:csoundreadscore
-            *c* 
-            (format nil "~a 0 ~a ~{~A~^ ~}"
-                    iname duration vars-only)))))
-     keynum)))
+      (csound-send-event iname duration vars-only)))
+  keynum)
+(defmethod playcsound-freq ((iname string) (duration number) (keynum list) &rest rest)
+  (mapcar (lambda (k)
+            (when (and (> duration 0) (> k 0))
+              (setf (getf rest :freq) (midihz k))
+              (let ((vars-only (remove-if #'keywordp rest)))
+                (csound-send-event iname duration vars-only))))
+          keynum))
 
 (defgeneric playcsound-key (instrument duration keynum &rest rest))
-(defmethod playcsound-key
-    ((iname string) (duration number) (keynum integer) &rest rest)
-  (when (and (not (= duration 0)) (> keynum 0))
-    (let ((kpos (1+ (position :keynum rest))))
-      (setf (nth kpos rest)
-            (keynum->pch keynum)))
-    ;; finally send only the parameter values
+(defmethod playcsound-key ((iname string) (duration number) (keynum integer) &rest rest)
+  "midi keynum to pch"
+  (when (and (> duration 0) (> keynum 0))
+    (setf (getf rest :keynum) (keynum->pch keynum))
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound:csoundreadscore
-       *c* 
-       (format nil "~a 0 ~a ~{~A~^ ~}"
-               iname duration vars-only)))))
-(defmethod playcsound-key
-    ((iname string) (duration number) (keynum list) &rest rest)
-  (let ((kpos (1+ (position :keynum rest))))
-    (mapcar
-     (lambda (keynum)
-       (when (and (> duration 0) (> keynum 0))
-         (setf (nth kpos rest) (keynum->pch keynum))
-         ;; finally send only the parameter values
-         (let ((vars-only (remove-if #'keywordp rest)))
-           (csound:csoundreadscore
-            *c* 
-            (format nil "~a 0 ~a ~{~A~^ ~}"
-                    iname duration vars-only)))))
-     keynum)))
+      (csound-send-event iname duration vars-only))))
+(defmethod playcsound-key ((iname string) (duration number) (keynum list) &rest rest)
+  (mapcar
+   (lambda (k)
+     (when (and (> duration 0) (> k 0))
+       (setf (getf rest :keynum) (keynum->pch k))
+       (let ((vars-only (remove-if #'keywordp rest)))
+         (csound-send-event iname duration vars-only))))
+   keynum))
 
 (defgeneric playcsound-midi (instrument duration keynum &rest rest))
-(defmethod playcsound-midi
-    ((iname string) (duration number) (keynum integer) &rest rest)
-  (when (and (not (= duration 0)) (> keynum 0))
-    (let ((kpos (1+ (position :midi rest))))
-      (setf (nth kpos rest) keynum))
-    ;; finally send only the parameter values
+(defmethod playcsound-midi ((iname string) (duration number) (keynum fixnum) &rest rest)
+  (when (and (> duration 0) (> keynum 0))
+    (setf (getf rest :midi) keynum)
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound:csoundreadscore
-       *c* 
-       (format nil "~a 0 ~a ~{~A~^ ~}"
-               iname duration vars-only)))))
-(defmethod playcsound-midi
-    ((iname string) (duration number) (keynum list) &rest rest)
-  (let ((kpos (1+ (position :midi rest))))
-    (mapcar
-     (lambda (keynum)
-       (when (and (> duration 0) (> keynum 0))
-         (setf (nth kpos rest) keynum)
-         ;; finally send only the parameter values
-         (let ((vars-only (remove-if #'keywordp rest)))
-           (csound:csoundreadscore
-            *c* 
-            (format nil "~a 0 ~a ~{~A~^ ~}"
-                    iname duration vars-only)))))
-     keynum)))
+      (csound-send-event iname duration vars-only))))
+(defmethod playcsound-midi ((iname string) (duration number) (keynum list) &rest rest)
+  (mapcar
+   (lambda (k)
+     (when (and (> duration 0) (> k 0))
+       (setf (getf rest :midi) k)
+       (let ((vars-only (remove-if #'keywordp rest)))
+         (csound-send-event iname duration vars-only))))
+   keynum))
 
+;;--------------------------------------------------
 
 (defmacro make-play (name i &rest rest)
   "this macro will create a new (play-NAME) function wrapper of either
@@ -170,46 +137,45 @@
               (defun ,fname (keynum duration &key ,@(remove-if
                                                      #'null
                                                      (loop :for (x y) :on rest :by #'cddr
-                                                        :collect
-                                                        (let* ((sn (symbol-name x))
-                                                               (k  (intern sn)))
-                                                          (when (not (eq :keynum x))
-                                                            (list k y))))))
+                                                           :collect
+                                                              (let* ((sn (symbol-name x))
+                                                                     (k  (intern sn)))
+                                                                (when (not (eq :keynum x))
+                                                                  (list k y))))))
                 (declare (type (or integer list) keynum) (number duration)
                          (optimize speed))
                 (playcsound-key ,i duration keynum
                                 ,@(loop :for (k v) :on rest :by #'cddr :append
-                                     (if (eq k :keynum)
-                                         (list k 127) ;; dummy value...
-                                         (list k (intern (symbol-name k)))))))
+                                           (if (eq k :keynum)
+                                               (list k 127) ;; dummy value...
+                                               (list k (intern (symbol-name k)))))))
               (defun ,fnamearp (keynums duration offset
                                 &key ,@(remove-if
                                         #'null
                                         (loop :for (x y) :on rest :by #'cddr
-                                           :collect
-                                           (let* ((sn (symbol-name x))
-                                                  (k  (intern sn)))
-                                             (when (not (eq :keynum x))
-                                               (list k y))))))
+                                              :collect
+                                                 (let* ((sn (symbol-name x))
+                                                        (k  (intern sn)))
+                                                   (when (not (eq :keynum x))
+                                                     (list k y))))))
                 (declare (list keynums) (number duration offset)
                          (optimize speed))
-                (loop
-                   :for keynum :in (cdr keynums)
-                   :for i :from offset :by offset
-                   :with now = (now)
-                   :initially (playcsound-key
-                               ,i duration (car keynums)
-                               ,@(loop :for (k v) :on rest :by #'cddr :append
-                                    (if (eq k :keynum)
-                                        (list k 127) ;; dummy value...
-                                        (list k (intern (symbol-name k))))))
-                   :do
-                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
-                       #'playcsound-key ,i duration keynum
-                       ,@(loop :for (k v) :on rest :by #'cddr :append
-                                     (if (eq k :keynum)
-                                         (list k 127) ;; dummy value...
-                                         (list k (intern (symbol-name k)))))))
+                (loop :for keynum :in (cdr keynums)
+                      :for i :from offset :by offset
+                      :with now = (now)
+                      :initially (playcsound-key
+                                  ,i duration (car keynums)
+                                  ,@(loop :for (k v) :on rest :by #'cddr :append
+                                             (if (eq k :keynum)
+                                                 (list k 127) ;; dummy value...
+                                                 (list k (intern (symbol-name k))))))
+                      :do
+                         (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                             #'playcsound-key ,i duration keynum
+                             ,@(loop :for (k v) :on rest :by #'cddr :append
+                                        (if (eq k :keynum)
+                                            (list k 127) ;; dummy value...
+                                            (list k (intern (symbol-name k)))))))
                 NIL)))
           ;;--------------------------------------------------
           ;; FREQ - Handles normal instruments with a single note in Hz
@@ -220,123 +186,119 @@
                              &key ,@(remove-if
                                      #'null
                                      (loop :for (x y) :on rest :by #'cddr
-                                        :collect
-                                        (let* ((sn (symbol-name x))
-                                               (k  (intern sn)))
-                                          (when (not (eq :freq x))
-                                            (list k y))))))
+                                           :collect
+                                              (let* ((sn (symbol-name x))
+                                                     (k  (intern sn)))
+                                                (when (not (eq :freq x))
+                                                  (list k y))))))
                 (playcsound-freq ,i duration keynum
                                  ,@(loop :for (k v) :on rest :by #'cddr :append
-                                      (if (eq k :freq)
-                                          (list k 440) ;; dummy value...
-                                          (list k (intern (symbol-name k)))))))
+                                            (if (eq k :freq)
+                                                (list k 440) ;; dummy value...
+                                                (list k (intern (symbol-name k)))))))
               (defun ,fnamearp (keynums duration offset
                                 &key ,@(remove-if
                                         #'null
                                         (loop :for (x y) :on rest :by #'cddr
-                                           :collect
-                                           (let* ((sn (symbol-name x))
-                                                  (k  (intern sn)))
-                                             (when (not (eq :freq x))
-                                               (list k y))))))
-                (loop
-                   :for keynum :in (cdr keynums)
-                   :for i :from offset :by offset
-                   :with now = (now)
-                   :initially (,fname (car keynums) duration
-                                      ,@(remove-if
-                                         #'null
-                                         (loop :for (x y) :on rest :by #'cddr
-                                            :append
-                                            (let* ((sn (symbol-name x))
-                                                   (k  (intern sn)))
-                                              (when (not (eq :freq x))
-                                                (list x k))))))
-                   :do
-                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
-                       #',fname keynum duration
-                       ,@(remove-if
-                          #'null
-                          (loop :for (x y) :on rest :by #'cddr
-                             :append
-                             (let* ((sn (symbol-name x))
-                                    (k  (intern sn)))
-                               (when (not (eq :freq x))
-                                 (list x k)))))))
+                                              :collect
+                                                 (let* ((sn (symbol-name x))
+                                                        (k  (intern sn)))
+                                                   (when (not (eq :freq x))
+                                                     (list k y))))))
+                (loop :for keynum :in (cdr keynums)
+                      :for i :from offset :by offset
+                      :with now = (now)
+                      :initially (,fname (car keynums) duration
+                                         ,@(remove-if
+                                            #'null
+                                            (loop :for (x y) :on rest :by #'cddr
+                                                  :append
+                                                     (let* ((sn (symbol-name x))
+                                                            (k  (intern sn)))
+                                                       (when (not (eq :freq x))
+                                                         (list x k))))))
+                      :do
+                         (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                             #',fname keynum duration
+                             ,@(remove-if
+                                #'null
+                                (loop :for (x y) :on rest :by #'cddr
+                                      :append
+                                         (let* ((sn (symbol-name x))
+                                                (k  (intern sn)))
+                                           (when (not (eq :freq x))
+                                             (list x k)))))))
                 NIL)))
           ;;--------------------------------------------------
           ((position :midi rest)
            `(progn
               (defun ,fname (midi duration &key ,@(remove-if
-                                                     #'null
-                                                     (loop :for (x y) :on rest :by #'cddr
-                                                        :collect
-                                                        (let* ((sn (symbol-name x))
-                                                               (k  (intern sn)))
-                                                          (when (not (eq :midi x))
-                                                            (list k y))))))
+                                                   #'null
+                                                   (loop :for (x y) :on rest :by #'cddr
+                                                         :collect
+                                                            (let* ((sn (symbol-name x))
+                                                                   (k  (intern sn)))
+                                                              (when (not (eq :midi x))
+                                                                (list k y))))))
                 (declare (type (or integer list) midi) (number duration)
                          (optimize speed))
                 (playcsound-midi ,i duration midi
-                                ,@(loop :for (k v) :on rest :by #'cddr :append
-                                     (if (eq k :midi)
-                                         (list k 127) ;; dummy value...
-                                         (list k (intern (symbol-name k)))))))
+                                 ,@(loop :for (k v) :on rest :by #'cddr :append
+                                            (if (eq k :midi)
+                                                (list k 127) ;; dummy value...
+                                                (list k (intern (symbol-name k)))))))
               (defun ,fnamearp (midis duration offset
                                 &key ,@(remove-if
                                         #'null
                                         (loop :for (x y) :on rest :by #'cddr
-                                           :collect
-                                           (let* ((sn (symbol-name x))
-                                                  (k  (intern sn)))
-                                             (when (not (eq :midi x))
-                                               (list k y))))))
+                                              :collect
+                                                 (let* ((sn (symbol-name x))
+                                                        (k  (intern sn)))
+                                                   (when (not (eq :midi x))
+                                                     (list k y))))))
                 (declare (list midis) (number duration offset)
                          (optimize speed))
                 (loop
-                   :for midi :in (cdr midis)
-                   :for i :from offset :by offset
-                   :with now = (now)
-                   :initially (playcsound-midi
-                               ,i duration (car midis)
-                               ,@(loop :for (k v) :on rest :by #'cddr :append
+                  :for midi :in (cdr midis)
+                  :for i :from offset :by offset
+                  :with now = (now)
+                  :initially (playcsound-midi
+                              ,i duration (car midis)
+                              ,@(loop :for (k v) :on rest :by #'cddr :append
+                                         (if (eq k :midi)
+                                             (list k 127) ;; dummy value...
+                                             (list k (intern (symbol-name k))))))
+                  :do
+                     (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
+                         #'playcsound-midi ,i duration midi
+                         ,@(loop :for (k v) :on rest :by #'cddr :append
                                     (if (eq k :midi)
                                         (list k 127) ;; dummy value...
-                                        (list k (intern (symbol-name k))))))
-                   :do
-                   (at (+ now (* *SAMPLE-RATE* (* (SAMPLE I) (SPB *TEMPO*))))
-                       #'playcsound-midi ,i duration midi
-                       ,@(loop :for (k v) :on rest :by #'cddr :append
-                            (if (eq k :midi)
-                                (list k 127) ;; dummy value...
-                                (list k (intern (symbol-name k)))))))
+                                        (list k (intern (symbol-name k)))))))
                 NIL)))
           ;;--------------------------------------------------
-          (t 
+          (t
            ;; Handles instruments without keynum
            `(defun ,fname (duration &key ,@(loop :for (x y) :on rest :by #'cddr
-                                              :collect
-                                              (let* ((sn (symbol-name x))
-                                                     (k  (intern sn)))
-                                                (list k y))))
+                                                 :collect
+                                                    (let* ((sn (symbol-name x))
+                                                           (k  (intern sn)))
+                                                      (list k y))))
               (declare (number duration) (optimize speed))
               (playcsound ,i duration
                           ,@(loop :for (k v) :on rest :by #'cddr :append
-                               (list k (intern (symbol-name k))))))))))
+                                     (list k (intern (symbol-name k))))))))))
 
-(defun parse-sco (score)
+;;--------------------------------------------------
+
+(defun parse-sco (s)
   "returns only the fN wavetables on the score, remove comments and spaces and
    zeros from fN wavetable definitions"
-  (declare (string score))
-  (let* ((score (cl-ppcre:regex-replace-all ";.*" score ""))
-         (score (cl-ppcre:regex-replace-all
-                 "f[ ]+\(\\d+\)"
-                 score
-                 "f\\1"))
-         (score (cl-ppcre:regex-replace-all
-                 "f0+\(\\d+\)"
-                 score
-                 "f\\1"))
+  (declare (string s))
+  (let* ((score (cl-ppcre:regex-replace-all ";.*" s ""))
+         (score (cl-ppcre:regex-replace-all "f[ ]+\(\\d+\)" score "f\\1"))
+         (score (cl-ppcre:regex-replace-all "f0+\(\\d+\)" score "f\\1"))
+         ;; Return only wavetables
          (score (format
                  nil
                  "~{~A~% ~}"
@@ -346,11 +308,12 @@
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo, remove comments"
   (declare (string s))
-  (let* ((orc (cl-ppcre:regex-replace-all ";.*" s ""))
-         (soundin-p (cl-ppcre:scan "soundin" orc))
-         (mono-p (cl-ppcre:scan "nchnls\\s*=\\s*1" orc))
-         (start-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
-         (orc (subseq orc start-instr)))
+  (let* ((orc         (cl-ppcre:regex-replace-all ";.*" s ""))
+         (soundin-p   (cl-ppcre:scan "soundin" orc))
+         (mono-p      (cl-ppcre:scan "nchnls\\s*=\\s*1" orc))
+         (first-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
+         ;; Return everything below the first instrument
+         (orc         (subseq orc first-instr)))
     (when soundin-p
       (error "soundin required"))
     (when mono-p
@@ -360,26 +323,26 @@
          orc
          (format
           nil "~{~a~%~}"
-          (loop
-             :for (start end) :on inst-pos
-             :collect
-             (let* ((instr (subseq orc start end))
-                    (pos (cl-ppcre:all-matches-as-strings "p\\d+" instr))
-                    (pos (mapcar (lambda (x) (parse-integer (subseq x 1))) pos))
-                    (pos (sort pos #'>))
-                    (last-pos (car pos)))
-               (cl-ppcre:regex-replace
-                " out\\s+\(.*\)"
-                instr
-                (format nil "outs (\\{1})*p~d,(\\{1})*p~d"
-                        (+ 1 last-pos)
-                        (+ 2 last-pos)))))))))
+          (loop :for (start end) :on inst-pos
+                :collect
+                   (let* ((instr (subseq orc start end))
+                          (pos (cl-ppcre:all-matches-as-strings "p\\d+" instr))
+                          (pos (mapcar (lambda (x) (parse-integer (subseq x 1))) pos))
+                          (pos (sort pos #'>))
+                          (last-pos (car pos)))
+                     (cl-ppcre:regex-replace
+                      " out\\s+\(.*\)"
+                      instr
+                      (format nil "outs (\\{1})*p~d,(\\{1})*p~d"
+                              (+ 1 last-pos)
+                              (+ 2 last-pos)))))))))
     orc))
 
 (defun parse-globals (s)
   (declare (string s))
-  (let* ((start-instr (cl-ppcre:scan "instr\\s+\\d+" s))
-         (globals (subseq s 0 start-instr)))
+  (let* ((orc         (cl-ppcre:regex-replace-all ";.*" s ""))
+         (first-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
+         (globals     (subseq orc 0 first-instr)))
     globals))
 
 ;; NOTE: before running this try the sound on the CLI with:
@@ -413,8 +376,8 @@
 (defun set-csound-options (&optional (options *csound-options*))
   (declare (list options))
   (loop :for option :in options :when (stringp option) :do
-     (cffi:with-foreign-string (coption option)
-       (csound:csoundsetoption *c* coption))))
+           (cffi:with-foreign-string (coption option)
+             (csound:csoundsetoption *c* coption))))
 
 (defun get-orc (orc-name &optional n-instr)
   (assert (keywordp orc-name))
@@ -438,9 +401,9 @@
                 (stich
                  (nths n-instr
                        (loop
-                          :for (x y) :on i-list
-                          :by #'cddr
-                          :collect (stich x y)))))))
+                         :for (x y) :on i-list
+                         :by #'cddr
+                         :collect (stich x y)))))))
       result)))
 
 (defun get-sco (orc-name)
@@ -460,12 +423,12 @@
   (with-slots (globals) (gethash orc-name *orcs*)
     (if filter-globals
         (loop
-           :for default :in '("sr" "kr" "ksmps" "nchnls")
-           :finally (return result)
-           :with result = globals :do
-           (setf result (cl-ppcre:regex-replace-all
-                          (format nil "\\s*~a\\s*=\\s*.*\\n" default)
-                          result (format nil "~%"))))
+          :for default :in '("sr" "kr" "ksmps" "nchnls")
+          :finally (return result)
+          :with result = globals :do
+             (setf result (cl-ppcre:regex-replace-all
+                           (format nil "\\s*~a\\s*=\\s*.*\\n" default)
+                           result (format nil "~%"))))
         globals)))
 
 (defun get-orchestra (orc-name &optional n-instr)
@@ -490,7 +453,7 @@
         (csound:csoundinitialize 3)
         (setf *c* (csound:csoundcreate (cffi:null-pointer)))
         (set-csound-options *csound-options*))
-      ;; Initialize ORC 
+      ;; Initialize ORC
       (csound:csoundcompileorc
        *c*
        (stich *csound-globals* globals orc))
@@ -505,7 +468,7 @@
    or restart the server"
   (declare (type orc orchestra))
   (with-slots (orc sco globals) orchestra
-    ;; Initialize ORC 
+    ;; Initialize ORC
     (csound:csoundcompileorc *c* (stich globals orc))
     ;; Init fN wave tables for this ORC
     (csound:csoundreadscore *c* sco)))
@@ -524,8 +487,8 @@
    where n is a number"
   (declare (string score))
   (let* ((l (cl-ppcre:all-matches-as-strings
-                 "f\\d+"
-                 score))
+             "f\\d+"
+             score))
          (l (mapcar
              (lambda (x) (subseq x 1))
              l)))
@@ -535,36 +498,36 @@
 (defun replace-wavetables (orc wavetables-hash)
   (declare (string orc))
   (loop
-     :for index :being :each :hash-key :of wavetables-hash
-     :using (hash-value v)
-     :do
-     (let ((r (format nil "~a~a~a~%"
-                      "\\{1}" v "\\{2}")))
-       (setf orc (cl-ppcre:regex-replace-all
-                  (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                          index)
-                  orc
-                  r))
-       (setf orc (cl-ppcre:regex-replace-all
-                  (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                          index)
-                  orc
-                  r))
-       (setf orc (cl-ppcre:regex-replace-all
-                  (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                          index)
-                  orc
-                  r))
-       (setf orc (cl-ppcre:regex-replace-all
-                  (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                          index)
-                  orc
-                  r))
-       (setf orc (cl-ppcre:regex-replace-all
-                  (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                          index)
-                  orc
-                  r))))
+    :for index :being :each :hash-key :of wavetables-hash
+    :using (hash-value v)
+    :do
+       (let ((r (format nil "~a~a~a~%"
+                        "\\{1}" v "\\{2}")))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))
+         (setf orc (cl-ppcre:regex-replace-all
+                    (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
+                            index)
+                    orc
+                    r))))
   orc)
 
 (defun merge-orcs (&rest orchestras)
@@ -574,40 +537,37 @@
         (wavetables)
         (wavetables-hash (make-hash-table :test #'equal))
         (globals))
-    (loop
-       :for orchestra :in orchestras
-       :do
-       (with-slots (orc sco) orchestra
-         ;; SCO
-         (loop
-            :for f :in (get-fn sco)
-            :for fn :from n-wavetables
-            :with temp-wavetable = sco
-            :finally (setf wavetables
-                           (concatenate 'string
-                                        wavetables
-                                        temp-wavetable))
-            :do
-            (setf (gethash f wavetables-hash) fn)
-            (setf temp-wavetable (cl-ppcre:regex-replace
-                                  (format nil "~a~a" "f" f)
-                                  temp-wavetable
-                                  (format nil "f~d" fn)))
-            (incf n-wavetables))
-         ;; GLOBALS
-         (setf globals (concatenate 'string globals (globals orchestra)))
-         ;; ORC
-         (let ((tmporc (replace-wavetables orc wavetables-hash)))
-           (clrhash wavetables-hash)
-           (setf instruments (stich instruments tmporc))
-           (incf n-instruments (regex-count "instr\\s+\\d+" tmporc)))))
+    (loop :for orchestra :in orchestras
+          :do
+             (with-slots (orc sco) orchestra
+               ;; SCO
+               (loop :for f :in (get-fn sco)
+                     :for fn :from n-wavetables
+                     :with temp-wavetable = sco
+                     :finally (setf wavetables (concatenate 'string
+                                                            wavetables
+                                                            temp-wavetable))
+                     :do
+                        (setf (gethash f wavetables-hash) fn)
+                        (setf temp-wavetable (cl-ppcre:regex-replace
+                                              (format nil "~a~a" "f" f)
+                                              temp-wavetable
+                                              (format nil "f~d" fn)))
+                        (incf n-wavetables))
+               ;; GLOBALS
+               (setf globals (concatenate 'string globals (globals orchestra)))
+               ;; ORC
+               (let ((tmporc (replace-wavetables orc wavetables-hash)))
+                 (clrhash wavetables-hash)
+                 (setf instruments (stich instruments tmporc))
+                 (incf n-instruments (regex-count "instr\\s+\\d+" tmporc)))))
     ;; ORC: Template instruments
     (setf instruments (cl-ppcre:regex-replace-all "instr\\s+\\d+"
                                                   instruments
                                                   "instr ~a"))
     ;; ORC: New Instruments numbers
     ;; FIXME: Ensure we support these many instruments
-    (assert (< n-instruments 10))    
+    (assert (< n-instruments 10))
     (setf instruments (format nil instruments 1 2 3 4 5 6 7 8 9 10))
     ;; RETURN both a new ORC and SCO
     (setf *tmporc*
@@ -619,13 +579,14 @@
            :sco wavetables))
     *tmporc*))
 
+;;--------------------------------------------------
+
 (defun start-thread ()
   (setf *thread*
         (bt:make-thread
          (lambda ()
-           (loop
-              :for frame = (csound:csoundperformksmps *c*)
-              :while (= frame 0))))))
+           (loop :for frame = (csound:csoundperformksmps *c*)
+                 :while (= frame 0))))))
 
 (defun stop-thread ()
   (bt:destroy-thread *thread*))
