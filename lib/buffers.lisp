@@ -63,7 +63,8 @@
       (setf in (incudine.vug:hpf in hpf hpr)))
     (unless (= 0d0 bpf)
       (setf in (incudine.vug:hpf in bpf bpr)))
-    (out (* amp (* left in)) (* amp (* right in)))))
+    (out (* amp (* left in))
+         (* amp (* right in)))))
 
 (dsp! bplay ((buf buffer)
              rate start-pos
@@ -94,7 +95,8 @@
       (setf in (incudine.vug:hpf in hpf hpr)))
     (unless (= 0d0 bpf)
       (setf in (incudine.vug:hpf in bpf bpr)))
-    (out (* amp (* left in)) (* amp (* right in)))))
+    (out (* amp (* left in))
+         (* amp (* right in)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -239,20 +241,20 @@
       (if (and set-p sets)
           (if id-p
               (play-lsample-f buf dur amp start-pos :rate rate
-                              :lpf lpf :hpf hpf :bpf bpf
-                              :lpr lpr :hpr hpr :bpr bpr
-                              :left left :right right
-                              :reson reson :resonq resonq
-                              :sus 1 :rel 0
-                              :downsamp downsamp
-                              :id id)
+                                                    :lpf lpf :hpf hpf :bpf bpf
+                                                    :lpr lpr :hpr hpr :bpr bpr
+                                                    :left left :right right
+                                                    :reson reson :resonq resonq
+                                                    :sus 1 :rel 0
+                                                    :downsamp downsamp
+                                                    :id id)
               (play-lsample-f buf dur amp start-pos :rate rate
-                              :lpf lpf :hpf hpf :bpf bpf
-                              :lpr lpr :hpr hpr :bpr bpr
-                              :reson reson :resonq resonq
-                              :sus 1 :rel 0
-                              :downsamp downsamp
-                              :left left :right right))
+                                                    :lpf lpf :hpf hpf :bpf bpf
+                                                    :lpr lpr :hpr hpr :bpr bpr
+                                                    :reson reson :resonq resonq
+                                                    :sus 1 :rel 0
+                                                    :downsamp downsamp
+                                                    :left left :right right))
           (if id-p
               (bplay buf rate start-pos loop-p amp left right
                      :lpf lpf :hpf hpf :bpf bpf
