@@ -64,48 +64,6 @@
 (defun f ())
 
 
-;;--------------------------------------------------
-;; Cover of Steven Yi:
-;; csound-live-code/practice/2019-05-13-rhythmic.orc
-;;
-(let ((p1 (hexpat "f"))
-      (p2 (hexpat "cfab cbaf bdbe dc"))
-      (p3 (hexpat "cfab cbaf b"))
-      (p4 (hexpat "0c"))
-      (p5 (hexpat "000f")))
-  (defun p1 (time)
-    (when (next p1)
-      (p time (pc-relative (note :c2)
-                           (nth-beat 2 '(0 4 7 11 14 18 21 18 14 11))
-                           (scale 0 'minor))
-         30 .8 1))
-    (when (next p2)
-      (p time (pc-relative (note :c2)
-                           (+ 4 (nth-beat 1.93 '(0 4 7 11 14 18 21 18 14 11)))
-                           (scale 0 'minor))
-         (+ 30 (- (random 10))) .8 1))
-    (when (next p3)
-      (p time (pc-relative (note :c2)
-                           (+ 7 (nth-beat 1.7 '(0 4 7 11 14 18 21 18 14 11)))
-                           (scale 0 'minor))
-         (+ 30 (- (random 10))) .1 5))
-    (when (next p4)
-      (p time (pc-relative (note :c4) (nth-beat 1.7 '(12 6))
-                           (scale 0 'minor))
-         30 .8 5))
-    (when (next p5)
-      (p time (pc-relative (note :c6)
-                           (nth-beat 2.7 '(0 2 3 4))
-                           (scale 0 'minor))
-         (+ 30 -10) .8 5))
-    (aat (+ time #[.8 b]) #'p1 it)))
-
-(fp 5 52)
-(fp 1 11)
-
-(aat (tempo-sync #[1 b]) #'p1 it)
-(defun p1 ())
-
 
 ;; /** Non-interpolating oscillator. Given phase in range 0-1,
 ;; returns value within the give k-array table. */
