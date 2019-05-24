@@ -405,7 +405,7 @@
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*+]" (return (values :variable     (intern $@))))
+  ("[A-Za-z-@_*+~/]" (return (values :variable     (intern $@))))
   ("<"             (return (values :left-pat     :left-pat)))
   (">"             (return (values :right-pat    :right-pat)))
   ("\\["           (return (values :left-square  :left-square)))
