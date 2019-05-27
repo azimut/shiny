@@ -90,7 +90,7 @@
   (let ((nhex (%hexbeat-nths hex)))
     (declare (type list nhex))
     (loop :for n :in nhex
-          :thereis (= n (mod (/ time (calc-beats 1)) 16)))))
+          :thereis (= n (mod (/ time *1beat*) 16)))))
 
 (defun nth-beat (beat l)
   "something kind of:
@@ -102,3 +102,7 @@
      (floor (* length
                (/ (mod (/ (node-uptime 0) *1beat*) (* beat 4)) (* beat 4))))
      l)))
+
+(defun choose (prob)
+  (declare (type (single-float 0f0 1f0) prob))
+  (if (cm:odds prob) 1 0))
