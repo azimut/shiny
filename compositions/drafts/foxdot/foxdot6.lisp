@@ -46,8 +46,8 @@
 (aat (tempo-sync #[1/2 b]) #'b1 it)
 (defun b1 ())
 
-(let ((dur (cm:new cm:cycle :of '(4 8)))
-      (notes (cm:new cm:cycle :of '(0 3 7 8 -2))))
+(let ((dur   (make-cycle '(4 8)))
+      (notes (make-cycle '(0 3 7 8 -2))))
   (defun p1 (time)
     (let ((d (next dur)))
       (p time
