@@ -44,10 +44,11 @@
   "(%hexbeat \"A\") => \"1010\"
    (%hexbeat #\\a)  => \"1010\""
   (declare (type (or character string) hex))
-  (let* ((hex-string (if (characterp hex) (string hex) hex))
-         (hex-string (cl-ppcre:regex-replace-all " " hex-string ""))
-         (decimal    (parse-integer hex-string :radix 16))
-         (bin-string (format NIL "~v,'0B" 4 decimal)))
+  (let* ((hex-string  (if (characterp hex) (string hex) hex))
+         (hex-string  (cl-ppcre:regex-replace-all " " hex-string ""))
+         (zero-length (* 4 (length hex-string)))
+         (decimal     (parse-integer hex-string :radix 16))
+         (bin-string  (format NIL "~v,'0B" zero-length decimal)))
     bin-string))
 
 ;;--------------------------------------------------
