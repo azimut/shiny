@@ -4,19 +4,18 @@
 (defun pulses-to-durations (pulses)
   " Returns a list of durations based on pulses (1s) and blanks (0s).
     Data should be a list of [1,0] where 1 is a pulse."
-  (loop
-     :for i :in (cdr pulses)
-     :for c :from 1
-     :with seq = '()
-     :with count = 1
-     :finally (progn
-                (push count seq)
-                (return (reverse seq)))
-     :do (if (= i 1)
-             (progn
-               (push count seq)
-               (setf count 1))
-             (incf count 1))))
+  (loop :for i :in (cdr pulses)
+        :for c :from 1
+        :with seq = '()
+        :with count = 1
+        :finally (progn
+                   (push count seq)
+                   (return (reverse seq)))
+        :do (if (= i 1)
+                (progn
+                  (push count seq)
+                  (setf count 1))
+                (incf count 1))))
 
 ;; https://github.com/Qirky/FoxDot/blob/master/FoxDot/lib/Patterns/Sequences.py
 (defun pdur (n k &optional (start 0) (dur .25))
@@ -29,11 +28,10 @@
             P[0.75, 0.75, 0.75, 0.75, 1]"
   ;; If we have more pulses then steps, double the steps and decrease the duration
   (declare (type unsigned-byte start))
-  (loop
-     :while (> n k)
-     :do
-       (mulf k 2)
-       (divf dur 2))
+  (loop :while (> n k)
+        :do
+           (mulf k 2)
+           (divf dur 2))
   (let ((pattern (pulses-to-durations (bjorklund n k))))
     (when (not (= 0 start))
       (setf pattern (alexandria:rotate pattern start)))
@@ -102,11 +100,11 @@
     (1 2 2 2 3 4 4 4)")
   (:method ((l list) (n fixnum))
     (loop :for item :in l :append
-         (loop :repeat n :collect item)))
+             (loop :repeat n :collect item)))
   (:method ((l list) (n list))
     (loop :for item :in l :append
-         (prog1 (loop :repeat (car n) :collect item)
-           (setf n (alexandria:rotate n))))))
+             (prog1 (loop :repeat (car n) :collect item)
+               (setf n (alexandria:rotate n))))))
 ;;------------------------------
 ;; arp(seq)
 (defun fx-arp (l n)
@@ -116,8 +114,8 @@
    (0 4 1 5 2 6 3 7)"
   (declare (type list n l))
   (loop :for note :in l :append
-       (loop :for offset :in n :collect
-            (+ note offset))))
+           (loop :for offset :in n :collect
+                    (+ note offset))))
 ;;------------------------------
 ;; splice(seq, *seqs)
 ;; Takes one or more patterns to “splice” into the original
@@ -144,7 +142,7 @@
   (declare (type list l))
   (let ((max (extremum l #'>)))
     (loop :for item :in l :collect
-         (- max item))))
+             (- max item))))
 ;;------------------------------
 ;; shufflets(n = 4)
 (defun fx-shufflets (l n)
@@ -154,7 +152,7 @@
    ((4 1 3 2) (3 1 4 2) (3 2 1 4))"
   (declare (type list l) (type unsigned-byte n))
   (loop :repeat n :collect
-       (cm:shuffle l)))
+           (cm:shuffle l)))
 ;;------------------------------
 ;; pivot(i)
 (defun fx-pivot (l n)
@@ -180,15 +178,14 @@
    > (fx-accum '(1 2 3 4) 8)
    (0 1 3 6 10 11 13 16)"
   (declare (type list l) (type unsigned-byte n))
-  (loop
-     :for i :in (repeat (1- n) l)
-     :with s = '(0)
-     :with prev = 0
-     :finally (return (reverse s))
-     :do
-       (let ((current (+ i prev)))
-         (push current s)
-         (setf prev current))))
+  (loop :for i :in (repeat (1- n) l)
+        :with s = '(0)
+        :with prev = 0
+        :finally (return (reverse s))
+        :do
+           (let ((current (+ i prev)))
+             (push current s)
+             (setf prev current))))
 ;;------------------------------
 ;; stretch(size)
 (defun fx-stretch (l n)
@@ -218,7 +215,7 @@
 (defun fx-duplicate (l n)
   "Repeats the pattern n times. Useful when chaining together multiple
    patterns. Nested patterns are taken into consideration when
-   looping."  
+   looping."
   (let* ((len (length l))
          (n2  (* len n)))
     (repeat n2 l)))
@@ -279,7 +276,7 @@
 (defun fx-norm (l)
   (let ((max (* 1f0 (extremum l #'>))))
     (loop :for item :in l :collect
-         (/ item max))))
+             (/ item max))))
 ;;------------------------------
 ;; undup()
 ;; Removes any consecutive duplicate values so that there are no
@@ -304,8 +301,8 @@
 (defun fx-submap (l alist)
   (declare (type list l) (type cons alist))
   (loop
-     :for (sub . repl) :in alist
-     :collect (setf l (substitute repl sub l)))
+    :for (sub . repl) :in alist
+    :collect (setf l (substitute repl sub l)))
   l)
 ;;------------------------------
 ;; layer(method, *args, **kwargs)
@@ -405,7 +402,7 @@
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*+~/]" (return (values :variable     (intern $@))))
+  ("[A-Za-z-@_*+~/.]" (return (values :variable     (intern $@))))
   ("<"             (return (values :left-pat     :left-pat)))
   (">"             (return (values :right-pat    :right-pat)))
   ("\\["           (return (values :left-square  :left-square)))
@@ -548,3 +545,16 @@
         (setf var-index  (mod (1+ var-index)  (length vars)))
         (setf beat-index (mod (1+ beat-index) (length beats))))
       (nth var-index vars))))
+
+
+;; def often(self, *args, **kwargs):
+;; """ Calls a method every 1/2 to 4 beats using `every` """
+;; return self.every(PRand(1, 8)/2, *args, **kwargs)
+
+;; def sometimes(self, *args, **kwargs):
+;; """ Calls a method every 4 to 16 beats using `every` """
+;; return self.every(PRand(8, 32)/2, *args, **kwargs)
+
+;; def rarely(self, *args, **kwargs):
+;; """ Calls a method every 16 to 32 beats using `every` """
+;; return self.every(PRand(32, 64)/2, *args, **kwargs)
