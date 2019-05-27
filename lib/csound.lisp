@@ -18,6 +18,7 @@
 ;; - debug more to show messages send
 ;; - seems like some instruments only work with determined global values of:
 ;;   sr,kr,ksmps,chnls...great!...
+;; - overall support reload of instruments
 ;; - add panning parameters when converting from mono to stereo (or always)
 ;; - everything crashes with an invalid float point operation when I do weird
 ;;   things with (some) params, appears to happen on the perform thread
@@ -38,14 +39,17 @@
    ksmps = 10
    nchnls = 2")
 ;; JACK?
-;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-b128" "-B1048" "-+rtmidi=null" "--sample-rate=44100"))
-(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtmidi=null"))
+;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-b128" "-B1048" "--sample-rate=44100"))
+(defparameter *csound-options* '("-odac" "-m3" "--nchnls=2"))
 (defvar *orcs* (make-hash-table))
 (defclass orc ()
   ((name    :initarg :name)
-   (globals :initarg :globals :reader globals)
-   (orc     :initarg :orc :reader orc)
-   (sco     :initarg :sco :reader sco)
+   (globals :initarg :globals :reader globals
+            :documentation "global variables string")
+   (orc     :initarg :orc :reader orc
+            :documentation "orchestra string, has the instruments definitions")
+   (sco     :initarg :sco :reader sco
+            :documentation "score string, has the wavetables")
    (file    :initarg :file)))
 (defclass csound-server ()
   ((thread)
@@ -98,13 +102,12 @@
     (let ((vars-only (remove-if #'keywordp rest)))
       (csound-send-event iname duration vars-only))))
 (defmethod playcsound-key ((iname string) (duration number) (keynum list) &rest rest)
-  (mapcar
-   (lambda (k)
-     (when (and (> duration 0) (> k 0))
-       (setf (getf rest :keynum) (keynum->pch k))
-       (let ((vars-only (remove-if #'keywordp rest)))
-         (csound-send-event iname duration vars-only))))
-   keynum))
+  (mapcar (lambda (k)
+            (when (and (> duration 0) (> k 0))
+              (setf (getf rest :keynum) (keynum->pch k))
+              (let ((vars-only (remove-if #'keywordp rest)))
+                (csound-send-event iname duration vars-only))))
+          keynum))
 
 (defgeneric playcsound-midi (instrument duration keynum &rest rest))
 (defmethod playcsound-midi ((iname string) (duration number) (keynum fixnum) &rest rest)
@@ -113,13 +116,12 @@
     (let ((vars-only (remove-if #'keywordp rest)))
       (csound-send-event iname duration vars-only))))
 (defmethod playcsound-midi ((iname string) (duration number) (keynum list) &rest rest)
-  (mapcar
-   (lambda (k)
-     (when (and (> duration 0) (> k 0))
-       (setf (getf rest :midi) k)
-       (let ((vars-only (remove-if #'keywordp rest)))
-         (csound-send-event iname duration vars-only))))
-   keynum))
+  (mapcar (lambda (k)
+            (when (and (> duration 0) (> k 0))
+              (setf (getf rest :midi) k)
+              (let ((vars-only (remove-if #'keywordp rest)))
+                (csound-send-event iname duration vars-only))))
+          keynum))
 
 ;;--------------------------------------------------
 
@@ -127,7 +129,7 @@
   "this macro will create a new (play-NAME) function wrapper of either
    playcsound or playcsound-key, with each &key defined on the function"
   (assert (and (symbolp name) (not (keywordp name))))
-  (let ((fname (intern (format nil "~A-~A" 'play name)))
+  (let ((fname    (intern (format nil "~A-~A" 'play name)))
         (fnamearp (intern (format nil "~A-~A-~A" 'play name 'arp))))
     (cond ((position :keynum rest)
            ;;--------------------------------------------------
@@ -305,6 +307,8 @@
                  (cl-ppcre:all-matches-as-strings "f\\d+ .*" score))))
     score))
 
+(defun mono-to-stereo (s))
+
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo, remove comments"
   (declare (string s))
@@ -318,18 +322,19 @@
       (error "soundin required"))
     (when mono-p
       (let* ((inst-pos (cl-ppcre:all-matches "instr\\s+\\d+" orc))
-             (inst-pos (loop for i in inst-pos by #'cddr collect i)))
+             (inst-pos (loop :for i :in inst-pos :by #'cddr :collect i)))
         (setf
          orc
          (format
           nil "~{~a~%~}"
           (loop :for (start end) :on inst-pos
                 :collect
-                   (let* ((instr (subseq orc start end))
-                          (pos (cl-ppcre:all-matches-as-strings "p\\d+" instr))
-                          (pos (mapcar (lambda (x) (parse-integer (subseq x 1))) pos))
-                          (pos (sort pos #'>))
-                          (last-pos (car pos)))
+                   (let* ((instr    (subseq orc start end))
+                          ;; FIXME: regex doesn't account for vars like "atanp1"
+                          (pos      (cl-ppcre:all-matches-as-strings "p\\d+" instr))
+                          (pos      (mapcar (lambda (x) (parse-integer (subseq x 1)))
+                                            pos))
+                          (last-pos (alexandria:extremum pos #'>)))
                      (cl-ppcre:regex-replace
                       " out\\s+\(.*\)"
                       instr
@@ -359,9 +364,9 @@
     (assert (and (uiop:file-exists-p sco-path) (uiop:file-exists-p orc-path))))
   ;; Read into vars
   (when (and orc-path sco-path)
-    (setf orc (parse-orc (alexandria:read-file-into-string orc-path)))
     (setf globals (parse-globals (alexandria:read-file-into-string orc-path)))
-    (setf sco (parse-sco (alexandria:read-file-into-string sco-path))))
+    (setf orc     (parse-orc (alexandria:read-file-into-string orc-path)))
+    (setf sco     (parse-sco (alexandria:read-file-into-string sco-path))))
   (setf (gethash name *orcs*)
         (make-instance 'orc
                        :name name
@@ -374,8 +379,9 @@
   (alexandria:hash-table-keys *orcs*))
 
 (defun set-csound-options (&optional (options *csound-options*))
-  (declare (list options))
-  (loop :for option :in options :when (stringp option) :do
+  (declare (type list options))
+  (loop :for option :in options
+        :when (stringp option) :do
            (cffi:with-foreign-string (coption option)
              (csound:csoundsetoption *c* coption))))
 
@@ -422,13 +428,12 @@
   (assert (keywordp orc-name))
   (with-slots (globals) (gethash orc-name *orcs*)
     (if filter-globals
-        (loop
-          :for default :in '("sr" "kr" "ksmps" "nchnls")
-          :finally (return result)
-          :with result = globals :do
-             (setf result (cl-ppcre:regex-replace-all
-                           (format nil "\\s*~a\\s*=\\s*.*\\n" default)
-                           result (format nil "~%"))))
+        (loop :for default :in '("sr" "kr" "ksmps" "nchnls")
+              :finally (return result)
+              :with result := globals
+              :do (setf result (cl-ppcre:regex-replace-all
+                                (format nil "\\s*~a\\s*=\\s*.*\\n" default)
+                                result (format nil "~%"))))
         globals)))
 
 (defun get-orchestra (orc-name &optional n-instr)
@@ -494,40 +499,24 @@
              l)))
     l))
 
+(defun replace-var (orc index key value)
+  (declare (type string orc))
+  (let ((replacement (format nil "~a~a~a~%" "\\{1}" value "\\{2}")))
+    (cl-ppcre:regex-replace-all
+     (concatenate 'string
+                  "\(" key "\\s+[^,]+,[^,]+,\)\\s*" index "\(.*\)\\n")
+     orc
+     replacement)))
+
 ;; NOTE: this was so weird and annoying...regex...i didn't miss you
 (defun replace-wavetables (orc wavetables-hash)
-  (declare (string orc))
-  (loop
-    :for index :being :each :hash-key :of wavetables-hash
-    :using (hash-value v)
-    :do
-       (let ((r (format nil "~a~a~a~%"
-                        "\\{1}" v "\\{2}")))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(oscil\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(oscili\\s+[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(table\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(tablei\\s+[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))
-         (setf orc (cl-ppcre:regex-replace-all
-                    (format nil "\(vco\\s+[^,]+,[^,]+,[^,]+,[^,]+,\)\\s*~a\(.*\)\\n"
-                            index)
-                    orc
-                    r))))
+  (declare (type string orc) (type hash-table wavetables-hash))
+  (maphash (lambda (k v)
+             (setf orc (replace-var orc k "oscili" v))
+             (setf orc (replace-var orc k "table"  v))
+             (setf orc (replace-var orc k "tablei" v))
+             (setf orc (replace-var orc k "vco"    v)))
+           wavetables-hash)
   orc)
 
 (defun merge-orcs (&rest orchestras)
