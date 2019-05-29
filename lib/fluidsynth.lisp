@@ -14,8 +14,46 @@
          (right (make-f32-array len)))
     (fluidsynth:write-float synth len left 0 1 right 0 1)
     (foreach-frame
-      (out (f32-ref left current-frame)
+      (out (f32-ref left  current-frame)
            (f32-ref right current-frame)))))
+
+;; Adding filters to output from fluidsynth.
+;;----------------------------------------
+;; Due the output is single-float I cannot apply a filter directly
+;; So i dump the channels to buses. Then use a second dsp to filter.
+;; Trying to implement:
+;; https://sourceforge.net/p/incudine/mailman/message/36266377/
+
+;; I use this when rt-block-size != 1, otherwise just use (bus) directly
+(define-vug input-bus ((channel fixnum))
+  (bus
+   (the fixnum
+        (+ (the fixnum (* current-frame 2))
+           channel
+           2))))
+
+(dsp! fluid-in-down ((synth fluidsynth:synth))
+  (with ((len   (block-size))
+         (left  (make-f32-array len))
+         (right (make-f32-array len)))
+    (fluidsynth:write-float synth len left 0 1 right 0 1)
+    (foreach-frame
+      (setf (input-bus 0) (f32-ref left  current-frame)
+            (input-bus 1) (f32-ref right current-frame)))))
+;; (fluid-in-down *synth*)
+;; (fluid-out-down)
+;; (free (node 0))
+;; (lvc-mono )
+;; (p (now) 60 60 1 0)
+;; (incudine.vug:lv2->vug "http://invadarecords.com/plugins/lv2/compressor/mono"
+;;                        lvc-mono)
+;; (incudine.vug:lv2->vug "http://invadarecords.com/plugins/lv2/compressor/stereo"
+;;                        lvc-stereo)
+;; (dsp! fluid-out-down ()
+;;   (foreach-frame
+;;     (foreach-channel
+;;       (with-samples ((c (input-bus current-channel)))
+;;         (cout c)))))
 
 ;;--------------------------------------------------
 
@@ -26,7 +64,7 @@
   "Play chord of notes"
   (mapc (lambda (p)
           (declare (fixnum p))
-          (when (and (> p 0) (> duration 0))
+          (when (and (> p 0) (> duration 0) (> velocity 0))
             (when pan (fpan channel pan))
             (at time #'fluidsynth:noteon *synth* channel p velocity)
             (at (+ time (calc-beats duration)) #'fluidsynth:noteoff *synth* channel p)))
@@ -35,7 +73,7 @@
   "Play chord of notes, with provided durations"
   (mapc (lambda (p d)
           (declare (fixnum p))
-          (when (and (> p 0) (> d 0))
+          (when (and (> p 0) (> d 0) (> velocity))
             (when pan (fpan channel pan))
             (at time #'fluidsynth:noteon *synth* channel p velocity)
             (at (+ time (calc-beats d)) #'fluidsynth:noteoff *synth* channel p)))
@@ -51,7 +89,8 @@
 (defmethod p ((time double-float) (pitch fixnum) (velocity fixnum) (duration number) (channel fixnum) &key pan)
   "Play given pitch"
   (when (and (< 0 pitch 127)
-             (> duration 0))
+             (> duration 0)
+             (> velocity 0))
     (when pan
       (fluidsynth:cc *synth* channel 10 (alexandria:clamp pan 0 127)))
     (at time #'fluidsynth:noteon *synth* channel pitch velocity)
@@ -60,7 +99,7 @@
 (defmethod p ((time double-float) (pitch fixnum) (velocity fixnum) (duration symbol) (channel fixnum) &key pan)
   "Play given pitch, at CM duration/rythm"
   (let ((d (cm:rhythm duration)))
-    (when (> d 0)
+    (when (and (> d 0) (> velocity 0))
       (at time #'fluidsynth:noteon *synth* channel pitch velocity)
       (at (+ time (calc-beats d)) #'fluidsynth:noteoff *synth* channel pitch)))
   pitch)
@@ -70,7 +109,7 @@
     (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch)))
           (d (cm:rhythm duration)))
       (declare (fixnum n))
-      (when (> d 0)
+      (when (and (> d 0) (> velocity 0))
         (at time #'fluidsynth:noteon *synth* channel n velocity)
         (at (+ time (calc-beats d)) #'fluidsynth:noteoff *synth* channel n))))
   pitch)
@@ -79,7 +118,8 @@
   (when (and (> duration 0)
              (not (eql NIL pitch))
              (not (eql :_ pitch))
-             (not (eql 'cm::r pitch)))
+             (not (eql 'cm::r pitch))
+             (> velocity 0))
     (let ((n (if (keywordp pitch) (note pitch) (cm:keynum pitch))))
       (declare (fixnum n))
       (at time #'fluidsynth:noteon *synth* channel n velocity)
