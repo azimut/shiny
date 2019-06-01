@@ -42,6 +42,7 @@
 ;;(defparameter *csound-options* '("-odac" "--nchnls=2" "-+rtaudio=jack" "-b128" "-B1048" "--sample-rate=44100"))
 (defparameter *csound-options* '("-odac" "-m3" "--nchnls=2"))
 (defvar *orcs* (make-hash-table))
+(defvar *default-csound-path* (asdf:system-relative-pathname :shiny "lib/csound/"))
 (defclass orc ()
   ((name    :initarg :name)
    (globals :initarg :globals :reader globals
@@ -87,12 +88,12 @@
       (csound-send-event iname duration vars-only)))
   keynum)
 (defmethod playcsound-freq ((iname string) (duration number) (keynum list) &rest rest)
-  (mapcar (lambda (k)
-            (when (and (> duration 0) (> k 0))
-              (setf (getf rest :freq) (midihz k))
-              (let ((vars-only (remove-if #'keywordp rest)))
-                (csound-send-event iname duration vars-only))))
-          keynum))
+  (mapc (lambda (k)
+          (when (and (> duration 0) (> k 0))
+            (setf (getf rest :freq) (midihz k))
+            (let ((vars-only (remove-if #'keywordp rest)))
+              (csound-send-event iname duration vars-only))))
+        keynum))
 
 (defgeneric playcsound-key (instrument duration keynum &rest rest))
 (defmethod playcsound-key ((iname string) (duration number) (keynum integer) &rest rest)
@@ -100,28 +101,31 @@
   (when (and (> duration 0) (> keynum 0))
     (setf (getf rest :keynum) (keynum->pch keynum))
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound-send-event iname duration vars-only))))
+      (csound-send-event iname duration vars-only)))
+  keynum)
 (defmethod playcsound-key ((iname string) (duration number) (keynum list) &rest rest)
-  (mapcar (lambda (k)
-            (when (and (> duration 0) (> k 0))
-              (setf (getf rest :keynum) (keynum->pch k))
-              (let ((vars-only (remove-if #'keywordp rest)))
-                (csound-send-event iname duration vars-only))))
-          keynum))
+  (mapc (lambda (k)
+          (when (and (> duration 0) (> k 0))
+            (setf (getf rest :keynum) (keynum->pch k))
+            (let ((vars-only (remove-if #'keywordp rest)))
+              (csound-send-event iname duration vars-only))))
+        keynum))
 
 (defgeneric playcsound-midi (instrument duration keynum &rest rest))
 (defmethod playcsound-midi ((iname string) (duration number) (keynum fixnum) &rest rest)
+  "midi keynum play"
   (when (and (> duration 0) (> keynum 0))
     (setf (getf rest :midi) keynum)
     (let ((vars-only (remove-if #'keywordp rest)))
-      (csound-send-event iname duration vars-only))))
+      (csound-send-event iname duration vars-only)))
+  keynum)
 (defmethod playcsound-midi ((iname string) (duration number) (keynum list) &rest rest)
-  (mapcar (lambda (k)
-            (when (and (> duration 0) (> k 0))
-              (setf (getf rest :midi) k)
-              (let ((vars-only (remove-if #'keywordp rest)))
-                (csound-send-event iname duration vars-only))))
-          keynum))
+  (mapc (lambda (k)
+          (when (and (> duration 0) (> k 0))
+            (setf (getf rest :midi) k)
+            (let ((vars-only (remove-if #'keywordp rest)))
+              (csound-send-event iname duration vars-only))))
+        keynum))
 
 ;;--------------------------------------------------
 
@@ -294,9 +298,9 @@
 ;;--------------------------------------------------
 
 (defun parse-sco (s)
-  "returns only the fN wavetables on the score, remove comments and spaces and
+  "returns only the fN wavetables on the score, remove comments, spaces and
    zeros from fN wavetable definitions"
-  (declare (string s))
+  (declare (type string s))
   (let* ((score (cl-ppcre:regex-replace-all ";.*" s ""))
          (score (cl-ppcre:regex-replace-all "f[ ]+\(\\d+\)" score "f\\1"))
          (score (cl-ppcre:regex-replace-all "f0+\(\\d+\)" score "f\\1"))
@@ -307,61 +311,85 @@
                  (cl-ppcre:all-matches-as-strings "f\\d+ .*" score))))
     score))
 
-(defun mono-to-stereo (s))
+(defun get-instr (s)
+  "return a list of strings with each instr in orc S"
+  (declare (type string s))
+  (let* ((instr (serapeum:collecting
+                  (cl-ppcre:do-scans
+                      (ms me rs re "(?:^|\\n)\\s*(instr\\s+[0-9a-zA-Z]+)" s)
+                    (collect (aref rs 0)))))
+         (endin (serapeum:collecting
+                  (cl-ppcre:do-scans (ms me rs re "(?:^|\\n)\\s*(endin)" s)
+                    (collect (aref re 0))))))
+    (loop :for start :in instr
+          :for end   :in endin
+          :collect (subseq s start end))))
+
+;; FIXME: not sure what to return when no pN is used
+(defun get-p-max (s)
+  "returns the max parameter number used in instrument S"
+  (declare (type string s))
+  (let* ((pns (cl-ppcre:all-matches-as-strings "p\\d+" s))
+         (ns  (mapcar (alexandria:compose #'parse-integer
+                                          #'str:s-last)
+                      pns))
+         (n   (alexandria:extremum ns #'>)))
+    n))
+
+(defun mono-to-stereo (s)
+  "adds 2 new params to instr S"
+  (let ((p-max (get-p-max s)))
+    (cl-ppcre:regex-replace " out\\s+\(.*\)"
+                            s
+                            (format nil "outs (\\{1})*p~d,(\\{1})*p~d"
+                                    (+ 1 p-max)
+                                    (+ 2 p-max)))))
 
 (defun parse-orc (s)
   "returns the orc, changes mono to stereo, remove comments"
   (declare (string s))
   (let* ((orc         (cl-ppcre:regex-replace-all ";.*" s ""))
          (soundin-p   (cl-ppcre:scan "soundin" orc))
-         (mono-p      (cl-ppcre:scan "nchnls\\s*=\\s*1" orc))
-         (first-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
-         ;; Return everything below the first instrument
-         (orc         (subseq orc first-instr)))
-    (when soundin-p
-      (error "soundin required"))
-    (when mono-p
-      (let* ((inst-pos (cl-ppcre:all-matches "instr\\s+\\d+" orc))
-             (inst-pos (loop :for i :in inst-pos :by #'cddr :collect i)))
-        (setf
-         orc
-         (format
-          nil "~{~a~%~}"
-          (loop :for (start end) :on inst-pos
-                :collect
-                   (let* ((instr    (subseq orc start end))
-                          ;; FIXME: regex doesn't account for vars like "atanp1"
-                          (pos      (cl-ppcre:all-matches-as-strings "p\\d+" instr))
-                          (pos      (mapcar (lambda (x) (parse-integer (subseq x 1)))
-                                            pos))
-                          (last-pos (alexandria:extremum pos #'>)))
-                     (cl-ppcre:regex-replace
-                      " out\\s+\(.*\)"
-                      instr
-                      (format nil "outs (\\{1})*p~d,(\\{1})*p~d"
-                              (+ 1 last-pos)
-                              (+ 2 last-pos)))))))))
-    orc))
+         (mono-p      (cl-ppcre:scan "nchnls\\s*=\\s*1" orc)))
+    (when soundin-p (error "soundin required"))
+    (str:unlines
+     (loop :for instr :in (get-instr orc)
+           :if mono-p
+           :collect (mono-to-stereo instr)
+           :else
+           :collect instr))))
 
+;; FIXME: assumes globals are only defined before the first instr
+;;        declaration appears
 (defun parse-globals (s)
-  (declare (string s))
+  "returns a string with all globals"
+  (declare (type string s))
   (let* ((orc         (cl-ppcre:regex-replace-all ";.*" s ""))
          (first-instr (cl-ppcre:scan "instr\\s+\\d+" orc))
          (globals     (subseq orc 0 first-instr)))
     globals))
 
+(defun resolve-csound-path (key-name &optional (extension ".orc")
+                                               (filepath *default-csound-path*))
+  "returns the path"
+  (let* ((name (symbol-name key-name))
+         (file (merge-pathnames
+                (str:concat name extension) filepath)))
+    (or (probe-file file)
+        (error "file missing"))))
+
 ;; NOTE: before running this try the sound on the CLI with:
 ;; $ csound -odac 326a.{orc,sco}
-(defun make-orc (name &key sco orc globals filename filepath orc-path sco-path)
+;; TODO: support only .orc
+(defun make-orc (name &key sco orc globals
+                           filename (filepath *default-csound-path*)
+                           orc-path sco-path)
   "This function creates a new orchestra file, reading score wave tables too"
   (assert (keywordp name))
   ;; Find files if parameters provided
   (when filename
-    (if (not filepath)
-        (setf filepath (asdf:system-relative-pathname :shiny "lib/csound/")))
-    (setf orc-path (merge-pathnames filepath (concatenate 'string filename ".orc")))
-    (setf sco-path (merge-pathnames filepath (concatenate 'string filename ".sco")))
-    (assert (and (uiop:file-exists-p sco-path) (uiop:file-exists-p orc-path))))
+    (setf orc-path (resolve-csound-path name ".orc" filepath))
+    (setf sco-path (resolve-csound-path name ".sco" filepath)))
   ;; Read into vars
   (when (and orc-path sco-path)
     (setf globals (parse-globals (alexandria:read-file-into-string orc-path)))
@@ -370,8 +398,8 @@
   (setf (gethash name *orcs*)
         (make-instance 'orc
                        :name name
-                       :globals globals
                        :file filepath
+                       :globals globals
                        :sco sco
                        :orc orc)))
 
@@ -385,43 +413,23 @@
            (cffi:with-foreign-string (coption option)
              (csound:csoundsetoption *c* coption))))
 
-(defun get-orc (orc-name &optional n-instr)
+(defun get-orc (orc-name &key n-instr (filepath *default-csound-path*))
   (assert (keywordp orc-name))
-  (let ((result))
-    (with-slots (orc) (gethash orc-name *orcs*)
-      ;; Load it from Disk
-      (if orc
-          (setf result orc)
-          (let* ((n (format nil "lib/csound/~a.orc" (symbol-name orc-name)))
-                 (f (asdf:system-relative-pathname :shiny n)))
-            (setf result (alexandria:read-file-into-string f))))
-      ;; Pick N-TH: not even sure if this is a good idea, but I "need" it
-      (when n-instr
-        (setf n-instr (alexandria:ensure-list n-instr))
-        (let* ((i-list (cl-ppcre:split "\(instr\\s+\\d+\)" orc
-                                       :with-registers-p t
-                                       :omit-unmatched-p t))
-               ;; remove empty strings
-               (i-list (remove-if (lambda (x) (= (length x) 0)) i-list)))
-          (setf result
-                (stich
-                 (nths n-instr
-                       (loop
-                         :for (x y) :on i-list
-                         :by #'cddr
-                         :collect (stich x y)))))))
-      result)))
+  (with-slots (orc) (gethash orc-name *orcs*)
+    (let ((orchestra (or orc
+                         (alexandria:read-file-into-string
+                          (resolve-csound-path orc-name ".orc" filepath)))))
+      (if n-instr
+          (nth n-instr (get-instr orchestra))
+          orchestra))))
 
-(defun get-sco (orc-name)
+(defun get-sco (sco-name &key (filepath *default-csound-path*))
   "returns the score string"
-  (assert (keywordp orc-name))
-  (with-slots (sco) (gethash orc-name *orcs*)
-    (if sco
-        sco
-        (let* ((n (format nil "lib/csound/~a.sco" (symbol-name orc-name)))
-               (f (asdf:system-relative-pathname :shiny n))
-               (sco (alexandria:read-file-into-string f)))
-          sco))))
+  (assert (keywordp sco-name))
+  (with-slots (sco) (gethash sco-name *orcs*)
+    (or sco
+        (alexandria:read-file-into-string
+         (resolve-csound-path sco-name ".sco" filepath)))))
 
 (defun get-globals (orc-name &optional filter-globals)
   "returns the string with the global definitions"
@@ -448,38 +456,10 @@
                            :name "slice"))
       (gethash orc-name *orcs*)))
 
-;; TODO: ew
-(defun start-csound (orchestra)
-  (declare (type orc orchestra))
-  (with-slots (name orc sco globals) orchestra
-    (let ((server-up-p *c*))
-      (unless server-up-p
-        ;; Set headless flags
-        (csound:csoundinitialize 3)
-        (setf *c* (csound:csoundcreate (cffi:null-pointer)))
-        (set-csound-options *csound-options*))
-      ;; Initialize ORC
-      (csound:csoundcompileorc
-       *c*
-       (stich *csound-globals* globals orc))
-      ;; GOGOGO!
-      (unless server-up-p
-        (csound:csoundstart *c*))
-      ;; Init fN wave tables for this ORC
-      (csound:csoundreadscore *c* sco))))
-
-(defun load-csound (orchestra)
-  "one can load sco and orc without stop the perfomance thread
-   or restart the server"
-  (declare (type orc orchestra))
-  (with-slots (orc sco globals) orchestra
-    ;; Initialize ORC
-    (csound:csoundcompileorc *c* (stich globals orc))
-    ;; Init fN wave tables for this ORC
-    (csound:csoundreadscore *c* sco)))
-
 ;;--------------------------------------------------
+;;
 ;; Merge utils
+;;
 
 (defun regex-count (regex s)
   (declare (string regex s))
@@ -569,6 +549,39 @@
     *tmporc*))
 
 ;;--------------------------------------------------
+;;
+;; Process
+;;
+
+;; TODO: ew
+(defun start-csound (orchestra)
+  (declare (type orc orchestra))
+  (with-slots (name orc sco globals) orchestra
+    (let ((server-up-p *c*))
+      (unless server-up-p
+        ;; Set headless flags
+        (csound:csoundinitialize 3)
+        (setf *c* (csound:csoundcreate (cffi:null-pointer)))
+        (set-csound-options *csound-options*))
+      ;; Initialize ORC
+      (csound:csoundcompileorc
+       *c*
+       (stich *csound-globals* globals orc))
+      ;; GOGOGO!
+      (unless server-up-p
+        (csound:csoundstart *c*))
+      ;; Init fN wave tables for this ORC
+      (csound:csoundreadscore *c* sco))))
+
+(defun load-csound (orchestra)
+  "one can load sco and orc without stop the perfomance thread
+   or restart the server"
+  (declare (type orc orchestra))
+  (with-slots (orc sco globals) orchestra
+    ;; Initialize ORC
+    (csound:csoundcompileorc *c* (stich globals orc))
+    ;; Init fN wave tables for this ORC
+    (csound:csoundreadscore *c* sco)))
 
 (defun start-thread ()
   (setf *thread*
@@ -590,5 +603,3 @@
 (make-orc :asynth  :filename "ASYNTH")
 (make-orc :bass    :filename "BASS")
 (make-orc :drumkit :filename "DRUMKIT")
-
-
