@@ -1,109 +1,182 @@
 (in-package #:shiny)
 
+;; TODO: keep the force 16beat padding (?
+;; TODO: function to check if we are in beat N of the hexbeat
+;;
 ;; Ideas took from:
 ;; https://github.com/kunstmusik/csound-live-code/
+;; http://lisptips.com/post/44509805155/formatting-integers-in-different-radixes
 
-;; choose   - cm:odds
+;; choose   ~ cm:odds
 ;; cycle    - cm:cycle
 ;; contains - cl-user:position
 ;; remove   - cl-user:remove
 ;; rand     - cm:pickl
+;; caose    - > velocity 0
 
-;; /** Wrapper opcode that calls schedule only if iamp > 0. */
-;; opcode cause, 0, Siiii
-;;   Sinstr, istart, idur, ifreq, iamp xin
-;;   if(iamp > 0) then
-;;     schedule(Sinstr, istart, idur, ifreq, iamp)
-;;   endif
-;; endop
+(defvar *hexpitch-cache* (make-hash-table :test #'equal))
 
-;; https://rosettacode.org/wiki/Bitwise_operations#Common_Lisp
-(defun rotl (x width bits)
-  "Compute bitwise left rotation of x by 'bits' bits, represented on 'width' bits"
-  (logior (logand (ash x (mod bits width))
-                  (1- (ash 1 width)))
-          (logand (ash x (- (- width (mod bits width))))
-                  (1- (ash 1 width)))))
-
-;; http://lisptips.com/post/44509805155/formatting-integers-in-different-radixes
-;; decimal to ...
-(defun :hex (number &optional (size 8))
-  "(:hex 666) => 029A"
-  (format NIL "~v,'0X" size number))
 (defun :bits (number &optional (size 16))
   "(:bits 42) => 00101010"
   (format NIL "~v,'0B" size number))
-;; ... to decimal
-(defun :bits2dec (value)
-  "(:bits2dec \"1010\") => 10"
-  (parse-integer value :radix 2))
-
-;;--------------------------------------------------
 
 (defun %hexbeat (hex)
-  "(%hexbeat \"A\") => \"1010\"
+  "takes a string with possible spaces or a single char, returns a binary string
+   (%hexbeat \"A\") => \"1010\"
    (%hexbeat #\\a)  => \"1010\""
   (declare (type (or character string) hex))
   (let* ((hex-string  (if (characterp hex) (string hex) hex))
          (hex-string  (cl-ppcre:regex-replace-all " " hex-string ""))
-         (zero-length (* 4 (length hex-string)))
          (decimal     (parse-integer hex-string :radix 16))
-         (bin-string  (format NIL "~v,'0B" zero-length decimal)))
+         (bin-length  (* 4 (length hex-string)))
+         (bin-string  (:bits decimal bin-length)))
     bin-string))
 
-;;--------------------------------------------------
-
 (defun hexpat (s)
-  "returns a list of T or NIL, of pattern S, with variable nr of beats"
+  "returns a cycle of a list of T or NIL, of hex pattern S, with variable nr of beats"
   (declare (type string s))
   (make-cycle (parse1 (%hexbeat s))))
 
-;;--------------------------------------------------
+(defun choose (prob)
+  (declare (type (single-float 0f0 1f0) prob))
+  (if (< (random 1f0) prob) 1 0))
 
-;; TODO: formatting
-(defun hexbeat (hex &optional (offset 0))
-  "returns \"binary\" string of the HEX beat provided, padded to 16 beats"
-  (declare (type string hex)
-           (type fixnum offset))
-  (let* ((decimal (parse-integer hex :radix 16))
-         (decimal-offset
-           (cond ((plusp offset)  (rotl decimal 16 offset))
-                 ((minusp offset) (rotl decimal 16 offset))
-                 ((zerop offset)  decimal)))
-         (binary (format NIL "~v,'0B" 16 decimal-offset)))
-    binary))
-
-(defun %hexbeat-nths (hex)
-  "helper, returns a list of beats of when the hexbeat HEX happens
-   (%hexbeat-nths \"a09\") => (4 6 12 15)"
-  (declare (type string hex))
-  (let ((bbeats (hexbeat hex)))
-    (declare (type string bbeats))
-    (loop :for i :from 0
-          :for b :across bbeats
-          :when (eq #\1 b)
-          :collect i)))
-
-(defun hbeat (time hex)
-  "utility to check if current beat is HEX, returns T if it is"
-  (declare (type double-float time)
-           (type string hex))
-  (let ((nhex (%hexbeat-nths hex)))
-    (declare (type list nhex))
-    (loop :for n :in nhex
-          :thereis (= n (mod (/ time *1beat*) 16)))))
+;; aka "p4"
+(defun beat ()
+  "returns the current beat, double precision"
+  (declare (type double-float *sample-rate*))
+  (/ (now) (* *sample-rate* (spb *tempo*))))
+(defun rbeat ()
+  "returns the current beat, floor to integer"
+  (floor (beat)))
+(defun 16beat ()
+  (mod (floor (beat))
+       16))
 
 (defun nth-beat (beat l)
   "something kind of:
    xosc(phsb(1.7), array(1,2,3,4))
    It changes cycles overtime, producing some kind stutter. Might be math wrong..."
   (declare (type list l))
-  (let ((length (length l)))
-    (nth
-     (floor (* length
-               (/ (mod (/ (node-uptime 0) *1beat*) (* beat 4)) (* beat 4))))
-     l)))
+  (nth (floor (* (length l)
+                 (/ (mod (beat) (* beat 4 4))
+                    (* beat 4 4))))
+       l))
 
-(defun choose (prob)
-  (declare (type (single-float 0f0 1f0) prob))
-  (if (cm:odds prob) 1 0))
+;;--------------------------------------------------
+;; Helpers for the grammar
+
+(defun safe-length (e)
+  (if (numberp e)
+      1
+      (length e)))
+
+;; AKA numpy roll"ish"
+(defun roll (array n)
+  (declare (type fixnum n))
+  (let ((indices (cl-arrows:-> (length array)
+                               (iota)
+                               (rotate n))))
+    (loop :for i :in indices
+          :collect (aref array i))))
+
+(defun add (&rest rest)
+  "helper over numcl:+ to allow padding of not equal arrays.
+   > (add (bit-smasher:hex->bits \"ff\")
+          (bit-smasher:hex->bits \"a\"))
+   #(1 1 1 1 2 1 2 1)"
+  (let* ((max-length (reduce #'max (mapcar #'safe-length rest)))
+         (same-length-rest
+           (mapcar (lambda (r) (if (and (not (numberp r))
+                                   (not (= max-length (length r))))
+                              (serapeum:pad-start r max-length 0)
+                              r))
+                   rest)))
+    (apply #'numcl:+ same-length-rest)))
+
+(defun minus (&rest rest)
+  "helper over numcl:- to allow padding of not equal arrays.
+   > (minus (bit-smasher:hex->bits \"ff\")
+            (bit-smasher:hex->bits \"a\"))
+   #(1 1 1 1 0 1 0 1)"
+  (let* ((max-length (reduce #'max (mapcar #'safe-length rest)))
+         (same-length-rest
+           (mapcar (lambda (r) (if (and (not (numberp r))
+                                   (not (= max-length (length r))))
+                              (serapeum:pad-start r max-length 0)
+                              r))
+                   rest)))
+    (apply #'numcl:- same-length-rest)))
+
+;;--------------------------------------------------
+;; Grammar definition
+
+;; TODO: (), & , | , ^, ... -, /
+(cl-lex:define-string-lexer hexpitch-lexer
+  ("x[A-Fa-f0-9]+" (return (values :hex (bit-smasher:hex->bits
+                                         (subseq $@ 1)))))
+  ("[0-9]+"        (return (values :dec (parse-integer $@))))
+  ("-"             (return (values :minus :minus)))
+  ("\\("           (return (values :left-paren   :left-paren)))
+  ("\\)"           (return (values :right-paren  :right-paren)))
+  ("~"             (return (values :concat :concat))) ;; D like concat...
+  ;; ("&"             (return (values :and    :and)))
+  ;; ("|"             (return (values :or     :or)))
+  ("%"             (return (values :mod :mod)))
+  (">>"            (return (values :rshift :rshift)))
+  ("<<"            (return (values :lshift :lshift)))
+  ("\\+"           (return (values :add :add)))
+  ("\\*"           (return (values :mul :mul))))
+
+(defun hexpitch-lex-line (string)
+  "REPL helper to test lexer"
+  (loop :with lexer := (hexpitch-lexer string)
+        :for  tok   := (funcall lexer)
+        :while tok
+        :collect tok))
+
+;; 82 * 5 + f34234234 * 3 + 2
+;; https://en.cppreference.com/w/c/language/operator_precedence
+(yacc:define-parser hexpitch-parser
+  (:start-symbol expression)
+  (:terminals (:add :mul :hex :dec :rshift :lshift :concat
+                    :mod :left-paren :right-paren :minus))
+  (:precedence ((:left :mul) (:left :mod)
+                (:left :add) (:left :minus)
+                (:left :rshift) (:left :lshift)
+                (:left :concat)))
+  (expression
+   (expression :add    expression (lambda (x _ z) (declare (ignore _)) `(add ,x ,z)))
+   (expression :minus  expression (lambda (x _ z) (declare (ignore _)) `(minus ,x ,z)))
+   (expression :mul    expression (lambda (x _ z) (declare (ignore _)) `(numcl:* ,x ,z)))
+   (expression :mod    expression (lambda (x _ z) (declare (ignore _)) `(numcl:mod ,x ,z)))
+   (expression :rshift expression (lambda (x _ z) (declare (ignore _)) `(roll ,x (- ,z))))
+   (expression :lshift expression (lambda (x _ z) (declare (ignore _)) `(roll ,x ,z)))
+   (expression :concat expression (lambda (x _ z) (declare (ignore _)) `(concatenate 'vector ,x ,z)))
+   term)
+  (parenthosis (:left-paren expression :right-paren
+                            (lambda (x y z) (declare (ignore x z)) y)))
+  (term :dec
+        :hex
+        parenthosis))
+
+;;--------------------------------------------------
+;; Grammar usage
+
+(defun hexpitch (s)
+  (let* ((to-eval (yacc:parse-with-lexer (hexpitch-lexer s) hexpitch-parser))
+         (earray  (eval to-eval)))
+    (values (make-cycle (coerce earray 'list))
+            earray
+            to-eval)))
+
+;; FIXME: when the same pattern is used it returns the same cycle...u can add a space in the end to workarount it
+(defun hexpitchc (s)
+  (declare (type string s))
+  (or (gethash s *hexpitch-cache*)
+      (setf (gethash s *hexpitch-cache*) (hexpitch s))))
+
+;; FIXME: they get generated at different time (unaligned)...u can clrhash it
+(defmacro hexplay (beat &body body)
+  `(when (not (zerop (next (hexpitchc ,beat))))
+     ,@body))

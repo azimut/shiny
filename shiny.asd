@@ -4,21 +4,22 @@
   :license "GPL-3.0"
   :version "0.1"
   :serial t
-  :depends-on (#:swank
-               #:cm
-               #:incudine
-               #:cl-ppcre)
+  :depends-on (#:incudine
+               #:cl-ppcre
+               #:cl-arrows
+               #:serapeum
+               #:str
+               #:cm)
   :components ((:file "package")
                (:file "lib/musicutils")
                (:file "lib/extempore")
-               (:file "lib/cm")
                (:file "lib/overtone")
                (:file "lib/drums")
+               (:file "lib/cm")
                (:file "lib/incudine")
                (:file "lib/buffers")
                (:file "lib/midifile")
-               (:file "lib/cryptogram")
-               (:file "lib/csound-live-code")))
+               (:file "lib/cryptogram")))
 
 (asdf:defsystem "shiny/fluidsynth"
   :author "azimut <azimut.github@protonmail.com>"
@@ -26,7 +27,8 @@
   :license "GPL-3.0"
   :version "0.1"
   :serial t
-  :depends-on (#:shiny #:incudine-fluidsynth)
+  :depends-on (#:shiny
+               #:incudine-fluidsynth)
   :components ((:file "lib/fluidsynth")))
 
 (asdf:defsystem "shiny/lv2"
@@ -100,3 +102,26 @@
   :serial t
   :depends-on (#:shiny #:cl-lex #:yacc)
   :components ((:file "lib/foxdot")))
+
+(asdf:defsystem "shiny/csound-live-code"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny
+               #:cl-lex
+               #:yacc
+               #:numcl
+               #:bit-smasher)
+  :components ((:file "lib/csound-live-code")))
+
+(asdf:defsystem "shiny/csound-udp"
+  :author "azimut <azimut.github@protonmail.com>"
+  :description "incudine"
+  :license "GPL-3.0"
+  :version "0.1"
+  :serial t
+  :depends-on (#:shiny
+               #:usocket)
+  :components ((:file "lib/csound-udp")))
