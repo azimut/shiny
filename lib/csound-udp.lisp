@@ -10,8 +10,6 @@
 ;; http://write.flossmanuals.net/csound/web-based-csound/
 ;; https://github.com/LispCookbook/cl-cookbook/blob/95086d1f8f5d64b3c4ec83523fbaba0e1ac52447/sockets.md
 
-(ql:quickload :usocket)
-
 (defvar *csound-socket* nil)
 (defvar *csound-host* "127.0.0.1")
 (defvar *csound-port* 10000)
@@ -101,3 +99,14 @@
             (when (and *csound-socket* (> k 0) (> velocity 0) (> duration 0))
               (csound-socket-send msg))))
         keynum))
+
+;;--------------------------------------------------
+(defgeneric cla (i keynum velocity duration offset))
+
+(defmethod cla (i (keynum list) velocity duration (offset number))
+  (let* ((lnotes  (length keynum))
+         (offsets (loop :for i :from 0 :by offset :collect i :repeat lnotes)))
+    (mapc (lambda (k o) (aat (+ (now) #[o b])
+                        #'clc i k velocity duration))
+          keynum
+          offsets)))
