@@ -115,13 +115,14 @@
       (gethash n *reverse-notes*)
       (error "out of range")))
 
-(defvar *midi-note-re-str* "([a-gA-G][#bB]?)([-0-9]+)")
+(defvar *midi-note-re-str* "([a-gA-G][#bB]?)([-0-9]*)")
 (defvar *only-midi-note-re-str*
   (concatenate 'string "\\A" *midi-note-re-str* "\\Z"))
 
 (defun midi-string-matcher (mk)
   "Determines whether a midi keyword is valid or not. If valid,
-  returns a regexp match object"
+  returns a regexp match object
+   #(\"C\" \"4\")"
   (multiple-value-bind (_ m) (cl-ppcre:scan-to-strings *only-midi-note-re-str*
                                                        (name mk))
     (declare (ignore _))
@@ -131,7 +132,10 @@
   (let ((matches (midi-string-matcher mk)))
     (unless matches
       (error "invalid midi-string"))
-    (let ((octave (aref matches 1)))
+    (let ((octave (setf (aref matches 1)
+                        (if (str:emptyp (aref matches 1))
+                            "4"
+                            (aref matches 1)))))
       (when (< (parse-integer octave) -1)
         (error "invalid midi-string too low")))
     matches))
@@ -175,6 +179,7 @@
                           n
                           (error "Value out of range.")))
         ((keywordp n) (note (symbol-name n)))
+        ((symbolp  n) (note (symbol-name n)))
         ((stringp n)  (gethash :midi-note (note-info n)))
         (t (error "Bad argument."))))
 
@@ -517,7 +522,7 @@
   (chord :Bb4 :dim)   ; b flat diminished -> #{70 73 76}
   "
   (if inversion
-      (let* ((root (note root))
+      (let* ((root  (note root))
              (chord (resolve-chord chord-name))
              (notes (mapcar (lambda (x) (+ x root))
                             chord)))
