@@ -357,7 +357,7 @@ e.g. (pc:chord-options 0 '^ (pc:scale 0 'ionian))
  example:
  (pc:relative 64 -2 '(0 2 4 5 7 9 11)) => 60
  (pc:relative 69 3 '(0 2 4 5 7 9 11)) => 74"
-  (when (numberp pitch)
+  (when (and (numberp pitch) (numberp i))
     (setf i (round i))
     (if (= i 0)
         pitch
