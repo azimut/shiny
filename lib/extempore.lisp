@@ -762,18 +762,20 @@ e.g. give the above define
     (lambda (time &rest beat)
       (let ((b (labels ((f (qtime lst valuea valueb)
                           (if (< qtime valuea)
-                              (+ 1f0 (- qtime valueb))
+                              (+ 1d0 (- qtime valueb))
                               (f qtime
-                                 (cdr lst)
-                                 (+ valuea (cadr lst))
-                                 (+ valueb (car lst))))))
+                                 (rest lst)
+                                 (+ valuea (second lst))
+                                 (+ valueb (first  lst))))))
                  (f (mod (/ time base) metre-length)
                     metre
-                    (car metre)
+                    (first metre)
                     0))))
         (if (null beat)
             b
-            (if (= (car beat) b) t nil))))))
+            (if (= (first beat) b) ;; BEAT match!
+                t
+                nil))))))
 
 (defun pc-melody-by-step (starting-pitch steps pc &rest args)
   "generate a melody from a list of steps in a (pc) pitch class
