@@ -29,9 +29,8 @@
   ;; If we have more pulses then steps, double the steps and decrease the duration
   (declare (type unsigned-byte start))
   (loop :while (> n k)
-        :do
-           (mulf k 2)
-           (divf dur 2))
+        :do (mulf k 2)
+            (divf dur 2))
   (let ((pattern (pulses-to-durations (bjorklund n k))))
     (when (not (= 0 start))
       (setf pattern (alexandria:rotate pattern start)))
@@ -99,12 +98,12 @@
     > (stutter '(1 2 3 4) '(1 3))
     (1 2 2 2 3 4 4 4)")
   (:method ((l list) (n fixnum))
-    (loop :for item :in l :append
-             (loop :repeat n :collect item)))
+    (loop :for item :in l
+          :append (loop :repeat n :collect item)))
   (:method ((l list) (n list))
-    (loop :for item :in l :append
-             (prog1 (loop :repeat (car n) :collect item)
-               (setf n (alexandria:rotate n))))))
+    (loop :for item :in l
+          :append (prog1 (loop :repeat (car n) :collect item)
+                    (setf n (alexandria:rotate n))))))
 ;;------------------------------
 ;; arp(seq)
 (defun fx-arp (l n)
@@ -113,9 +112,8 @@
    > (arp '(0 1 2 3) '(0 4))
    (0 4 1 5 2 6 3 7)"
   (declare (type list n l))
-  (loop :for note :in l :append
-           (loop :for offset :in n :collect
-                    (+ note offset))))
+  (loop :for note :in l
+        :append (loop :for offset :in n :collect (+ note offset))))
 ;;------------------------------
 ;; splice(seq, *seqs)
 ;; Takes one or more patterns to “splice” into the original
@@ -141,8 +139,8 @@
    (9 6 10 0)"
   (declare (type list l))
   (let ((max (extremum l #'>)))
-    (loop :for item :in l :collect
-             (- max item))))
+    (loop :for item :in l
+          :collect (- max item))))
 ;;------------------------------
 ;; shufflets(n = 4)
 (defun fx-shufflets (l n)
@@ -151,8 +149,8 @@
    > (fx-shufflets '(1 2 3 4) 3)
    ((4 1 3 2) (3 1 4 2) (3 2 1 4))"
   (declare (type list l) (type unsigned-byte n))
-  (loop :repeat n :collect
-           (cm:shuffle l)))
+  (loop :repeat n
+        :collect (cm:shuffle l)))
 ;;------------------------------
 ;; pivot(i)
 (defun fx-pivot (l n)
@@ -182,14 +180,13 @@
         :with s = '(0)
         :with prev = 0
         :finally (return (reverse s))
-        :do
-           (let ((current (+ i prev)))
-             (push current s)
-             (setf prev current))))
+        :do (let ((current (+ i prev)))
+              (push current s)
+              (setf prev current))))
 ;;------------------------------
 ;; stretch(size)
 (defun fx-stretch (l n)
-  "Returns a pattern that is repeated until the length is equal to size."  
+  "Returns a pattern that is repeated until the length is equal to size."
   (declare (type list l) (type unsigned-byte n))
   (repeat n l))
 ;;------------------------------
@@ -202,7 +199,7 @@
 ;;------------------------------
 ;; ltrim(size)
 (defun fx-itrim (l n)
-  "Like trim but removes items from the start of the pattern, not the end."  
+  "Like trim but removes items from the start of the pattern, not the end."
   (declare (type list l) (type unsigned-byte n))
   (reverse (repeat (min (length l) n) (reverse l))))
 ;;------------------------------
@@ -300,9 +297,8 @@
 ;; FIXME? do it backwars? Iterate and then lookup?
 (defun fx-submap (l alist)
   (declare (type list l) (type cons alist))
-  (loop
-    :for (sub . repl) :in alist
-    :collect (setf l (substitute repl sub l)))
+  (loop :for (sub . repl) :in alist
+        :collect (setf l (substitute repl sub l)))
   l)
 ;;------------------------------
 ;; layer(method, *args, **kwargs)
@@ -365,37 +361,74 @@
 ;;        :do )))
 
 ;; TODO: a more similar mapping of file and sample number.
-(defvar *fx-samples* (make-hash-table))
-(defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/")
+(defparameter *fx-samples* (make-hash-table)
+  "Hash with array of buffers.")
+(defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/"
+  "Directory where to search for FoxDot samples, overwrite as needed.")
+
 (defun fx-guess-path (path)
   (if (uiop:absolute-pathname-p path)
       path
       (concatenate 'string *fx-path* path)))
+
 (defun fx-clear ()
-  (clrhash *fx-samples*)
-  (setf *fx-samples* NIL))
-(defun fx-load-simple (path symbol-string)
-  (when-let* ((symbol (alexandria:symbolicate symbol-string))
+  "NOTE: to free buffers from memory use (clean-buffers)"
+  (clrhash *fx-samples*))
+
+(defun fx-load-simple (path key)
+  "loads .wav in PATH into global buffer cache under KEY
+   KEY is symbolicated, to for example keep an uppercase???
+   PATH is relative to *FX-PATH* or absolute."
+  (when-let* ((symbol (alexandria:symbolicate key))
               (path   (fx-guess-path path))
               (buf    (bbuffer-load path symbol)))
     buf))
-(defun fx-load (path symbol-string)
-  (when-let* ((path (concatenate 'string *fx-path* path))
-              (buf (bbuffer-load path))
-              (symbol (alexandria:symbolicate symbol-string)))
-    (if (gethash symbol *fx-samples*)
-        (vector-push-extend buf (gethash symbol *fx-samples*))
-        (let ((init (make-array 0 :adjustable T :fill-pointer 0)))
-          (vector-push-extend buf init)
-          (setf (gethash symbol *fx-samples*)
-                init)))))
+
+(defun fx-load (path key)
+  "loads .wav in PATH into the *FX-SAMPLES* hash cache under KEY
+   VALUE is and extendable array that keeps each sample for KEY
+   PATH can be a .wav file or a directory"
+  (let ((resolved-path (fx-guess-path path)))
+    (cond ((uiop:directory-exists-p resolved-path)
+           (remhash key *fx-samples*)
+           (loop :for file :in (uiop:directory-files resolved-path "*.wav")
+                 :do (fx-load file key)))
+          ((uiop:file-exists-p resolved-path)
+           (let ((buffer (bbuffer-load resolved-path)))
+             (if-let ((buffers (gethash key *fx-samples*)))
+               (vector-push-extend buffer buffers)
+               (let ((init (make-array 1 :initial-contents `(,buffer)
+                                         :adjustable T :fill-pointer 1)))
+                 (setf (gethash key *fx-samples*) init)))))
+          (t (error "PATH provides not valid...")))))
+
 (defun fx-buf (symbol &optional (sample 0))
+  "returns buffer under symbol on *FX-SAMPLES*"
   (when-let* ((elements (gethash symbol *fx-samples*))
               (n-elements (1- (fill-pointer elements)) )
               (buf (aref elements (if (= n-elements 0)
                                       0
                                       (mod sample n-elements)))))
     buf))
+
+(defun fx-play (name &rest rest &key (sample 0) &allow-other-keys)
+  (cond ((atom name)
+         (when-let* ((buffers   (gethash name *fx-samples*))
+                     (n-buffers (fill-pointer buffers))
+                     (buffer    (aref buffers (mod sample n-buffers))))
+           (apply #'bbplay buffer rest)))
+        ((and (listp name) (not (null name)))
+         (let* ((n-sounds (length name))
+                (offsets  (loop :repeat n-sounds
+                                :for i :from 0d0 :by (/ 1d0 n-sounds)
+                                :summing i :into total
+                                :collect total)))
+           (mapcar (lambda (n o)
+                     (declare (type double-float o))
+                     (aat (+ (now) (calc-beats o))
+                          #'fx-play n sample rest))
+                   name
+                   offsets)))))
 
 ;;--------------------------------------------------
 ;; Pattern support similar to the one that Foxdot's
