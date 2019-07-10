@@ -366,32 +366,76 @@
 (defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/"
   "Directory where to search for FoxDot samples, overwrite as needed.")
 
+;; lib/Buffers.py
+(defparameter *fx-non-alpha-sounds*
+  '(("semicolon"    . ":")
+    ("ampersand"    . "&")
+    ("asterix"      . "*")
+    ("at"           . "@")
+    ("bar"          . "|")
+    ("caret"        . "^")
+    ("colon"        . ":")
+    ("dollar"       . "$")
+    ("equals"       . "=")
+    ("exclamation"  . "!")
+    ("forwardslash" . "/")
+    ("greaterthan"  . ">")
+    ("hash"         . "#")
+    ("hyphen"       . "-")
+    ("lessthan"     . "<")
+    ("percent"      . "%")
+    ("plus"         . "+")
+    ("question"     . "?")
+    ("tilde"        . "~")
+    ("backslash"    . "\\")
+    ("1"            . "1")
+    ("2"            . "2")
+    ("3"            . "3")
+    ("4"            . "4")))
+
 (defun fx-guess-path (path)
   (if (uiop:absolute-pathname-p path)
       path
       (concatenate 'string *fx-path* path)))
 
-(defun fx-clear ()
+(defun fx-clear (&optional global-clear)
   "NOTE: to free buffers from memory use (clean-buffers)"
-  (clrhash *fx-samples*))
+  (clrhash *fx-samples*)
+  (when global-clear
+    (clean-buffers))
+  t)
 
 (defun fx-load-simple (path key)
-  "loads .wav in PATH into global buffer cache under KEY
+  "DEPRECATED
+   loads .wav in PATH into global buffer cache under KEY
    KEY is symbolicated, to for example keep an uppercase???
    PATH is relative to *FX-PATH* or absolute."
-  (when-let* ((symbol (alexandria:symbolicate key))
-              (path   (fx-guess-path path))
-              (buf    (bbuffer-load path symbol)))
+  (when-let* ((path   (fx-guess-path path))
+              (buf    (bbuffer-load path key)))
     buf))
+
+(defun fx-load-all ()
+  (loop :for dir :in (uiop:subdirectories *fx-path*)
+        :for letter := (lastcar (pathname-directory dir))
+        :if (str:alphap letter)
+        :do (fx-load (merge-pathnames dir "lower") letter)
+            (fx-load (merge-pathnames dir "upper") (str:upcase letter)))
+  (loop :for dir :in (uiop:subdirectories (merge-pathnames *fx-path* "_"))
+        :for letter := (lastcar (pathname-directory dir))
+        :for letter-symbol := (cdr (assoc letter *fx-non-alpha-sounds* :test #'equal))
+        :do (fx-load dir letter-symbol)))
 
 (defun fx-load (path key)
   "loads .wav in PATH into the *FX-SAMPLES* hash cache under KEY
    VALUE is and extendable array that keeps each sample for KEY
    PATH can be a .wav file or a directory"
-  (let ((resolved-path (fx-guess-path path)))
+  (let ((resolved-path (fx-guess-path path))
+        (key (if (stringp key) (char key 0) key)))
     (cond ((uiop:directory-exists-p resolved-path)
            (remhash key *fx-samples*)
-           (loop :for file :in (uiop:directory-files resolved-path "*.wav")
+           (loop :for file :in (uiop:directory-files
+                                (uiop:directory-exists-p resolved-path); ensure abs
+                                "*.wav")
                  :do (fx-load file key)))
           ((uiop:file-exists-p resolved-path)
            (let ((buffer (bbuffer-load resolved-path)))
