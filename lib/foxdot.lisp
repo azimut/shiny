@@ -455,31 +455,49 @@
                                       (mod sample n-elements)))))
     buf))
 
-(defun fx-play (name &rest rest &key (sample 0) &allow-other-keys)
-  (cond ((atom name)
-         (when-let* ((buffers   (gethash name *fx-samples*))
-                     (n-buffers (fill-pointer buffers))
-                     (buffer    (aref buffers (mod sample n-buffers))))
-           (apply #'bbplay buffer rest)))
-        ((and (listp name) (not (null name)))
-         (let* ((n-sounds (length name))
-                (offsets  (loop :repeat n-sounds
-                                :for i :from 0d0 :by (/ 1d0 n-sounds)
-                                :summing i :into total
-                                :collect total)))
-           (mapcar (lambda (n o)
-                     (declare (type double-float o))
-                     (aat (+ (now) (calc-beats o))
-                          #'fx-play n sample rest))
-                   name
-                   offsets)))))
+(defun resolve-patterns-in-list (list)
+  (declare (type list list))
+  (if (some #'cm:pattern? list)
+      (resolve-patterns-in-list (mapcar #'cm:next list))
+      list))
+
+(defun fx-play (key &rest rest &key (sample 0) (dur 1) &allow-other-keys)
+  (etypecase key
+    (cm::pattern (apply #'fx-play (next key) rest)) ;; when this happens?
+    (string
+     (apply #'fx-play (char key 0) rest))
+    (character
+     (when-let* ((buffers   (gethash key *fx-samples*))
+                 (n-buffers (fill-pointer buffers))
+                 (buffer    (aref buffers (mod sample n-buffers))))
+       (remf rest :sample)
+       (remf rest :dur)
+       (apply #'bbplay buffer rest)))
+    (list
+     (when-let* ((_        key)
+                 (sounds   (resolve-patterns-in-list key))
+                 (n-sounds (length sounds))
+                 (offsets  (loop :repeat n-sounds
+                                 :for i :from 0d0 :by (/ (coerce dur 'double-float)
+                                                         n-sounds)
+                                 :summing i :into total
+                                 :collect total)))
+       (mapcar (lambda (n o)
+                 (declare (type double-float o))
+                 (apply #'at
+                        (+ (now) (calc-beats o))
+                        #'fx-play
+                        n
+                        rest))
+               key
+               offsets)))))
 
 ;;--------------------------------------------------
 ;; Pattern support similar to the one that Foxdot's
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*+~/.]" (return (values :variable     (intern $@))))
+  ("[A-Za-z-@_*+~/.]" (return (values :variable     (char $@ 0))))
   ("<"             (return (values :left-pat     :left-pat)))
   (">"             (return (values :right-pat    :right-pat)))
   ("\\["           (return (values :left-square  :left-square)))
@@ -502,9 +520,13 @@
 (defun mc (&rest elements)
   (cm:new cm:cycle :of elements :for 1))
 (defun mw (&rest elements)
-  (cm:new cm:weighting :of elements :for 1))
+  (let ((weighted-elements ;; accept plain lists, like for []
+          (loop :for e :in elements
+                :collect (list e :weight 1))))
+    (cm:new cm:weighting :of weighted-elements :for 1)))
 (defun mh (&rest elements)
-  (cm:new cm:heap :of elements :for 1))
+  ;;(cm:new cm:heap :of elements :for 1)
+  elements)
 
 ;; Took from comments on clojure's flatten page
 (defun flat-1 (list)
@@ -552,7 +574,7 @@
   (heap   (:left-square expression :right-square
                         (lambda (_l e _r) (declare (ignore _l _r))
                           (format t "heap: ~a~%" e)
-                          (cons 'mh e))))
+                          (cons 'list e))))
   (random (:left-brace expression :right-brace
                        (lambda (_l e _r) (declare (ignore _l _r))
                          (format t "random: ~a~%" e)
@@ -583,6 +605,9 @@
     (if eval
         (if (length= 1 cm-patterns) (first cm-patterns) cm-patterns)
         (if (length= 1 lisp-patterns) (first lisp-patterns) lisp-patterns))))
+
+(defun fx-pats (pat &optional (eval t))
+  (ensure-list (fx-pat pat eval)))
 
 (defun fx-parse (sym)
   (declare (type symbol sym))
@@ -635,3 +660,5 @@
 ;; def rarely(self, *args, **kwargs):
 ;; """ Calls a method every 16 to 32 beats using `every` """
 ;; return self.every(PRand(32, 64)/2, *args, **kwargs)
+
+
