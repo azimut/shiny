@@ -3,6 +3,20 @@
 
 ;; (midihelper:start-midihelper)
 
+(defvar *alsaseq* nil)
+(defun alsaseq-start ()
+  (unless *alsaseq*
+    (midihelper:start-midihelper)
+    (setf *alsaseq* t)))
+
+(defun alsaseq-pgmchange (channel program)
+  (midihelper:send-event (midihelper:ev-pgmchange channel program)))
+
+(defun alsaseq-pan (channel pan)
+  (midihelper:send-event (midihelper:ev-cc channel 10 pan)))
+
+(midihelper:send-event (midihelper:ev-pgmchange 0 52))
+
 ;; (p)
 ;; remove pan
 ;; replace method name
