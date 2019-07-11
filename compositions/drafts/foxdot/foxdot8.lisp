@@ -1,0 +1,66 @@
+(in-package #:shiny)
+
+(setf *fx-path* "/home/sendai/.local/lib64/python3.4/site-packages/FoxDot/snd/")
+(fx-clear t)
+
+(fx-load "_/hyphen/0_hihat_closed.wav" "-")
+(fx-load "v/upper/" "V")
+(fx-load "s/lower/" "s")
+(fx-load "o/upper/" "O")
+(fx-load "u/lower/" "u")
+(fx-load "_/plus/"  "+")
+(fx-load "_/at/"    ".")
+
+;; d1 >> play("
+;; <Vs>
+;; <[--]>
+;; <.{.+[ +]}O( [( u)O])>", lpf=var([0,1000],[28,4]))
+(let ((var (var '(0 1000) '(28 4))))
+  (destructuring-bind (p1 p2 p3)
+      (fx-pats "<Vs><[--]><.{.+[ +]}O( [( u)O])>")
+    (defun d1 (time)
+      (fx-play (next p1) :lpf (next var) :amp .1 :sample (pick 0 2))
+      (fx-play (next p2) :lpf (next var) :dur .5 :amp .1)
+      (fx-play (next p3) :lpf (next var) :dur .5 :amp .05)
+      (aat (+ time #[.5 b]) #'d1 it))))
+(aat (tempo-sync #[.5 b]) #'d1 it)
+(defun d1 ())
+;; P([3,4,5,4],7,[9,9,9,10]) is like a vector multiplication...
+;; [3,7,9] [4,7,9] [5,7,9] [4,7,10]
+;; p1 >> keys(([3,4,5,4],7,[9,9,9,10]), dur=4, spin=8, tremolo=4, room=1, amp=2)
+(let ((notes (make-cycle
+              (make-var '((3 4 5 7)
+                          7
+                          (9 9 9 10))
+                        1))))
+  (defun p1 (time)
+    (clc 23 (transpose (next notes 3) 60) 30 .5)
+    (aat (+ time #[2 b]) #'p1 it)))
+(aat (tempo-sync #[2 b]) #'p1 it)
+(defun p1 ())
+;; p2 >> sawbass(var([1,0,-2,-4],4), dur=1/2, amp=[1,1,0,1]).sometimes("amp.trim", 3)
+;; p3 >> star(p2.pitch + (P[1,0,1,0,1,0,0,2,1,0]), dur=PDur([5,1,2,2],8)*2, sus=2, oct=6)
+(let ((var  (var '(1 0 -2 -4) 4))
+      (amp  (make-cycle '(1 1 0 1)))
+      (amp2 (make-cycle '(1 1 0)))
+      ;;
+      (off  (make-cycle '(1 0 1 0 1 0 0 2 1 0)))
+      (dur  (make-cycle '(2.5 .5 1 1))))
+  (defun p2 (time)
+    (clc 22 (transpose (next var) 60)
+         (* (if (sometimes) (next amp2) (next amp))
+            30)
+         .125)
+    (aat (+ time #[.25 b]) #'p2 it))
+  (defun p3 (time)
+    (let ((d (next dur)))
+      (clc 12 (+ (transpose (next var) (+ 60 24))
+                 (next off))
+           10 (* 2 d))
+      (aat (+ time #[d b]) #'p3 it))))
+(aat (tempo-sync #[.5 b]) #'p2 it)
+(defun p2 ())
+(aat (tempo-sync #[2.5 b]) #'p3 it)
+(defun p3 ())
+;; # Add for some variety
+;; p3.sometimes("offadd", 4) + var([0,2],[PRand([0,2,4])])

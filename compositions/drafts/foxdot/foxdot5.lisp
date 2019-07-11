@@ -18,8 +18,8 @@
 (setf (bpm *tempo*) 160d0)
 
 ;; d1 >> play(P["V::"][:16] & P["<v ><  |o1| >"], drive=0.1, rate=1.2)
-(destructuring-bind (p1 p2 p3) (cons (make-cycle (repeat 16 '(V _ _)))
-                                     (fx-pat "<v ><  o >"))
+(destructuring-bind (p1 p2 p3)
+    (fx-pat "<(_v)__(Vv)><v ><  o >")
   (defun f (time)
     (bbplay (next p1) :amp .1 :rate 1.2)
     (bbplay (next p2) :amp .4 :rate 1.2)
@@ -41,7 +41,7 @@
 ;; these will work better (or at all) on synth
 ;; b1 >> bass(dur=1/4, formant=PRand(8)[:8], rate=PRand(5,10)[:8], pan=PWhite(-1,1))
 (fp 2 0)
-(let ((vel (make-line (iota 50 :start 0)))
+(let ((vel (make-line (iota 40 :start 0)))
       (m1  (make-metre '(8 4 2) .5)))
   (defun bass (time)
     (if (funcall m1 time 1)
