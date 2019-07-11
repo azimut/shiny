@@ -103,7 +103,9 @@
   (:method ((l list) (n list))
     (loop :for item :in l
           :append (prog1 (loop :repeat (car n) :collect item)
-                    (setf n (alexandria:rotate n))))))
+                    (setf n (alexandria:rotate n)))))
+  (:method (l (n fixnum))
+    (repeat n (ensure-list l))))
 ;;------------------------------
 ;; arp(seq)
 (defun fx-arp (l n)
@@ -433,9 +435,8 @@
         (key (if (stringp key) (char key 0) key)))
     (cond ((uiop:directory-exists-p resolved-path)
            (remhash key *fx-samples*)
-           (loop :for file :in (uiop:directory-files
-                                (uiop:directory-exists-p resolved-path); ensure abs
-                                "*.wav")
+           (loop :for file :in (uiop:directory-files ;; ensure trailing slash
+                                (uiop:directory-exists-p resolved-path))
                  :do (fx-load file key)))
           ((uiop:file-exists-p resolved-path)
            (let ((buffer (bbuffer-load resolved-path)))
@@ -497,7 +498,8 @@
 ;; play() provides
 
 (cl-lex:define-string-lexer foxdot-lexer
-  ("[A-Za-z-@_*+~/.]" (return (values :variable     (char $@ 0))))
+  ("[A-Za-z-@_*+~/:&|^$=!/#%?~\\\\.1234]"
+   (return (values :variable     (char $@ 0))))
   ("<"             (return (values :left-pat     :left-pat)))
   (">"             (return (values :right-pat    :right-pat)))
   ("\\["           (return (values :left-square  :left-square)))
@@ -598,9 +600,8 @@
                             (progn
                               (format t "NOTE: forcing pattern between \< \>~%")
                               (format NIL "\<~a\>" pat))))
-         (lisp-patterns (print
-                         (yacc:parse-with-lexer (foxdot-lexer raw-patterns)
-                                                foxdot-parser)))
+         (lisp-patterns (yacc:parse-with-lexer (foxdot-lexer raw-patterns)
+                                               foxdot-parser))
          (cm-patterns   (mapcar #'eval lisp-patterns)))
     (if eval
         (if (length= 1 cm-patterns) (first cm-patterns) cm-patterns)
@@ -626,20 +627,17 @@
    > (defvar *var1* (var '(1 2) 4))
    > (funcall *var1*)
    1
-   > (funcall *var1*)
+   > (cm:next *var1*)
    2"
   (declare (type list vars))
-  (let ((start-beat
-          (/ (node-uptime 0)
-             (* *SAMPLE-RATE* (* (SAMPLE 1) (SPB *TEMPO*)))))
+  (let ((start-beat (beat))
         (current-beat  0d0)
         (elapsed-beats 0d0)
         (var-index  0)
         (beat-index 0)
         (beats (ensure-list n-beats)))
     (lambda ()
-      (setf current-beat  (/ (node-uptime 0)
-                             (* *SAMPLE-RATE* (* (SAMPLE 1) (SPB *TEMPO*)))))
+      (setf current-beat  (beat))
       (setf elapsed-beats (- current-beat start-beat))
       ;;
       (when (> elapsed-beats (nth beat-index beats))
@@ -648,6 +646,65 @@
         (setf beat-index (mod (1+ beat-index) (length beats))))
       (nth var-index vars))))
 
+;; Like csound nth-beat but accepts 2 lists
+(defun ivar (vars at-beats)
+  "Inplace var()"
+  (let* ((vars      (ensure-list vars))
+         (n-vars    (length vars))
+         (at-beats  (repeat n-vars (ensure-list at-beats)))
+         (beat      (beat))
+         (sum       (reduce #'+ at-beats))
+         (curr-beat (mod beat sum))
+         (sum-beats (loop :for i :in at-beats :summing i :into all :collect all))
+         (var-pos   (position-if (lambda (n) (< curr-beat n))
+                                 sum-beats)))
+    (nth var-pos vars)))
+
+(defun linvar (vars n-beats)
+  (declare (type list vars))
+  (let ((start-beat (beat))
+        (current-beat  0d0)
+        (elapsed-beats 0d0)
+        (var-index  0)
+        (beat-index 0)
+        (beats (ensure-list n-beats)))
+    (lambda ()
+      (setf current-beat  (beat))
+      (setf elapsed-beats (- current-beat start-beat))
+      ;;
+      (when (> elapsed-beats (nth beat-index beats))
+        (setf start-beat current-beat)
+        (setf var-index  (mod (1+ var-index)  (length vars)))
+        (setf beat-index (mod (1+ beat-index) (length beats))))
+      (alexandria:lerp (/ elapsed-beats (nth beat-index beats))
+                       (nth 0 vars)
+                       (nth 1 vars)))))
+
+;; FIXME: fix lerp from 0-1 to 0-1-0
+(defun ilinvar (vars n-beat)
+  "Inplace linvar()"
+  (declare (type list vars)
+           (type number n-beat))
+  (assert (length= 2 vars))
+  (let ((beat (mod (beat) n-beat)))
+    (coerce (alexandria:lerp (/ beat n-beat)
+                             (nth 0 vars)
+                             (nth 1 vars))
+            'single-float)))
+
+(defun often ()
+  (= (mod (beat) 32)
+     (serapeum:random-in-range 1 8)))
+
+(defun sometimes ()
+  (and (= (mod (beat) 32)
+          (serapeum:random-in-range 8 32))))
+
+(defun rarely ()
+  (= (mod (beat) 32)
+     (serapeum:random-in-range 32 64)))
+
+;;.sometimes("amp.trim", 3)
 
 ;; def often(self, *args, **kwargs):
 ;; """ Calls a method every 1/2 to 4 beats using `every` """
@@ -661,4 +718,11 @@
 ;; """ Calls a method every 16 to 32 beats using `every` """
 ;; return self.every(PRand(32, 64)/2, *args, **kwargs)
 
+;; def every(self, n, cmd, args=()):
+;;   def event(f, n, args):
+;;     f(*args)
+;;     self.schedule(event, self.now() + n, (f, n, args))
+;;     return
+;;   self.schedule(event, self.now() + n, args=(cmd, n, args))
+;;   return
 
