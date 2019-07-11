@@ -161,7 +161,7 @@
   "buffer-load wrapper for global hash caching and easy access
   FILENAME is a normal string of a path where to load the file
   (bbuffer-load \"/home/sendai/curso/furi-dream-cc.wav\")"
-  (declare (string filename))
+  (declare (type (or string pathname) filename))
   (let* ((filepath (resolve-path filename))
          (hkey     (if alias-key
                        alias-key
@@ -197,7 +197,7 @@
    RPITCH bends the whole buffer rate to play to the new pitch offset
    START-POS in samples
    BEAT-LENGTH stretch the whole buffer to play for N beats"
-  (when (or (symbolp buf) (stringp buf))
+  (when (or (symbolp buf) (stringp buf) (characterp buf))
     (let ((b (gethash buf *buffers*)))
       (when b
         (setf buf b))))
