@@ -53,6 +53,16 @@ C Foreign Function Interface allows languages, in this case lisp, to interact wi
 ![*CFFI - We load the binary blob of a C library, .so on Linux, and within our lisp program (the ghost in the illustration) we poke and call different functions defined on them.- Illustration by Keist Zenon https://youtu.be/lvHi5LyhxGk*](static/cffi.jpg)
 *CFFI - We load the binary blob of a C library, .so on Linux, and within our lisp program (the ghost in the illustration) we poke and call different functions defined on them.- Illustration by Keist Zenon https://youtu.be/lvHi5LyhxGk*
 
+## Limitations
+
+One of the features that might help to make a livecoding language is the overload of common operators like `+` or `-` to work between different kind of objects that aren't the implemented by the programming language.
+
+Function overloading by number of arguments is something that could be desired in a livecoding language as a way to call the same function with more or less context.
+
+Lisp's single threaded compiler makes it so the world has to stop when new code is being compiled.
+
+First 2 issues can be workaround with macros, usage of `&optional` or a grammar parser. But the last one is and will remain (? a big limitation for these kind of one-in-all systems.
+
 # Libraries and tools
 
 ## Common Music 2
@@ -64,7 +74,7 @@ C Foreign Function Interface allows languages, in this case lisp, to interact wi
 - Markov analyze function
 
 - Random functions with different distributions (odds,ran,between)
-  
+
 There is also [nudruz](https://github.com/gogins/csound-extended/tree/develop/nudruz) that extends CM2 by using the non-deterministic lisp library [screamer](https://github.com/nikodemus/screamer). In this case non-deterministic can mean, "I want a chord that follows this and that rule" where there are more than one answer to be given.
 
 ## AlsaMIDI/Fluidsynth
@@ -72,7 +82,7 @@ There is also [nudruz](https://github.com/gogins/csound-extended/tree/develop/nu
 Fluidsynth is a program to read and play soundfonts (.sf2). This is another program we can use though cffi calls or through [AlsaMIDI](https://alsa.opensrc.org/AlsaMidi).
 
 A fork of Tito Latini's cl-fluidsynth works stand alone is found [here](https://github.com/patterkyle/cl-fluidsynth).
-A alsa midi library is at [cl-alsaseq](https://github.com/defaultxr/cl-alsaseq) 
+A alsa midi library is at [cl-alsaseq](https://github.com/defaultxr/cl-alsaseq)
 f
 Both libraries provide functions to start and to stop a midi note.
 
@@ -188,6 +198,8 @@ While this was focused on live-coding based on Common Lisp, there are other lisp
 - Slippery Chicken: Common Lisp - http://michael-edwards.org/sc/
 
 - Common Lisp Music - Common Lisp - https://ccrma.stanford.edu/software/clm/
+
+- Megra - Common Lisp - https://github.com/the-drunk-coder/megra
 
 ## Visual Oriented
 
