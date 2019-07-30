@@ -33,24 +33,14 @@
           (loop :for e :in elements
                 :collect (list e :weight 1))))
     (cm:new cm:weighting :of weighted-elements :for 1)))
-(defun mh (&rest elements)
-  ;;(cm:new cm:heap :of elements :for 1)
-  elements)
 
-;; Took from comments on clojure's flatten page
-(defun flat-1 (list)
-  (mapcat (alexandria:compose #'ensure-list #'identity)
-          list))
-
-;; Shitty version that only accepts () and {},
-;;  plus [] for heaps?
 (yacc:define-parser foxdot-parser
   (:start-symbol expression)
   (:terminals
-   (:left-pat    :right-pat    ;; <> - pattern (also cycles)
+   (:left-pat    :right-pat    ;; <> - pattern (also cycle)
     :left-paren  :right-paren  ;; () - cycle
     :left-brace  :right-brace  ;; {} - random
-    :left-square :right-square ;; [] - heap
+    :left-square :right-square ;; [] - list
     :null :variable))
   (expression (term #'list) ;; NOTE: hardcoded list since it doesn't work otherwise
               (term expression
@@ -78,19 +68,19 @@
           group)
   (cycle  (:left-paren expression :right-paren
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (verbose:debug "cycle: ~a~%" e)
+                         (verbose:debug :foxdot "cycle: ~a~%" e)
                          (cons 'mc e))))
   (heap   (:left-square expression :right-square
                         (lambda (_l e _r) (declare (ignore _l _r))
-                          (verbose:debug "heap: ~a~%" e)
+                          (verbose:debug :foxdot "heap: ~a~%" e)
                           (cons 'list e))))
   (random (:left-brace expression :right-brace
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (verbose:debug "random: ~a~%" e)
+                         (verbose:debug :foxdot "random: ~a~%" e)
                          (cons 'mw e))))
   (group  (:left-pat   expression :right-pat
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (verbose:debug "group: ~a~%" e)
+                         (verbose:debug :foxdot "group: ~a~%" e)
                          (cons 'mc e)))))
 
 
@@ -116,9 +106,3 @@
 
 (defun fx-pats (pat &optional (eval t))
   (ensure-list (fx-pat pat eval)))
-
-(defun fx-parse (sym)
-  (declare (type symbol sym))
-  (if (eq '- sym)
-      NIL
-      T))

@@ -102,7 +102,9 @@
   :version "0.1"
   :serial t
   :depends-on (#:shiny #:cl-lex #:yacc)
-  :components ((:file "lib/foxdot")))
+  :components ((:file "lib/foxdot/foxdot")
+               (:file "lib/foxdot/foxdot-grammar")
+               (:file "lib/foxdot/foxdot-play")))
 
 (asdf:defsystem "shiny/csound-live-code"
   :author "azimut <azimut.github@protonmail.com>"

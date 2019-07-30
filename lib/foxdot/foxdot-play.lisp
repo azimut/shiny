@@ -33,7 +33,8 @@
     ("1"            . "1")
     ("2"            . "2")
     ("3"            . "3")
-    ("4"            . "4")))
+    ("4"            . "4"))
+  "alist of sample folder name to symbol string used in fx-play")
 
 (defun fx-guess-path (path)
   (if (uiop:absolute-pathname-p path)
@@ -47,28 +48,8 @@
     (clean-buffers))
   t)
 
-(defun fx-load-simple (path key)
-  "DEPRECATED
-   loads .wav in PATH into global buffer cache under KEY
-   KEY is symbolicated, to for example keep an uppercase???
-   PATH is relative to *FX-PATH* or absolute."
-  (when-let* ((path   (fx-guess-path path))
-              (buf    (bbuffer-load path key)))
-    buf))
-
-(defun fx-load-all ()
-  (loop :for dir :in (uiop:subdirectories *fx-path*)
-        :for letter := (lastcar (pathname-directory dir))
-        :if (str:alphap letter)
-        :do (fx-load (merge-pathnames dir "lower") letter)
-            (fx-load (merge-pathnames dir "upper") (str:upcase letter)))
-  (loop :for dir :in (uiop:subdirectories (merge-pathnames *fx-path* "_"))
-        :for letter := (lastcar (pathname-directory dir))
-        :for letter-symbol := (cdr (assoc letter *fx-non-alpha-sounds* :test #'equal))
-        :do (fx-load dir letter-symbol)))
-
 (defun fx-load (path key)
-  "loads .wav in PATH into the *FX-SAMPLES* hash cache under KEY
+  "loads sounds in PATH into the *FX-SAMPLES* hash cache under KEY
    VALUE is and extendable array that keeps each sample for KEY
    PATH can be a .wav file or a directory"
   (let ((resolved-path (fx-guess-path path))
@@ -87,14 +68,17 @@
                  (setf (gethash key *fx-samples*) init)))))
           (t (error "PATH provides not valid...")))))
 
-(defun fx-buf (symbol &optional (sample 0))
-  "returns buffer under symbol on *FX-SAMPLES*"
-  (when-let* ((elements (gethash symbol *fx-samples*))
-              (n-elements (1- (fill-pointer elements)) )
-              (buf (aref elements (if (= n-elements 0)
-                                      0
-                                      (mod sample n-elements)))))
-    buf))
+(defun fx-load-all ()
+  "loads all sounds in *FX-PATH* into *FX-SAMPLES*"
+  (loop :for dir :in (uiop:subdirectories *fx-path*)
+        :for letter := (lastcar (pathname-directory dir))
+        :if (str:alphap letter)
+        :do (fx-load (merge-pathnames dir "lower") letter)
+            (fx-load (merge-pathnames dir "upper") (str:upcase letter)))
+  (loop :for dir :in (uiop:subdirectories (merge-pathnames *fx-path* "_"))
+        :for letter := (lastcar (pathname-directory dir))
+        :for letter-symbol := (cdr (assoc letter *fx-non-alpha-sounds* :test #'equal))
+        :do (fx-load dir letter-symbol)))
 
 (defun resolve-patterns-in-list (list)
   (declare (type list list))
