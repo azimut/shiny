@@ -7,9 +7,10 @@
   :depends-on (#:incudine
                #:cl-ppcre
                #:cl-arrows
+               #:cm
                #:serapeum
                #:str
-               #:cm)
+               #:verbose)
   :components ((:file "package")
                (:file "lib/musicutils")
                (:file "lib/extempore")
