@@ -363,13 +363,13 @@
 ;;        :do )))
 
 ;; TODO: a more similar mapping of file and sample number.
-(defparameter *fx-samples* (make-hash-table)
+(defvar *fx-samples* (make-hash-table)
   "Hash with array of buffers.")
-(defvar *fx-path* "/home/sendai/projects/FoxDot/FoxDot/snd/"
+(defvar *fx-path* "/home/sendai/.local/lib64/python3.4/site-packages/FoxDot/snd/"
   "Directory where to search for FoxDot samples, overwrite as needed.")
 
 ;; lib/Buffers.py
-(defparameter *fx-non-alpha-sounds*
+(defvar *fx-non-alpha-sounds*
   '(("semicolon"    . ":")
     ("ampersand"    . "&")
     ("asterix"      . "*")
@@ -464,7 +464,8 @@
 
 (defun fx-play (key &rest rest &key (sample 0) (dur 1) &allow-other-keys)
   (etypecase key
-    (cm::pattern (apply #'fx-play (next key) rest)) ;; when this happens?
+    (cm::pattern
+     (apply #'fx-play (next key) rest)) ;; when this happens?
     (string
      (apply #'fx-play (char key 0) rest))
     (character
@@ -548,7 +549,7 @@
   (expression (term #'list) ;; NOTE: hardcoded list since it doesn't work otherwise
               (term expression
                     (lambda (a b)
-                      (format t "dig: ~a || ~a~%" a b)
+                      (verbose:debug :foxdot "dig: ~a || ~a~%" a b)
                       (cond ((and (atom  a) (listp b)) (append (list a) b))
                             ((and (listp a) (atom  b)) (append a (list b)))
                             ((and (atom  a) (atom  b)) (list a b))
@@ -563,7 +564,7 @@
                             (t (cons a b))))))
   (term   :null
           (:variable (lambda (x)
-                       (format t "quote: ~a~%" x)
+                       (verbose:debug :foxdot "quote: ~a~%" x)
                        `(quote ,x)))
           cycle
           heap
@@ -571,19 +572,19 @@
           group)
   (cycle  (:left-paren expression :right-paren
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (format t "cycle: ~a~%" e)
+                         (verbose:debug "cycle: ~a~%" e)
                          (cons 'mc e))))
   (heap   (:left-square expression :right-square
                         (lambda (_l e _r) (declare (ignore _l _r))
-                          (format t "heap: ~a~%" e)
+                          (verbose:debug "heap: ~a~%" e)
                           (cons 'list e))))
   (random (:left-brace expression :right-brace
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (format t "random: ~a~%" e)
+                         (verbose:debug "random: ~a~%" e)
                          (cons 'mw e))))
   (group  (:left-pat   expression :right-pat
                        (lambda (_l e _r) (declare (ignore _l _r))
-                         (format t "group: ~a~%" e)
+                         (verbose:debug "group: ~a~%" e)
                          (cons 'mc e)))))
 
 
@@ -598,7 +599,7 @@
                                  (char= #\> (aref pat (1- (length pat)))))
                             pat
                             (progn
-                              (format t "NOTE: forcing pattern between \< \>~%")
+                              (verbose:debug :foxdot "forcing pattern between \< \>~%")
                               (format NIL "\<~a\>" pat))))
          (lisp-patterns (yacc:parse-with-lexer (foxdot-lexer raw-patterns)
                                                foxdot-parser))
