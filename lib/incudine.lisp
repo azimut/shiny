@@ -36,8 +36,25 @@
                        (1+ index) (first name2)  value2))))
   (values))
 
+;; BEATS
 (declaim (inline calc-beats))
 (defun calc-beats (offset)
   (declare ;;(type alexandria:non-negative-real offset)
    (optimize (speed 3)))
   (the double-float (* *SAMPLE-RATE* (* (sample offset) (spb *TEMPO*)))))
+
+
+;; SECONDS
+;; (declaim (inline calc-beats))
+;; (defun calc-beats (offset)
+;;   (declare ;;(type alexandria:non-negative-real offset)
+;;    (optimize (speed 3)))
+;;   (the double-float (* *SAMPLE-RATE* offset)))
+
+(defun beat ()
+  "returns the current beat, double precision"
+  (declare (type double-float *sample-rate*))
+  (/ (now) (* *sample-rate* (spb *tempo*))))
+(defun rbeat ()
+  "returns the current beat, floor to integer"
+  (floor (beat)))
