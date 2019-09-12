@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rootElement>
+	<bookmark row="57" />
+	<bookmark row="96" />
+	<bookmark row="201" />
+	<bookmark row="441" />
+	<bookmark row="678" />
+	<loopmark row="678" />
+	<group name="variation1:" />
+<tracks rows="10000" startRow="0" endRow="10000" rowsPerBeat="8"
+beatsPerMin="125">
+	<track name="mandelbrot:center.y" folded="0" muteKeyCount="0"
+color="ffb27474">
+		<key row="0" value="0.500000" interpolation="1" />
+		<key row="56" value="0.790000" interpolation="0" />
+		<key row="57" value="0.490000" interpolation="1" />
+		<key row="95" value="0.290000" interpolation="0" />
+		<key row="96" value="0.190000" interpolation="1" />
+		<key row="200" value="0.020000" interpolation="0" />
+		<key row="201" value="0.560000" interpolation="1" />
+		<key row="440" value="0.660000" interpolation="0" />
+	</track>
+	<track name="mandelbrot:center.x" folded="0" muteKeyCount="0"
+color="ffb28050">
+		<key row="0" value="0.500000" interpolation="1" />
+		<key row="56" value="0.840000" interpolation="0" />
+		<key row="57" value="2.240000" interpolation="0" />
+		<key row="96" value="-0.240000" interpolation="0" />
+		<key row="201" value="0.470001" interpolation="1" />
+		<key row="440" value="0.710000" interpolation="0" />
+	</track>
+	<track name="mandelbrot:scale" folded="0" muteKeyCount="0"
+color="ffa9b250">
+		<key row="0" value="3.000000" interpolation="0" />
+		<key row="57" value="10.000000" interpolation="1" />
+		<key row="95" value="6.000000" interpolation="0" />
+		<key row="96" value="4.000000" interpolation="1" />
+		<key row="200" value="0.500000" interpolation="0" />
+		<key row="201" value="0.100000" interpolation="1" />
+		<key row="440" value="3.000000" interpolation="0" />
+	</track>
+	<track name="variation1:center.x" folded="0" muteKeyCount="0"
+color="ff4fb292">
+		<key row="441" value="27.040001" interpolation="1" />
+		<key row="497" value="4.139989" interpolation="0" />
+	</track>
+	<track name="variation1:center.y" folded="0" muteKeyCount="0"
+color="ff4f71b2">
+		<key row="441" value="-19.950024" interpolation="1" />
+		<key row="497" value="-24.050051" interpolation="0" />
+	</track>
+	<track name="variation1:scale" folded="0" muteKeyCount="0"
+color="ff8850b2">
+		<key row="441" value="258.699921" interpolation="1" />
+		<key row="497" value="150.000000" interpolation="1" />
+		<key row="583" value="1.000000" interpolation="1" />
+		<key row="636" value="0.090000" interpolation="1" />
+		<key row="678" value="0.010000" interpolation="1" />
+		<key row="791" value="-10.000000" interpolation="1" />
+	</track>
+	<track name="variation1:seed.x" folded="0" muteKeyCount="0"
+color="ffb25091">
+		<key row="441" value="37.000000" interpolation="0" />
+		<key row="710" value="37.000000" interpolation="1" />
+		<key row="753" value="36.500008" interpolation="1" />
+	</track>
+	<track name="variation1:seed.y" folded="0" muteKeyCount="0"
+color="ffb27474">
+		<key row="441" value="14.300005" interpolation="1" />
+		<key row="497" value="13.559994" interpolation="0" />
+		<key row="710" value="13.559994" interpolation="2" />
+		<key row="753" value="13.259993" interpolation="2" />
+	</track>
+	<track name="scene" folded="1" muteKeyCount="0" color="ffb28050">
+		<key row="0" value="1.000000" interpolation="0" />
+		<key row="441" value="0.000000" interpolation="0" />
+	</track>
+	<track name="song:main.volume" folded="0" muteKeyCount="0"
+color="ffb28050">
+		<key row="0" value="0.000000" interpolation="1" />
+		<key row="24" value="1.000000" interpolation="0" />
+		<key row="791" value="0.000000" interpolation="0" />
+	</track>
+	<track name="song:sec.appear" folded="0" muteKeyCount="0"
+color="ffa9b250">
+		<key row="0" value="0.000000" interpolation="0" />
+		<key row="56" value="1.000000" interpolation="1" />
+		<key row="95" value="0.600000" interpolation="0" />
+		<key row="678" value="1.000000" interpolation="1" />
+		<key row="753" value="0.000000" interpolation="0" />
+	</track>
+	<track name="song:ter.appear" folded="0" muteKeyCount="0"
+color="ff60b250">
+		<key row="94" value="1.000000" interpolation="0" />
+		<key row="95" value="0.400000" interpolation="1" />
+		<key row="200" value="0.600000" interpolation="0" />
+		<key row="753" value="0.000000" interpolation="0" />
+	</track>
+	<track name="song:cua.appear" folded="0" muteKeyCount="0"
+color="ff4fb292">
+		<key row="200" value="1.000000" interpolation="0" />
+		<key row="201" value="0.650000" interpolation="0" />
+		<key row="791" value="0.000000" interpolation="0" />
+	</track>
+</tracks>
+	</rootElement>
